@@ -188,7 +188,7 @@ def evaluate_prediction(y_true,y_pred,formatation=False):
 
     max_label = max(y_true)
     assert(max_label==9)
-
+    print(y_true)
     C_train = get_cost_matrix(y_pred, y_true, max_label+1)
 
     message = 'val'
@@ -247,7 +247,10 @@ def evaluate_headlist(device,model,dataloader,formatation=False):
 
     targets = torch.cat(label_list)
     targets = targets.detach().cpu().numpy()
+    print('targets.shape: ', targets.shape)
     headlist = [torch.cat(pred) for pred in predictions]
+    print('len = ',len(headlist))
+    print('predictions.shape: ',headlist[0].shape)
 
     accuracies = []
     dicts = []
