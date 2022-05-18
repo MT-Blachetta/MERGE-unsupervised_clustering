@@ -157,7 +157,7 @@ if dataset_type == 'scan':
         from dataset.scan_dataset import STL10
         dataset = STL10(split=split, transform=train_transformation, download=False)
         #eval_dataset = STL10_trainNtest(path='/space/blachetta/data',aug=val_transformations)
-        eval_dataset = STL10(split=split,transform=val_transformations,download=False)
+        eval_dataset = STL10(split='train',transform=val_transformations,download=False)
 
     elif p['train_db_name'] == 'imagenet':
         from dataset.scan_dataset import ImageNet
