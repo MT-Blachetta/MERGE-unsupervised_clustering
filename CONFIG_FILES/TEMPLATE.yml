@@ -1,6 +1,8 @@
 setup: multiHeadTwist01
 
-neighbor_prefix: scatnet 
+epochs: 100
+batch_size: 512
+
 
 train_method: multitwist 
 
@@ -54,8 +56,7 @@ optimizer: adam
 optimizer_kwargs:
    lr: 0.0001
    weight_decay: 0.0001
-epochs: 100
-batch_size: 256
+
 num_workers: 8
 
 # Scheduler
@@ -88,3 +89,5 @@ loss_args:
     tau: 1.0
     EPS: 0.00001
     
+    
+neighbor_prefix: scatnet 
