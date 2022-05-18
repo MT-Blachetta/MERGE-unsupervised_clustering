@@ -19,6 +19,7 @@ from utils.evaluate_utils import get_predictions, scan_evaluate, hungarian_evalu
 
 
 FLAGS = argparse.ArgumentParser(description='loss training')
+FLAGS.add_argument('-gpu',help='number as gpu identifier')
 FLAGS.add_argument('-p',help='prefix file selection')
 FLAGS.add_argument('--config_env', help='Location of path config file')
 FLAGS.add_argument('--config_exp', help='Location of experiments config file')
@@ -28,6 +29,7 @@ FLAGS.add_argument('--pretrain_path', help='filename or path of the pretrained m
 args = FLAGS.parse_args()
 p = create_config(args.config_env, args.config_exp, args.p)
 prefix = args.p
+gpu_id = args.gpu
 
 num_cluster = p['num_classes']
 fea_dim = p['feature_dim']
@@ -352,6 +354,9 @@ else: raise ValueError
 """ --------------- TRAINING --------------- """
 
 train_method = p['train_method']
+p['train_args'] = {}
+p['train_args']['device'] = 'cuda'
+p['train_args']['gpu_id'] = gpu_id
 p['train_args']['update_cluster_head_only'] = p['update_cluster_head_only']
 p['train_args']['local_crops_number'] = p['augmentation_kwargs']['local_crops_number']
 p['train_args']['aug'] = p['augmentation_strategy']
@@ -396,7 +401,7 @@ best_loss_head = None
 best_epoch = 0
 best_accuracy = 0
 head_accuracy = None
-device_id = 'cuda:'+str(p['train_args']['gpu_id'])
+device_id = 'cuda:'+str(gpu_id)
 
     # Main loop
 print(colored('Starting main loop', 'blue'))

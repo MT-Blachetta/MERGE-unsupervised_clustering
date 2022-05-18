@@ -90,6 +90,4 @@ loss_args:
     tau: 1.0
     EPS: 0.00001
     
-train_args:
-    device: cuda
-    gpu_id: 0
+
