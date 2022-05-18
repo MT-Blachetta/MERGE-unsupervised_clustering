@@ -401,7 +401,10 @@ best_loss_head = None
 best_epoch = 0
 best_accuracy = 0
 head_accuracy = None
+best_model_dict = {}
 device_id = 'cuda:'+str(gpu_id)
+
+# start_epoch, best_loss, best_loss_head = resume_from_checkpoint(model,optimizer,p['scan_checkpoint'])
 
     # Main loop
 print(colored('Starting main loop', 'blue'))
@@ -429,12 +432,9 @@ for epoch in range(start_epoch, p['epochs']):
             print(scan_stats)
             #lowest_loss_head = scan_stats['lowest_loss_head']
             #lowest_loss = scan_stats['lowest_loss']
-        else:
-            result = evaluate_headlist(device_id,model,val_dataloader)
-            if best_accuracy < result['ACC']:
-                best_accuracy = result['ACC']
-                head_accuracy = result['head_id']
-                print('best accuracy: ', best_accuracy,'  on head ',head_accuracy)
+        else: result_dicts = evaluate_headlist(device_id,model,val_dataloader)
+            #if best_accuracy < result['ACC']:
+            #head_accuracy = result['head_id']                
 
         if c_loss < best_loss:
             print('New lowest loss on validation set: %.4f -> %.4f' %(best_loss, c_loss))
@@ -442,9 +442,20 @@ for epoch in range(start_epoch, p['epochs']):
             best_loss = c_loss
             best_loss_head = best_head
             best_epoch = epoch
-            torch.save( model.cluster_head[best_loss_head].state_dict(), prefix+'_best_mlp.pth' )
-            torch.save({'model': model.state_dict(), 'head': best_loss_head}, p['scan_model'])
 
+            if train_method == 'scan':
+                torch.save({'model': model.state_dict(), 'head': best_loss_head}, p['scan_model'])
+            else:
+                result = result_dicts[best_loss_head]
+                best_accuracy = result['ACC']
+                print('\nLOSS accuracy: ', best_accuracy,'  on head ',best_loss_head)
+                best_model_dict = result
+
+            if p['update_cluster_head_only']:
+                torch.save( model.cluster_head[best_loss_head].state_dict(), prefix+'_best_mlpHead.pth')
+            else:
+                torch.save(model.state_dict(),prefix+'_best_MODEL')
+            
         else:
             print('No new lowest loss on validation set')
             print('Lowest loss head is %d' %(best_loss_head))
@@ -459,7 +470,13 @@ for epoch in range(start_epoch, p['epochs']):
 
         if c_loss < best_loss:
             best_loss = c_loss
-            torch.save(model.state_dict(),prefix+'_best_model.pth')
+
+            if p['update_cluster_head_only']:
+                torch.save(model.head.state_dict(),prefix+'_best_mlpHead.pth')                
+            else:
+                torch.save(model.state_dict(),prefix+'_best_model.pth')
+
+            
 
     #print('Evaluate with hungarian matching algorithm ...')
     #clustering_stats = hungarian_evaluate(lowest_loss_head, predictions, compute_confusion_matrix=False)
@@ -488,15 +505,20 @@ if p['num_heads'] > 1:
 
     else:
         print('best accuracy: ',best_accuracy)
-        print('head_id: ',head_accuracy)
-        result = evaluate_headlist(device_id,model,val_dataloader)
-        print(result)
+        print('head_id: ',best_loss_head)
+        print('\n')
+        #result = evaluate_headlist(device_id,model,val_dataloader)
+        for k in best_model_dict.keys():
+            print(k,': ',best_model_dict[k])
+        #print(best_model_dict)
 
 else: 
 
+    result = evaluate_singleHead(device_id,model,val_dataloader)
     print('best_loss: ',best_loss)
     print('best_accuracy: ',best_accuracy)  
-    print('ARI: ',result['ARI'])
+    print('FINAL MODEL:')
     print('ACC: ',result['ACC'])
+    print('ARI: ',result['ARI'])
     print('AMI: ',result['AMI'])
 

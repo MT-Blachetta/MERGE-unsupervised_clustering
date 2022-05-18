@@ -130,16 +130,10 @@ class ClusteringModel(nn.Module): # id = ScanClusteringModel
         self.aug_type = m['aug_type']
         assert(isinstance(self.nheads, int))
 
-        if self.nheads == 0:
-            if m['head_type'] == 'linear':
-                self.head = nn.Linear(self.backbone_dim, nclusters)
-            else:
-                self.head = MLP(num_neurons=m['num_neurons'], drop_out=m['drop_out'], last_activation=m['last_activation'], return_extra_index=[], batch_norm=m['batch_norm'], last_batchnorm=m['last_batchnorm'])
-        elif self.nheads > 0:
-            if m['head_type'] == 'linear':
-                self.cluster_head = nn.ModuleList([nn.Linear(self.backbone_dim, nclusters) for _ in range(self.nheads)])
-            else:
-                self.cluster_head = nn.ModuleList([MLP(num_neurons=m['num_neurons'], drop_out=m['drop_out'], last_activation=m['last_activation'], return_extra_index=[], batch_norm=m['batch_norm'], last_batchnorm=m['last_batchnorm']) for _ in range(self.nheads)])
+        if m['head_type'] == 'linear':
+            self.cluster_head = nn.ModuleList([nn.Linear(self.backbone_dim, nclusters) for _ in range(self.nheads)])
+        else:
+            self.cluster_head = nn.ModuleList([MLP(num_neurons=m['num_neurons'], drop_out=m['drop_out'], last_activation=m['last_activation'], return_extra_index=[], batch_norm=m['batch_norm'], last_batchnorm=m['last_batchnorm']) for _ in range(self.nheads)])
 
 
     def forward(self, x, forward_pass = 'default', aug_type = None ):
@@ -154,18 +148,6 @@ class ClusteringModel(nn.Module): # id = ScanClusteringModel
 
         elif forward_pass == 'backbone':
             out = self.forward_backbone(x,aug_type)
-
-        elif forward_pass == 'single_default':
-            features = self.forward_backbone(x,aug_type)
-            out = self.head(features)
-
-        elif forward_pass == 'single_head':
-            #features = self.forward_backbone(x,aug_type)
-            out = self.head(features)
-
-        elif forward_pass == 'single_eval':
-            features = self.forward_backbone(x,aug_type='eval')
-            out = self.head(features)
 
         elif forward_pass == 'eval':
             features = self.forward_backbone(x,aug_type='eval')
@@ -491,6 +473,76 @@ class ResNet(nn.Module):
 
 def resnet18(**kwargs):
     return {'backbone': ResNet(BasicBlock, [2, 2, 2, 2], **kwargs), 'dim': 512}
+
+
+class universalModel(nn.Module): # id = ScanClusteringModel
+    def __init__(self, backbone, nclusters, m):
+        super(universalModel, self).__init__()
+        self.backbone = backbone['backbone']
+        self.backbone_dim = backbone['dim']
+        self.nheads = m['nheads']
+        self.aug_type = m['aug_type']
+        assert(isinstance(self.nheads, int))
+
+        if self.nheads < 2:
+            if m['head_type'] == 'linear':
+                self.head = nn.Linear(self.backbone_dim, nclusters)
+            else:
+                self.head = MLP(num_neurons=m['num_neurons'], drop_out=m['drop_out'], last_activation=m['last_activation'], return_extra_index=[], batch_norm=m['batch_norm'], last_batchnorm=m['last_batchnorm'])
+        else:
+            if m['head_type'] == 'linear':
+                self.cluster_head = nn.ModuleList([nn.Linear(self.backbone_dim, nclusters) for _ in range(self.nheads)])
+            else:
+                self.cluster_head = nn.ModuleList([MLP(num_neurons=m['num_neurons'], drop_out=m['drop_out'], last_activation=m['last_activation'], return_extra_index=[], batch_norm=m['batch_norm'], last_batchnorm=m['last_batchnorm']) for _ in range(self.nheads)])
+
+
+    def forward(self, x, forward_pass = 'default', aug_type = None ):
+
+        #forward_pass = f_args['forward_pass']
+        if not aug_type:
+            aug_type = self.aug_type
+
+        if self.nheads > 1:
+
+            if forward_pass == 'default':
+                features = self.forward_backbone(x,aug_type)
+                out = [cluster_head(features) for cluster_head in self.cluster_head]
+
+            elif forward_pass == 'backbone':
+                out = self.forward_backbone(x,aug_type)
+
+            elif forward_pass == 'eval':
+                features = self.forward_backbone(x,aug_type='eval')
+                out = [cluster_head(features) for cluster_head in self.cluster_head]
+
+            elif forward_pass == 'head':
+                out = [cluster_head(x) for cluster_head in self.cluster_head]
+
+            elif forward_pass == 'return_all':
+                features = self.forward_backbone(x,aug_type)
+                out = {'features': features, 'output': [cluster_head(features) for cluster_head in self.cluster_head]}
+
+            else: raise ValueError('Invalid forward pass {}'.format(forward_pass))
+                 
+        else:
+            if forward_pass == 'default':
+                features = self.forward_backbone(x,aug_type)
+                out = self.head(features)
+
+            elif forward_pass == 'backbone':
+                out = self.forward_backbone(x,aug_type)
+
+            elif forward_pass == 'head':
+                #features = self.forward_backbone(x,aug_type)
+                out = self.head(features)
+
+            elif forward_pass == 'eval':
+                features = self.forward_backbone(x,aug_type='eval')
+                out = self.head(features)
+
+            else: raise ValueError('Invalid forward pass {}'.format(forward_pass)) 
+
+        return out
 
 
 def load_backbone_model(model,path,backbone_type):

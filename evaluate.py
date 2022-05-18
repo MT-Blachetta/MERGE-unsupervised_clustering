@@ -258,26 +258,28 @@ def evaluate_headlist(device,model,dataloader,formatation=False):
     for h in head_labels:
         rdict = evaluate_prediction(targets,h.detach().cpu().numpy())
         accuracies.append(rdict['ACC'])
-        print(rdict['ACC'])
+        #print(rdict['ACC'])
         dicts.append(rdict)
 
     best_head = np.argmax(np.array(accuracies))
+    best_accuracy = max(accuracies)
 
-    result_dict = dicts[best_head]
-    result_dict['head_id'] = best_head
+    #result_dict = dicts[best_head]
+    #result_dict['head_id'] = best_head
 
-    acc_tr_lin = result_dict['ACC'] 
-    ari = result_dict['ARI'] 
-    v_measure = result_dict['V_measure']
-    fm = result_dict['fowlkes_mallows']
-    ami = result_dict['AMI']
+    #acc_tr_lin = result_dict['ACC'] 
+    #ari = result_dict['ARI'] 
+    #v_measure = result_dict['V_measure']
+    #fm = result_dict['fowlkes_mallows']
+    #ami = result_dict['AMI']
 
-    message = 'validation'
+    #message = 'validation'
 
-    print('best head is ',best_head)
-    print("\n{}: ARI {:.5e}\tV {:.5e}\tAMI {:.5e}\tFM {:.5e}\tACC {:.5e}".format(message, ari, v_measure, ami, fm, acc_tr_lin))
+    print('best accuracy: ', best_accuracy,'  on head ',best_head)
+    #print('best head is ',best_head)
+    #print("\n{}: ARI {:.5e}\tV {:.5e}\tAMI {:.5e}\tFM {:.5e}\tACC {:.5e}".format(message, ari, v_measure, ami, fm, acc_tr_lin))
 
-    return result_dict
+    return dicts
         
 
     
