@@ -14,8 +14,9 @@ from transformation import Augment, Cutout
 from utils.config import create_config
 from utils.common_config import adjust_learning_rate
 from models import load_backbone_model
-#from evaluate import evaluate_cluster
+from evaluate import evaluate_cluster, evaluate_headlist
 from utils.evaluate_utils import get_predictions, scan_evaluate, hungarian_evaluate
+
 
 FLAGS = argparse.ArgumentParser(description='loss training')
 FLAGS.add_argument('-p',help='prefix file selection')
@@ -89,7 +90,7 @@ if augmentation_type == 'scan':
         raise ValueError('Invalid augmentation strategy {}'.format(p['augmentation_strategy']))
 
 else:
-    aug_args = p['twist_augmentation']
+    aug_args = p['augmentation_kwargs']
     # get_train_transformations(p):
     if augmentation_method == 'standard':
             # Standard augmentation strategy
@@ -269,7 +270,9 @@ else: raise ValueError
 load_backbone_model(backbone,args.pretrain_path,backbone_model_ID)
 
 model_type = p['model_type']
+p['model_args']['nheads'] = p['num_heads']
 model_args = p['model_args']
+#model_args
 hidden_dim = p['hidden_dim']
 num_cluster = p['num_classes']
 
@@ -349,14 +352,15 @@ else: raise ValueError
 """ --------------- TRAINING --------------- """
 
 train_method = p['train_method']
+p['train_args']['update_cluster_head_only'] = p['update_cluster_head_only']
+p['train_args']['local_crops_number'] = p['augmentation_kwargs']['local_crops_number']
 
 train_one_epoch = None
 
 if train_method == 'scan':
     from training import scan_train
     train_one_epoch = scan_train
-    p['train_args']['update_cluster_head_only'] = p['update_cluster_head_only']
-
+    
 elif train_method == 'twist':
     from training import twist_training
     train_one_epoch = twist_training
@@ -372,17 +376,16 @@ elif train_method == 'selflabel':
 elif train_method == 'double':
     from training import double_training
     train_one_epoch = double_training
-    p['train_args']['update_cluster_head_only'] = p['update_cluster_head_only']
 
 elif train_method == 'multidouble':
     from training import multidouble_training
     train_one_epoch = multidouble_training
-    p['train_args']['update_cluster_head_only'] = p['update_cluster_head_only']
+
 
 elif train_method == 'multitwist':
     from training import multihead_twist_train
     train_one_epoch = multihead_twist_train
-    p['train_args']['update_cluster_head_only'] = p['update_cluster_head_only']
+
 
 else: raise ValueError
 
@@ -391,6 +394,7 @@ best_loss = 1e4
 best_loss_head = None
 best_epoch = 0
 best_accuracy = 0
+head_accuracy = None
 device_id = 'cuda:'+str(p['train_args']['gpu_id'])
 
     # Main loop
@@ -409,32 +413,36 @@ for epoch in range(start_epoch, p['epochs']):
     c_loss, best_head = train_one_epoch(train_loader=batch_loader, model=model, criterion=first_criterion, optimizer=optimizer, epoch=epoch, train_args=p['train_args'], second_criterion=second_criterion)
 
     # evaluate
-    print('Make prediction on validation set ...')
-    predictions = get_predictions(device_id, p, val_dataloader, model)
-    """
-        predictions €
-        [ für jeden classification head ->
-        {'predictions': Klassifizierung als Index, 'probabilities': Softmax_Output, 'targets': targets, 'neighbors': list with indices of k-NN}
-        für den gesamten Datensatz (dim=0)
-    """
 
-    print('Evaluate based on SCAN loss ...')
-    scan_stats = scan_evaluate(predictions)
-    print(scan_stats)
-    lowest_loss_head = scan_stats['lowest_loss_head']
-    lowest_loss = scan_stats['lowest_loss']
+    if p['num_heads'] > 1: 
+        if train_method == 'scan':
+            print('Make prediction on validation set ...')
+            predictions = get_predictions(device_id, p, val_dataloader, model)
+            print('Evaluate based on SCAN loss ...')
+            scan_stats = scan_evaluate(predictions)
+            print(scan_stats)
+            #lowest_loss_head = scan_stats['lowest_loss_head']
+            #lowest_loss = scan_stats['lowest_loss']
+        else:
+            result = evaluate_headlist(device_id,model,val_dataloader)
+            if best_accuracy < result['ACC']:
+                best_accuracy = result['ACC']
+                head_accuracy = result['head_id']
+                print('best accuracy: ', best_accuracy,'  on head ',head_accuracy)
+
+
 
     if c_loss < best_loss:
         print('New lowest loss on validation set: %.4f -> %.4f' %(best_loss, c_loss))
-        print('Lowest loss head is %d' %(lowest_loss_head))
+        print('Lowest loss head is %d' %(best_head))
         best_loss = c_loss
-        best_loss_head = lowest_loss_head
+        best_loss_head = best_head
         best_epoch = epoch
-        torch.save( model.cluster_head[lowest_loss_head].state_dict(), prefix+'_best_mlp.pth' )
+        torch.save( model.cluster_head[best_loss_head].state_dict(), prefix+'_best_mlp.pth' )
         torch.save({'model': model.state_dict(), 'head': best_loss_head}, p['scan_model'])
 
     else:
-        print('No new lowest loss on validation set: %.4f -> %.4f' %(best_loss, lowest_loss))
+        print('No new lowest loss on validation set')
         print('Lowest loss head is %d' %(best_loss_head))
 
     #print('Evaluate with hungarian matching algorithm ...')
@@ -444,15 +452,17 @@ for epoch in range(start_epoch, p['epochs']):
         # Checkpoint
     print('Checkpoint ...')
     torch.save({'optimizer': optimizer.state_dict(), 'model': model.state_dict(), 
-                'epoch': epoch + 1, 'best_loss': best_loss, 'best_loss_head': best_loss_head},
-                p['scan_checkpoint'])
+                'epoch': epoch + 1, 'best_loss': best_loss, 'best_loss_head': best_loss_head}, p['scan_checkpoint'])
+
 
 print('best_epoch = ',best_epoch)
+
+
     # Evaluate and save the final model
 print(colored('Evaluate best model based on SCAN metric at the end', 'blue'))
 model_checkpoint = torch.load(p['scan_model'], map_location='cpu')
 model.load_state_dict(model_checkpoint['model'])
-predictions = get_predictions(device_id,p, val_dataloader, model)
+predictions = get_predictions(device_id, p, val_dataloader, model)
 clustering_stats = hungarian_evaluate(device_id, model_checkpoint['head'], predictions,
                         class_names=eval_dataset.dataset.classes,
                         compute_confusion_matrix=True,

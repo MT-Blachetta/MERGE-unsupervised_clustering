@@ -119,14 +119,25 @@ def transform_pca(X, transformer):
 
 
 @torch.no_grad()
-def evaluate_cluster(model,dataloader,eval_name,formatation=False):
+def evaluate_singleHead(device,model,dataloader,formatation=False):
 
     model.eval()
     predictions = []
     labels = []
 
-    for image, label in dataloader:
-        image = image.cuda(non_blocking=True)
+    model.to(device)
+    #type_test = next(iter(dataloader))
+    #isinstance
+
+    for batch in dataloader:
+        if isinstance(batch,dict):
+            image = batch['image']
+            labels = batch['target']
+        else:
+            image = batch[0]
+            labels = batch[1]
+
+        image = image.to(device,non_blocking=True)
         predic = model(image,forward_pass='eval')
         predictions.append(torch.argmax(predic, dim=1))
         labels.append(label)
@@ -171,5 +182,97 @@ def evaluate_cluster(model,dataloader,eval_name,formatation=False):
     print("\n{}: ARI {:.5e}\tV {:.5e}\tAMI {:.5e}\tFM {:.5e}\tACC {:.5e}".format(message, ari, v_measure, ami, fm, acc_tr_lin))
 
     return result_dict
+
+
+def evaluate_prediction(y_true,y_pred,formatation=False):
+
+    max_label = max(y_true)
+    assert(max_label==9)
+
+    C_train = get_cost_matrix(y_pred, y_true, max_label+1)
+
+    message = 'val'
+    #y_pred = pred
+    #y_true = y_train
+    train_lin_assignment = assign_classes_hungarian(C_train)
+    train_maj_assignment = assign_classes_majority(C_train)
+
+    acc_tr_lin = accuracy_from_assignment(C_train, *train_lin_assignment)
+    #acc_tr_maj = accuracy_from_assignment(C_train, *train_maj_assignment)
+
+    result_dict = get_best_clusters(C_train,k=10,formatation=formatation)
+
+
+    ari = sklearn.metrics.adjusted_rand_score(y_true, y_pred)
+    v_measure = sklearn.metrics.v_measure_score(y_true, y_pred)
+    ami = sklearn.metrics.adjusted_mutual_info_score(y_true, y_pred)
+    fm = sklearn.metrics.fowlkes_mallows_score(y_true, y_pred)
+
+    #headline = 'method,ACC,ARI,AMI,FowlkesMallow,'
+    #print('\ncluster performance:\n')
+    #print(eval_name+'  ,'+str(acc_tr_lin)+', '+str(ari)+', '+str(v_measure)+', '+str(ami)+', '+str(fm))
+
+    result_dict['ACC'] = acc_tr_lin
+    result_dict['ARI'] = ari
+    result_dict['V_measure'] = v_measure
+    result_dict['fowlkes_mallows'] = fm
+    result_dict['AMI'] = ami
+
+    print("\n{}: ARI {:.5e}\tV {:.5e}\tAMI {:.5e}\tFM {:.5e}\tACC {:.5e}".format(message, ari, v_measure, ami, fm, acc_tr_lin))
+
+    return result_dict
+
+
+
+def evaluate_headlist(device,model,dataloader,formatation=False):
+
+    predictions = [ [] for _ in range(model.nheads) ]
+    label_list = []
+    #labels = [ [] for _ in range(model.nheads)]
+    model.to(device)
+
+    for batch in dataloader:
+        if isinstance(batch,dict):
+            image = batch['image']
+            labels = batch['target']
+        else:
+            image = batch[0]
+            labels = batch[1]
+
+        label_list.append(labels)
+        image = image.to(device,non_blocking=True)
+        predlist = model(image,forward_pass='eval')
+        for k in range(len(predlist)):
+            predictions[k].append(predlist[k])
+
+    targets = torch.cat(label_list)
+    targets = targets.detach().cpu().numpy()
+    headlist = [torch.cat(pred) for pred in predictions]
+
+    accuracies = []
+    dicts = []
+    for h in headlist:
+        rdict = evaluate_prediction(targets,h.detach().cpu().numpy())
+        accuracies.append(rdict['ACC'])
+        dicts.append(rdict)
+
+    best_head = np.argmax(np.array(accuracies))
+
+    result_dict = dicts[best_head]
+    result_dict['head_id'] = best_head
+
+    acc_tr_lin = result_dict['ACC'] 
+    ari = result_dict['ARI'] 
+    v_measure = result_dict['V_measure']
+    fm = result_dict['fowlkes_mallows']
+    ami = result_dict['AMI']
+
+    print('best head is ',best_head)
+    print("\n{}: ARI {:.5e}\tV {:.5e}\tAMI {:.5e}\tFM {:.5e}\tACC {:.5e}".format(message, ari, v_measure, ami, fm, acc_tr_lin))
+
+    return result_dict
+        
+
+    
 
 

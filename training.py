@@ -36,7 +36,7 @@ def simclr_train(train_loader, model, criterion, optimizer, epoch, train_args, s
         if i % 25 == 0:
             progress.display(i)
 
-    return loss
+    return loss.item(), 0
 
 
 def scan_train(train_loader, model, criterion, optimizer, epoch, train_args, second_criterion=None):
@@ -95,7 +95,9 @@ def scan_train(train_loader, model, criterion, optimizer, epoch, train_args, sec
         consistency_losses.update(np.mean([v.item() for v in consistency_loss]))
         entropy_losses.update(np.mean([v.item() for v in entropy_loss]))
 
-        total_loss = torch.sum(torch.stack(total_loss, dim=0))
+        total_stack = torch.stack(total_loss, dim=0)
+        best_head = total_stack.argmin(dim=0)
+        total_loss = torch.sum(total_stack)
 
         optimizer.zero_grad()
         total_loss.backward()
@@ -104,7 +106,7 @@ def scan_train(train_loader, model, criterion, optimizer, epoch, train_args, sec
         if i % 25 == 0:
             progress.display(i)
 
-    return total_loss
+    return total_loss.item(), best_head
 
 
 def selflabel_train(train_loader, model, criterion, optimizer, epoch, train_args, second_criterion=None):
@@ -122,7 +124,7 @@ def selflabel_train(train_loader, model, criterion, optimizer, epoch, train_args
         images = batch['image']
         images.to('cuda:'+str(train_args['gpu_id']),non_blocking=True)
         images_augmented = batch['image_augmented']
-        images_augmentes.to('cuda:'+str(train_args['gpu_id']),non_blocking=True)
+        images_augmented.to('cuda:'+str(train_args['gpu_id']),non_blocking=True)
 
 
         with torch.no_grad(): 
@@ -143,14 +145,19 @@ def selflabel_train(train_loader, model, criterion, optimizer, epoch, train_args
         if i % 25 == 0:
             progress.display(i)
 
-    return loss
+    return loss.item(), 0
 
 def twist_training(train_loader, model, criterion, optimizer, epoch, train_args, second_criterion=None):
 
     device = train_args['device']+':'+str(train_args['gpu_id'])
     model.to(device)
 
-    for i, (imgs, targets) in enumerate(train_loader):
+    for i, return_object in enumerate(train_loader):
+        if isinstance(return_object,dict):
+            imgs = return_object['image']
+        else:
+            imgs = return_object[0]
+
         print('epoch: ',epoch,' / batch: ',i)
         optimizer.zero_grad()
         imgs = [im.to(device, non_blocking=True) for im in imgs]
@@ -173,7 +180,7 @@ def twist_training(train_loader, model, criterion, optimizer, epoch, train_args,
         loss.backward()
         optimizer.step()
 
-    return loss
+    return loss.item(), 0
 
 def double_training(train_loader, model, criterion, optimizer, epoch, train_args, second_criterion=None):
 
@@ -240,7 +247,7 @@ def double_training(train_loader, model, criterion, optimizer, epoch, train_args
         final_loss.backward()
         optimizer.step()
 
-    return current_loss
+    return current_loss.item(), 0
 
 
 def multidouble_training(train_loader, model, criterion, optimizer, epoch, train_args, second_criterion=None):
@@ -298,12 +305,16 @@ def multidouble_training(train_loader, model, criterion, optimizer, epoch, train
             twist_loss_ = sum([single_loss/len(all_loss) for single_loss in all_loss])
             twist_loss.append(twist_loss_)
 
+        
+        ttemp = torch.stack(twist_loss, dim=0)
+        best_head = ttemp.argmin(dim=0)
+       
 
 # Loss for every head
         #total_loss =  []
         #for anchors_output_subhead, neighbors_output_subhead in zip(anchors_output, neighbors_output):
         #print('anchors_output_subhead: ',anchors_output_subhead.shape)
-        twist_all  = torch.sum(torch.stack(twist_loss, dim=0))
+        twist_all  = torch.sum(ttemp)
         scan_all = torch.sum(torch.stack(scan_loss, dim=0))
 
         #total_loss.append(total_loss_)
@@ -317,16 +328,21 @@ def multidouble_training(train_loader, model, criterion, optimizer, epoch, train
         final_loss.backward()
         optimizer.step()
 
-    return current_loss
+    return current_loss.item(), best_head
 
 def multihead_twist_train(train_loader, model, criterion, optimizer, epoch, train_args, second_criterion=None):
 
 
-    device = train_args['device']+':'+str(train_args['gpu_id'])
+    device = 'cuda:'+str(train_args['gpu_id'])
     model.to(device)
 
 
-    for i, (imgs, targets) in enumerate(train_loader):
+    for i, return_object in enumerate(train_loader):
+        if isinstance(return_object,dict):
+            imgs = return_object['image']
+        else:
+            imgs = return_object[0]
+        
         print('epoch: ',epoch,' / batch: ',i)
         optimizer.zero_grad()
         imgs = [im.to(device, non_blocking=True) for im in imgs]
@@ -358,10 +374,12 @@ def multihead_twist_train(train_loader, model, criterion, optimizer, epoch, trai
             loss = sum([single_loss/len(all_loss) for single_loss in all_loss])
 
             twist_heads.append(loss)
-
-        twist_all  = torch.sum(torch.stack(twist_heads, dim=0))
+        
+        ttemp = torch.stack(twist_heads, dim=0)
+        best_head = ttemp.argmin(dim=0)
+        twist_all  = torch.sum(ttemp)
 
         twist_all.backward()
         optimizer.step()
 
-    return twist_all
+    return twist_all.item(), best_head

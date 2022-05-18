@@ -96,24 +96,27 @@ def scan_evaluate(predictions):
     for head in predictions:
         # Neighbors and anchors
         probs = head['probabilities']
-        neighbors = head['neighbors']
-        anchors = torch.arange(neighbors.size(0)).view(-1,1).expand_as(neighbors)
-
         # Entropy loss
         entropy_loss = entropy(torch.mean(probs, dim=0), input_as_probabilities=True).item()
 
-        # Consistency loss
-        similarity = torch.matmul(probs, probs.t())
-        neighbors = neighbors.contiguous().view(-1)
-        anchors = anchors.contiguous().view(-1)
-        similarity = similarity[anchors, neighbors]
-        ones = torch.ones_like(similarity)
-        consistency_loss = F.binary_cross_entropy(similarity, ones).item()
+        if 'neighbors' in head.keys():
+            neighbors = head['neighbors']
+            anchors = torch.arange(neighbors.size(0)).view(-1,1).expand_as(neighbors)
 
-        # Total loss
-        total_loss = - entropy_loss + consistency_loss
+            # Consistency loss
+            similarity = torch.matmul(probs, probs.t())
+            neighbors = neighbors.contiguous().view(-1)
+            anchors = anchors.contiguous().view(-1)
+            similarity = similarity[anchors, neighbors]
+            ones = torch.ones_like(similarity)
+            consistency_loss = F.binary_cross_entropy(similarity, ones).item()
 
-        output.append({'entropy': entropy_loss, 'consistency': consistency_loss, 'total_loss': total_loss})
+            # Total loss
+            total_loss = - entropy_loss + consistency_loss
+
+            output.append({'entropy': entropy_loss, 'consistency': consistency_loss, 'total_loss': total_loss})
+        else:
+            output.append({'entropy': entropy_loss, 'consistency': 1000, 'total_loss': entropy_loss })
 
     total_losses = [output_['total_loss'] for output_ in output]
     lowest_loss_head = np.argmin(total_losses)
