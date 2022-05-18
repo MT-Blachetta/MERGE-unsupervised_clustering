@@ -168,6 +168,7 @@ class ClusteringModel(nn.Module): # id = ScanClusteringModel
             out = self.head(features)
 
         elif forward_pass == 'eval':
+            print('KEY BLOCK ENTERED !!!!!!!!!!!!!!!!')
             features = self.forward_backbone(x,aug_type='eval')
             out = [cluster_head(x) for cluster_head in self.cluster_head]
 
@@ -207,7 +208,9 @@ class ClusteringModel(nn.Module): # id = ScanClusteringModel
                     output = torch.cat((output, _out))
                 start_idx = end_idx
         
-        else: output = self.backbone(x)
+        else: 
+            peint('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+            output = self.backbone(x)
 
 
         return output
