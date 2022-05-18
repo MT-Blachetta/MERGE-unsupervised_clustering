@@ -1,0 +1,3 @@
+python merge_training.py -p multiHeadTwist01 --config_env env.yml --config_exp CONFIG_FILES/scan_multicrop.yml --pretrain_path /home/blachm86/scatnet.pth
+
+

@@ -354,6 +354,7 @@ else: raise ValueError
 train_method = p['train_method']
 p['train_args']['update_cluster_head_only'] = p['update_cluster_head_only']
 p['train_args']['local_crops_number'] = p['augmentation_kwargs']['local_crops_number']
+p['train_args']['aug'] = p['augmentation_strategy']
 
 train_one_epoch = None
 

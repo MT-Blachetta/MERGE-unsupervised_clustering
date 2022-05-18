@@ -1,0 +1,95 @@
+setup: mHeadTwist01 # Name des Ordners in RESULTS/stl-10 in dem alle Ergebnis-Modelle gespeichert werden
+# sollte übereinstimmen mit dem -p prefix
+
+neighbor_prefix: scatnet # prefix für die Datei mit den indices der top-k nearest neighbors für den Scan-loss
+
+train_method: multitwist # Auswahl der Trainings Funktion aus training.py
+
+# Weight update
+update_cluster_head_only: True # Update full network in SCAN
+num_heads: 0 # bei 0 findet ein singleHead training statt
+
+# Model
+backbone: scatnet
+model_type: clusterHeads # nur bei "clusterHeads" ist ein multi-head-training möglich
+hidden_dim: 4096
+feature_dim: 128 # wichtig für die Architektur des Head Moduls
+
+dataset_type: scan, ALTERNATIVE 
+train_db_name: stl-10
+val_db_name: stl-10
+split: train # train+unlabeled
+num_classes: 10
+num_neighbors: 20
+to_augmented_dataset: False # können beide False sein !
+to_neighbors_dataset: False # in diesem Fall wählt man ein Datensatz im SCAN-Format direkt aus, kompatibilität ist gewährleistet
+
+augmentation_type: twist # dieser MODE beeinflusst den Output-Type erheblich {scan,twist}
+# Transformations
+augmentation_strategy: standard, simclr, scan, random, moco, barlow, multicrop, ours
+
+augmentation_kwargs: # adapt the value according to augmentation_type and augmentation_strategy, HIER: scan
+    local_crops_number: 0 # MUSS IMMER DABEI SEIN !
+#   crop_size: 96
+#   normalize:
+#      mean: [0.485, 0.456, 0.406]
+#      std: [0.229, 0.224, 0.225]
+#   num_strong_augs: 4
+#   cutout_kwargs:
+#     n_holes: 1
+#     length: 32
+#     random: True
+    color_jitter: 0.4 # hier: twist
+    img_size: 96
+    global_crops_scale: [0.4, 1.0]
+    local_crops_scale: [0.05, 0.4]
+    local_crops_size: 32
+
+transformation_kwargs: # for validation (konstant)
+   crop_size: 96
+   normalize:
+      mean: [0.485, 0.456, 0.406]
+      std: [0.229, 0.224, 0.225]
+
+# Hyperparameters
+optimizer: adam
+optimizer_kwargs:
+   lr: 0.0001
+   weight_decay: 0.0001
+epochs: 100
+batch_size: 256
+num_workers: 8
+
+# Scheduler
+scheduler: constant
+
+      
+scatnet_args: # konstant
+    J: 2
+    L: 16
+    input_size: [96, 96, 3] 
+    res_blocks: 30
+    out_dim: 128
+
+
+# softmax over loss function
+model_args:
+    head_type: mlp, linear
+    aug_type: multicrop, default
+    batch_norm: True
+    last_batchnorm: False
+    last_activation: None
+    drop_out: -1
+    
+    
+loss_type: double_loss, twist_loss, scan_loss, selflabel
+entropy_weight: 5.0
+loss_args:
+    lam1: 0.0
+    lam2: 1.0
+    tau: 1.0
+    EPS: 0.00001
+    
+train_args:
+    device: cuda
+    gpu_id: 0
