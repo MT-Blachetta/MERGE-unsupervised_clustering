@@ -241,7 +241,7 @@ def evaluate_headlist(device,model,dataloader,formatation=False):
 
         label_list.append(labels)
         image = image.to(device,non_blocking=True)
-        print(model)
+        #print(model)
         print('imageType: ',type(image))
         if isinstance(image,list):
             print('len: ',len(image))
