@@ -188,7 +188,7 @@ def evaluate_prediction(y_true,y_pred,formatation=False):
 
     max_label = max(y_true)
     assert(max_label==9)
-    print(y_true)
+    #print(y_true)
     C_train = get_cost_matrix(y_pred, y_true, max_label+1)
 
     #message = 'val'
