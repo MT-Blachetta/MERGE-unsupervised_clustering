@@ -247,14 +247,15 @@ def evaluate_headlist(device,model,dataloader,formatation=False):
 
     targets = torch.cat(label_list)
     targets = targets.detach().cpu().numpy()
-    print('targets.shape: ', targets.shape)
+    #print('targets.shape: ', targets.shape)
     headlist = [torch.cat(pred) for pred in predictions]
-    print('len = ',len(headlist))
-    print('predictions.shape: ',headlist[0].shape)
+    head_labels = [torch.argmax(softlabel,dim=1) for softlabel in headlist]
+    #print('len = ',len(headlist))
+    #print('predictions.shape: ',headlist[0].shape)
 
     accuracies = []
     dicts = []
-    for h in headlist:
+    for h in head_labels:
         rdict = evaluate_prediction(targets,h.detach().cpu().numpy())
         accuracies.append(rdict['ACC'])
         dicts.append(rdict)
