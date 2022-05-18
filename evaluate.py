@@ -241,6 +241,13 @@ def evaluate_headlist(device,model,dataloader,formatation=False):
 
         label_list.append(labels)
         image = image.to(device,non_blocking=True)
+        
+        print('imageType: ',type(image))
+        if isinstance(image,list):
+            print('len: ',len(image))
+        else:
+            print('imageShape: ',image.shape)
+            
         predlist = model(image,forward_pass='eval')
         for k in range(len(predlist)):
             predictions[k].append(predlist[k])
