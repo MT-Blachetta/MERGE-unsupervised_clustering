@@ -440,7 +440,7 @@ for epoch in range(start_epoch, p['epochs']):
             print('New lowest loss on validation set: %.4f -> %.4f' %(best_loss, c_loss))
             print('Lowest loss head is %d' %(best_head))
             best_loss = c_loss
-            best_loss_head = best_head
+            best_loss_head = best_head.item()
             best_epoch = epoch
 
             if train_method == 'scan':
