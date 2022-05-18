@@ -209,8 +209,10 @@ class ClusteringModel(nn.Module): # id = ScanClusteringModel
                 start_idx = end_idx
         
         else: 
-            peint('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+            print('+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++')
+            print(x.shape)
             output = self.backbone(x)
+            print(output.shape)
 
 
         return output
