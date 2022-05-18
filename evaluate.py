@@ -191,7 +191,7 @@ def evaluate_prediction(y_true,y_pred,formatation=False):
     print(y_true)
     C_train = get_cost_matrix(y_pred, y_true, max_label+1)
 
-    message = 'val'
+    #message = 'val'
     #y_pred = pred
     #y_true = y_train
     train_lin_assignment = assign_classes_hungarian(C_train)
@@ -218,7 +218,7 @@ def evaluate_prediction(y_true,y_pred,formatation=False):
     result_dict['fowlkes_mallows'] = fm
     result_dict['AMI'] = ami
 
-    print("\n{}: ARI {:.5e}\tV {:.5e}\tAMI {:.5e}\tFM {:.5e}\tACC {:.5e}".format(message, ari, v_measure, ami, fm, acc_tr_lin))
+    #print("\n{}: ARI {:.5e}\tV {:.5e}\tAMI {:.5e}\tFM {:.5e}\tACC {:.5e}".format(message, ari, v_measure, ami, fm, acc_tr_lin))
 
     return result_dict
 
@@ -258,6 +258,7 @@ def evaluate_headlist(device,model,dataloader,formatation=False):
     for h in head_labels:
         rdict = evaluate_prediction(targets,h.detach().cpu().numpy())
         accuracies.append(rdict['ACC'])
+        print(rdict['ACC'])
         dicts.append(rdict)
 
     best_head = np.argmax(np.array(accuracies))
@@ -270,6 +271,8 @@ def evaluate_headlist(device,model,dataloader,formatation=False):
     v_measure = result_dict['V_measure']
     fm = result_dict['fowlkes_mallows']
     ami = result_dict['AMI']
+
+    message = 'validation'
 
     print('best head is ',best_head)
     print("\n{}: ARI {:.5e}\tV {:.5e}\tAMI {:.5e}\tFM {:.5e}\tACC {:.5e}".format(message, ari, v_measure, ami, fm, acc_tr_lin))
