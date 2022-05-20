@@ -45,6 +45,7 @@ def create_config(config_file_env, config_file_exp, prefix):
     mkdir_if_missing(selflabel_dir)
     cfg['scan_dir'] = scan_dir
     cfg['scan_checkpoint'] = os.path.join(scan_dir,prefix+'_checkpoint.pth.tar')
+    cfg['evaluation_dir'] = os.path.join(scan_dir,prefix+'_measurements')
     cfg['scan_model'] = os.path.join(scan_dir,prefix+'_model.pth.tar')
     cfg['selflabel_dir'] = selflabel_dir
     cfg['selflabel_checkpoint'] = os.path.join(selflabel_dir,prefix+'_checkpoint.pth.tar')

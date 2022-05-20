@@ -187,7 +187,7 @@ if dataset_type == 'scan':
 
 else:
     dataset = torchvision.datasets.STL10('/space/blachetta/data', split=split,transform=train_transformation, download=True)
-    eval_dataset = STL10_trainNtest(path='/space/blachetta/data',aug=train_transformation)
+    eval_dataset = STL10_trainNtest(path='/space/blachetta/data',aug=val_transformations)
 
 ### data_loader:
 
