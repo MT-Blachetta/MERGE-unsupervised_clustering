@@ -132,10 +132,10 @@ def evaluate_singleHead(device,model,dataloader,formatation=False):
     for batch in dataloader:
         if isinstance(batch,dict):
             image = batch['image']
-            labels = batch['target']
+            label = batch['target']
         else:
             image = batch[0]
-            labels = batch[1]
+            label = batch[1]
 
         image = image.to(device,non_blocking=True)
         predic = model(image,forward_pass='eval')
