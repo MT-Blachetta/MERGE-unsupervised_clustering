@@ -183,9 +183,9 @@ def evaluate_singleHead(device,model,dataloader,forwarding='head',formatation=Fa
                 label = batch[1]
 
             image = image.to(device,non_blocking=True)
-            fea = model(image,forward_type='features')
+            fea = model(image,forward_pass='features')
             features.append(fea)
-            predic = model(fea,forward_type=forwarding)
+            predic = model(fea,forward_pass=forwarding)
             soft_labels.append(predic)
             predictions.append(torch.argmax(predic, dim=1))
             labels.append(label)
