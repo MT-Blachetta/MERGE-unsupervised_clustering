@@ -215,7 +215,7 @@ def evaluate_singleHead(device,model,dataloader,forwarding='head',formatation=Fa
     y_pred = pred
     y_true = y_train
     train_lin_assignment = assign_classes_hungarian(C_train)
-    train_maj_assignment = assign_classes_majority(C_train)
+    #train_maj_assignment = assign_classes_majority(C_train)
 
     acc_tr_lin = accuracy_from_assignment(C_train, *train_lin_assignment)
     #acc_tr_maj = accuracy_from_assignment(C_train, *train_maj_assignment)

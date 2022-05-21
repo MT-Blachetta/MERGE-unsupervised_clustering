@@ -147,7 +147,7 @@ class ClusteringModel(nn.Module): # id = ScanClusteringModel
             features = self.forward_backbone(x,aug_type)
             out = [cluster_head(features) for cluster_head in self.cluster_head]
 
-        elif forward_pass == 'backbone' or 'features':
+        elif forward_pass in ['backbone','features']:
             out = self.forward_backbone(x,aug_type)
 
         elif forward_pass == 'eval':
