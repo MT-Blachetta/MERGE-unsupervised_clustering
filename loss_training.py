@@ -405,6 +405,8 @@ head_accuracy = None
 best_model_dict = {}
 device_id = 'cuda:'+str(gpu_id)
 
+print('FIRST CHECKPOINT PASSED')
+
 if p['setup'] == 'scan':
     
     loss_track = pd.DataFrame({
