@@ -398,13 +398,50 @@ else: raise ValueError
 
 start_epoch = 0
 best_loss = 1e4
-best_loss_head = None
+best_loss_head = 0
 best_epoch = 0
 best_accuracy = 0
 head_accuracy = None
 best_model_dict = {}
 device_id = 'cuda:'+str(gpu_id)
 
+if p['setup'] == 'scan':
+    
+    loss_track = pd.DataFrame({
+
+        'epoch': [],
+        'entropy_loss': [],
+        'consostency_loss': [],
+        'total_loss': [],
+        'Accuracy': [],
+        'Adjusted_Mutual_Information': [],
+        'Adjusted_Random_Index': [],
+        'V_measure': [],
+        'fowlkes_mallows': [],
+        'cluster_size_entropy': [],
+        'confidence_ratio': [],
+        'mean_confidence': [], 
+        'std_confidence': []
+    
+    })
+
+else:
+
+    loss_track = pd.DataFrame({
+
+        'epoch': [],
+        'total_loss': [],
+        'Accuracy': [],
+        'Adjusted_Mutual_Information': [],
+        'Adjusted_Random_Index': [],
+        'V_measure': [],
+        'fowlkes_mallows': [],
+        'cluster_size_entropy': [],
+        'confidence_ratio': [],
+        'mean_confidence': [], 
+        'std_confidence': []
+    
+    })
 
 # start_epoch, best_loss, best_loss_head = resume_from_checkpoint(model,optimizer,p['scan_checkpoint'])
 
@@ -423,7 +460,7 @@ for epoch in range(start_epoch, p['epochs']):
     print('Train ...')
     c_loss, best_head = train_one_epoch(train_loader=batch_loader, model=model, criterion=first_criterion, optimizer=optimizer, epoch=epoch, train_args=p['train_args'], second_criterion=second_criterion)
 
-    #loss_track = loss_track.append({'epoch': epoch, 'total_loss': c_loss },ignore_index=True)
+
     # evaluate
 
     if p['num_heads'] > 1: 
@@ -433,26 +470,57 @@ for epoch in range(start_epoch, p['epochs']):
             print('Evaluate based on SCAN loss ...')
             scan_stats = scan_evaluate(predictions)
             print(scan_stats)
+            epoch_stats = {}
+            loss_metrics = scan_stats['scan'][best_loss_head]
+            detailed_metrics = evaluate_singleHead(device_id,model,val_dataloader,forwarding='singleHead_eval')
+            epoch_stats['epoch'] = epoch
+            epoch_stats['entropy_loss'] = loss_metrics['entropy']
+            epoch_stats['consistency_loss'] = loss_metrics['consistency']
+            epoch_stats['total_loss'] = loss_metrics['total_loss']
+            epoch_stats['Accuracy'] = detailed_metrics['Accuracy']
+            epoch_stats['Adjusted_Mutual_Information'] = detailed_metrics['Adjusted_Mutual_Information']
+            epoch_stats['Adjusted_Random_Index'] = detailed_metrics['Adjusted_Random_Index']
+            epoch_stats['V_measure'] = detailed_metrics['V_measure']
+            epoch_stats['fowlkes_mallows'] = detailed_metrics['fowlkes_mallows']
+            epoch_stats['cluster_size_entropy'] = detailed_metrics['cluster_size_entropy']
+            epoch_stats['confidence_ratio'] = detailed_metrics['confidence_ratio']
+            epoch_stats['mean_confidence'] = detailed_metrics['mean_confidence']
+            epoch_stats['std_confidence'] = detailed_metrics['std_confidence']
+            loss_track = loss_track.append(epoch_stats,ignore_index=True)
+            
             #lowest_loss_head = scan_stats['lowest_loss_head']
             #lowest_loss = scan_stats['lowest_loss']
-        else: result_dicts = evaluate_headlist(device_id,model,val_dataloader)
-            #if best_accuracy < result['ACC']:
-            #head_accuracy = result['head_id']                
+        else: #result_dicts = evaluate_headlist(device_id,model,val_dataloader)
+            detailed_metrics = evaluate_singleHead(device_id,model,val_dataloader)
+            epoch_stats['epoch'] = epoch
+            epoch_stats['total_loss'] = c_loss
+            epoch_stats['Accuracy'] = detailed_metrics['Accuracy']
+            epoch_stats['Adjusted_Mutual_Information'] = detailed_metrics['Adjusted_Mutual_Information']
+            epoch_stats['Adjusted_Random_Index'] = detailed_metrics['Adjusted_Random_Index']
+            epoch_stats['V_measure'] = detailed_metrics['V_measure']
+            epoch_stats['fowlkes_mallows'] = detailed_metrics['fowlkes_mallows']
+            epoch_stats['cluster_size_entropy'] = detailed_metrics['cluster_size_entropy']
+            epoch_stats['confidence_ratio'] = detailed_metrics['confidence_ratio']
+            epoch_stats['mean_confidence'] = detailed_metrics['mean_confidence']
+            epoch_stats['std_confidence'] = detailed_metrics['std_confidence']
+            loss_track = loss_track.append(epoch_stats,ignore_index=True)           
 
+        
         if c_loss < best_loss:
             print('New lowest loss on validation set: %.4f -> %.4f' %(best_loss, c_loss))
             print('Lowest loss head is %d' %(best_head))
             best_loss = c_loss
             best_loss_head = best_head.item()
+            model.best_head_id = best_loss_head
             best_epoch = epoch
 
             if train_method == 'scan':
                 torch.save({'model': model.state_dict(), 'head': best_loss_head}, p['scan_model'])
             else:
-                result = result_dicts[best_loss_head]
-                best_accuracy = result['ACC']
+                #result = result_dicts[best_loss_head]
+                #best_accuracy = result['ACC']
                 print('\nLOSS accuracy: ', best_accuracy,'  on head ',best_loss_head)
-                best_model_dict = result
+                #best_model_dict = result
 
             if p['update_cluster_head_only']:
                 torch.save( model.cluster_head[best_loss_head].state_dict(), prefix+'_best_mlpHead.pth')
@@ -464,10 +532,22 @@ for epoch in range(start_epoch, p['epochs']):
             print('Lowest loss head is %d' %(best_loss_head))
 
     else: 
-        result = evaluate_singleHead(device_id,model,val_dataloader)
+        detailed_metrics = evaluate_singleHead(device_id,model,val_dataloader)
+        epoch_stats['epoch'] = epoch
+        epoch_stats['total_loss'] = c_loss
+        epoch_stats['Accuracy'] = detailed_metrics['Accuracy']
+        epoch_stats['Adjusted_Mutual_Information'] = detailed_metrics['Adjusted_Mutual_Information']
+        epoch_stats['Adjusted_Random_Index'] = detailed_metrics['Adjusted_Random_Index']
+        epoch_stats['V_measure'] = detailed_metrics['V_measure']
+        epoch_stats['fowlkes_mallows'] = detailed_metrics['fowlkes_mallows']
+        epoch_stats['cluster_size_entropy'] = detailed_metrics['cluster_size_entropy']
+        epoch_stats['confidence_ratio'] = detailed_metrics['confidence_ratio']
+        epoch_stats['mean_confidence'] = detailed_metrics['mean_confidence']
+        epoch_stats['std_confidence'] = detailed_metrics['std_confidence']
+        loss_track = loss_track.append(epoch_stats,ignore_index=True) 
 
-        if result['ACC'] > best_accuracy:
-            best_accuracy = result['ACC']
+        if detailed_metrics['Accuracy'] > best_accuracy:
+            best_accuracy = detailed_metrics['Accuracy']
             best_epoch = epoch
             print('new top accuracy: ',best_accuracy)
 
@@ -490,6 +570,7 @@ for epoch in range(start_epoch, p['epochs']):
     torch.save({'optimizer': optimizer.state_dict(), 'model': model.state_dict(),'epoch': epoch + 1, 'best_loss': best_loss, 'best_loss_head': best_loss_head}, p['scan_checkpoint'])
 
 
+loss_track.to_csv(prefix+'_loss_statistics.csv')
 print('best_epoch: ',best_epoch)
 
 if p['num_heads'] > 1: 
@@ -524,4 +605,3 @@ else:
     print('ACC: ',result['ACC'])
     print('ARI: ',result['ARI'])
     print('AMI: ',result['AMI'])
-

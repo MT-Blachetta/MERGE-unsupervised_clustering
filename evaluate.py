@@ -8,7 +8,31 @@ from tqdm import trange, tqdm
 from scipy.optimize import linear_sum_assignment
 
 
+def cluster_size_entropy(costmatrix):
 
+    absolute = costmatrix.sum(axis=1)
+    relative = absolute/sum(absolute)
+    entropy = - sum(relative*np.log(relative))
+    
+    return entropy
+    #class_sum = costmatrix.sum(axis=0)
+    #sizes = costmatrix.shape
+
+    #class_relatives = [ costmatrix[:,i]/class_sum[i] for i in range(sizes[1]) ]
+    #clas
+
+    #for :
+    #[ costmatrix[:class_id] ]
+    #costmatrix.sum(axis=0)
+
+def confidence_statistic(softmatrix):
+    max_confidences, _ = torch.max(softmatrix,dim=1)
+    num_confident_samples = len(torch.where(max_confidences > 0.95)[0])
+    confidence_ratio = num_confident_samples/len(max_confidences)
+    confidence_std, confidence_mean = torch.std_mean(max_confidences, unbiased=False)
+
+    return confidence_mean, confidence_std, confidence_ratio
+    
 
 
 def batches(l, n):
@@ -119,31 +143,41 @@ def transform_pca(X, transformer):
 
 
 @torch.no_grad()
-def evaluate_singleHead(device,model,dataloader,formatation=False):
+def evaluate_singleHead(device,model,dataloader,forwarding='head',formatation=False):
 
     model.eval()
     predictions = []
     labels = []
+    features = []
+    soft_labels = []
 
     model.to(device)
     #type_test = next(iter(dataloader))
     #isinstance
 
-    for batch in dataloader:
-        if isinstance(batch,dict):
-            image = batch['image']
-            label = batch['target']
-        else:
-            image = batch[0]
-            label = batch[1]
+    with torch.no_grad():      
+        for batch in dataloader:
+            if isinstance(batch,dict):
+                image = batch['image']
+                label = batch['target']
+            else:
+                image = batch[0]
+                label = batch[1]
 
-        image = image.to(device,non_blocking=True)
-        predic = model(image,forward_pass='eval')
-        predictions.append(torch.argmax(predic, dim=1))
-        labels.append(label)
+            image = image.to(device,non_blocking=True)
+            fea = model(image,forward_type='features')
+            features.append(fea)
+            predic = model(fea,forward_type=forwarding)
+            soft_labels.append(predic)
+            predictions.append(torch.argmax(predic, dim=1))
+            labels.append(label)
 
+    feature_tensor = torch.cat(features)
+    softlabel_tensor = torch.cat(soft_labels)
     prediction_tensor = torch.cat(predictions)
     label_tensor = torch.cat(labels)
+
+    # consistency_values = topk_consistency(feature_tensor,prediction_tensor)
     
     y_train = label_tensor.detach().cpu().numpy()
     pred = prediction_tensor.detach().cpu().numpy()
@@ -151,6 +185,11 @@ def evaluate_singleHead(device,model,dataloader,formatation=False):
     assert(max_label==9)
 
     C_train = get_cost_matrix(pred, y_train, max_label+1)
+
+    cluster_entropy = cluster_size_entropy(C_train)
+    conf_mean, conf_std, conf_rate = confidence_statistic(softlabel_tensor)
+
+    result_dict = {'cluster_size_entropy': cluster_entropy, 'confidence_ratio': conf_rate , 'mean_confidence': conf_mean, 'std_confidence': conf_std}
 
     message = 'val'
     y_pred = pred
@@ -161,7 +200,7 @@ def evaluate_singleHead(device,model,dataloader,formatation=False):
     acc_tr_lin = accuracy_from_assignment(C_train, *train_lin_assignment)
     #acc_tr_maj = accuracy_from_assignment(C_train, *train_maj_assignment)
 
-    result_dict = get_best_clusters(C_train,k=10,formatation=formatation)
+    #result_dict = get_best_clusters(C_train,k=10,formatation=formatation)
 
 
     ari = sklearn.metrics.adjusted_rand_score(y_true, y_pred)
@@ -173,11 +212,11 @@ def evaluate_singleHead(device,model,dataloader,formatation=False):
     #print('\ncluster performance:\n')
     #print(eval_name+'  ,'+str(acc_tr_lin)+', '+str(ari)+', '+str(v_measure)+', '+str(ami)+', '+str(fm))
 
-    result_dict['ACC'] = acc_tr_lin
-    result_dict['ARI'] = ari
+    result_dict['Accuracy'] = acc_tr_lin
+    result_dict['Adjusted_Random_Index'] = ari
     result_dict['V_measure'] = v_measure
     result_dict['fowlkes_mallows'] = fm
-    result_dict['AMI'] = ami
+    result_dict['Adjusted_Mutual_Information'] = ami
 
     print("\n{}: ARI {:.5e}\tV {:.5e}\tAMI {:.5e}\tFM {:.5e}\tACC {:.5e}".format(message, ari, v_measure, ami, fm, acc_tr_lin))
 

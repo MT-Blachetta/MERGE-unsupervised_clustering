@@ -128,6 +128,7 @@ class ClusteringModel(nn.Module): # id = ScanClusteringModel
         self.backbone_dim = backbone['dim']
         self.nheads = m['nheads']
         self.aug_type = m['aug_type']
+        self.best_head_id = 0
         assert(isinstance(self.nheads, int))
 
         if m['head_type'] == 'linear':
@@ -146,12 +147,16 @@ class ClusteringModel(nn.Module): # id = ScanClusteringModel
             features = self.forward_backbone(x,aug_type)
             out = [cluster_head(features) for cluster_head in self.cluster_head]
 
-        elif forward_pass == 'backbone':
+        elif forward_pass == 'backbone' or 'features':
             out = self.forward_backbone(x,aug_type)
 
         elif forward_pass == 'eval':
             features = self.forward_backbone(x,aug_type='eval')
             out = [cluster_head(features) for cluster_head in self.cluster_head]
+
+        elif forward_pass == 'singleHead_eval':
+            #features = self.forward_backbone(x,aug_type='eval')
+            return self.cluster_head[self.best_head_id](x)
 
         elif forward_pass == 'head':
             out = [cluster_head(x) for cluster_head in self.cluster_head]
