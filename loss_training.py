@@ -419,6 +419,7 @@ if p['setup'] == 'scan':
         'V_measure': [],
         'fowlkes_mallows': [],
         'cluster_size_entropy': [],
+        'consistency_ratio': [],
         'confidence_ratio': [],
         'mean_confidence': [], 
         'std_confidence': []
@@ -437,6 +438,7 @@ else:
         'V_measure': [],
         'fowlkes_mallows': [],
         'cluster_size_entropy': [],
+        'consistency_ratio': [],
         'confidence_ratio': [],
         'mean_confidence': [], 
         'std_confidence': []
@@ -486,6 +488,7 @@ for epoch in range(start_epoch, p['epochs']):
             epoch_stats['confidence_ratio'] = detailed_metrics['confidence_ratio']
             epoch_stats['mean_confidence'] = detailed_metrics['mean_confidence']
             epoch_stats['std_confidence'] = detailed_metrics['std_confidence']
+            epoch_stats['consistency_ratio'] = detailed_metrics['consistency_ratio']
             loss_track = loss_track.append(epoch_stats,ignore_index=True)
             
             #lowest_loss_head = scan_stats['lowest_loss_head']
@@ -503,6 +506,7 @@ for epoch in range(start_epoch, p['epochs']):
             epoch_stats['confidence_ratio'] = detailed_metrics['confidence_ratio']
             epoch_stats['mean_confidence'] = detailed_metrics['mean_confidence']
             epoch_stats['std_confidence'] = detailed_metrics['std_confidence']
+            epoch_stats['consistency_ratio'] = detailed_metrics['consistency_ratio']
             loss_track = loss_track.append(epoch_stats,ignore_index=True)           
 
         

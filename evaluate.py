@@ -8,6 +8,24 @@ from tqdm import trange, tqdm
 from scipy.optimize import linear_sum_assignment
 
 
+
+def topk_consistency(features,predictions,num_neighbors):
+    
+    torch.nn.functional.normalize(features, dim = 1)
+    similarity_matrix = torch.einsum('nd,cd->nc', [features.cpu(), features.cpu()])
+    scores_k, idx_k = similarity_matrix.topk(k=num_neighbors, dim=1)
+    labels_samples = torch.zeros_like(idx_k)
+
+    for s in range(num_neighbor):
+        labels_samples[:, s] = predictions[idx_k[:, s]]
+    
+    true_matrix = labels_samples[:, 0:1] == labels_samples
+    num_consistent = true_matrix.sum(dim=1)
+
+    return num_consistent/num_neighbors
+
+
+
 def cluster_size_entropy(costmatrix):
 
     absolute = costmatrix.sum(axis=1)
@@ -177,7 +195,9 @@ def evaluate_singleHead(device,model,dataloader,forwarding='head',formatation=Fa
     prediction_tensor = torch.cat(predictions)
     label_tensor = torch.cat(labels)
 
-    # consistency_values = topk_consistency(feature_tensor,prediction_tensor)
+    consistency_values = topk_consistency(feature_tensor,prediction_tensor,100)
+    consistency_ratio = len(torch.where(consistency_values > 0.5)[0])/len(consistency_values)
+    #c_std, c_mean =  torch.std_mean(consistency_values, unbiased=False)
     
     y_train = label_tensor.detach().cpu().numpy()
     pred = prediction_tensor.detach().cpu().numpy()
@@ -189,7 +209,7 @@ def evaluate_singleHead(device,model,dataloader,forwarding='head',formatation=Fa
     cluster_entropy = cluster_size_entropy(C_train)
     conf_mean, conf_std, conf_rate = confidence_statistic(softlabel_tensor)
 
-    result_dict = {'cluster_size_entropy': cluster_entropy, 'confidence_ratio': conf_rate , 'mean_confidence': conf_mean, 'std_confidence': conf_std}
+    result_dict = {'cluster_size_entropy': cluster_entropy, 'confidence_ratio': conf_rate , 'mean_confidence': conf_mean, 'std_confidence': conf_std, 'consistency_ratio': consistency_ratio}
 
     message = 'val'
     y_pred = pred
