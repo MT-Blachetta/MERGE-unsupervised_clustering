@@ -197,6 +197,7 @@ def evaluate_singleHead(device,model,dataloader,forwarding='head',formatation=Fa
 
     consistency_values = topk_consistency(feature_tensor,prediction_tensor,100)
     consistency_ratio = len(torch.where(consistency_values > 0.5)[0])/len(consistency_values)
+    print('consistency_ratio = ',consistency_ratio)
     #c_std, c_mean =  torch.std_mean(consistency_values, unbiased=False)
     
     y_train = label_tensor.detach().cpu().numpy()
@@ -208,6 +209,7 @@ def evaluate_singleHead(device,model,dataloader,forwarding='head',formatation=Fa
 
     cluster_entropy = cluster_size_entropy(C_train)
     conf_mean, conf_std, conf_rate = confidence_statistic(softlabel_tensor)
+    print('confidence_rate = ',conf_rate)
 
     result_dict = {'cluster_size_entropy': cluster_entropy, 'confidence_ratio': conf_rate , 'mean_confidence': conf_mean, 'std_confidence': conf_std, 'consistency_ratio': consistency_ratio}
 

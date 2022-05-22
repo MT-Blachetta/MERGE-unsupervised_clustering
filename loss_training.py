@@ -497,6 +497,7 @@ for epoch in range(start_epoch, p['epochs']):
             #lowest_loss = scan_stats['lowest_loss']
         else: #result_dicts = evaluate_headlist(device_id,model,val_dataloader)
             detailed_metrics = evaluate_singleHead(device_id,model,val_dataloader,forwarding='singleHead_eval')
+            epoch_stats = {}
             epoch_stats['epoch'] = epoch
             epoch_stats['total_loss'] = c_loss
             epoch_stats['Accuracy'] = detailed_metrics['Accuracy']
