@@ -211,7 +211,7 @@ def evaluate_singleHead(device,model,dataloader,forwarding='head',formatation=Fa
     conf_mean, conf_std, conf_rate = confidence_statistic(softlabel_tensor)
     print('confidence_rate = ',conf_rate)
 
-    result_dict = {'cluster_size_entropy': cluster_entropy, 'confidence_ratio': conf_rate , 'mean_confidence': conf_mean, 'std_confidence': conf_std, 'consistency_ratio': consistency_ratio}
+    result_dict = {'cluster_size_entropy': cluster_entropy, 'confidence_ratio': conf_rate , 'mean_confidence': conf_mean.item(), 'std_confidence': conf_std.item(), 'consistency_ratio': consistency_ratio}
 
     message = 'val'
     y_pred = pred
