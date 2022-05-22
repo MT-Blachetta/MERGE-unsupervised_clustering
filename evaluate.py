@@ -16,7 +16,7 @@ def topk_consistency(features,predictions,num_neighbors):
     scores_k, idx_k = similarity_matrix.topk(k=num_neighbors, dim=1)
     labels_samples = torch.zeros_like(idx_k)
 
-    for s in range(num_neighbor):
+    for s in range(num_neighbors):
         labels_samples[:, s] = predictions[idx_k[:, s]]
     
     true_matrix = labels_samples[:, 0:1] == labels_samples
