@@ -245,7 +245,7 @@ class wrapped_resnet(nn.Module):
     def __init__(self, backbone):
         super().__init__()
         self.backbone = backbone
-    def forward(x):
+    def forward(self,x):
         return self.backbone(x).flatten(start_dim=1)
 
 backbone_model_ID = p['backbone']
