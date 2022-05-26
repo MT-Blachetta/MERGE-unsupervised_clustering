@@ -1,14 +1,14 @@
-setup: multiHeadTwist01
+setup: scan
 
-epochs: 100
+epochs: 10
 batch_size: 512
+neighbor_prefix: scatnet 
 
-
-train_method: multitwist 
+train_method: scan
 
 # Weight update
 update_cluster_head_only: True 
-num_heads: 10 
+num_heads: 10
 
 # Model
 backbone: scatnet
@@ -23,7 +23,7 @@ split: train
 num_classes: 10
 num_neighbors: 20
 to_augmented_dataset: False 
-to_neighbors_dataset: False
+to_neighbors_dataset: True
 
 augmentation_type: twist 
 augmentation_strategy: barlow
@@ -84,18 +84,16 @@ model_args:
     head_type: mlp
     aug_type: multicrop
     batch_norm: False
-    last_batchnorm: True
+    last_batchnorm: False
     last_activation: None
     drop_out: -1
     
     
-loss_type: twist_loss
+loss_type: scan_loss
 entropy_weight: 5.0
+
 loss_args:
     lam1: 0.0
     lam2: 1.0
     tau: 1.0
     EPS: 0.00001
-    
-    
-neighbor_prefix: scatnet 

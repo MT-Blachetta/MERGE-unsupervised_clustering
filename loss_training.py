@@ -22,13 +22,13 @@ import pandas as pd
 FLAGS = argparse.ArgumentParser(description='loss training')
 FLAGS.add_argument('-gpu',help='number as gpu identifier')
 FLAGS.add_argument('-p',help='prefix file selection')
-FLAGS.add_argument('--config_env', help='Location of path config file')
+FLAGS.add_argument('--root_dir', help='root directory for saves', default='RESULTS')
 FLAGS.add_argument('--config_exp', help='Location of experiments config file')
 FLAGS.add_argument('--pretrain_path', help='filename or path of the pretrained model')
 
 
 args = FLAGS.parse_args()
-p = create_config(args.config_env, args.config_exp, args.p)
+p = create_config(args.root_dir, args.config_exp, args.p)
 prefix = args.p
 gpu_id = args.gpu
 

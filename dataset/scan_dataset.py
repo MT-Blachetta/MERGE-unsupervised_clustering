@@ -657,3 +657,30 @@ class STL10_trainNtest(torchvision.datasets.VisionDataset):
         imgs = self.aug(img)
 
         return imgs, target
+
+
+class STL10_eval(torchvision.datasets.VisionDataset):
+    def __init__(self,path,aug):
+        self.aug = aug
+        self.train_dataset = torchvision.datasets.STL10(path, split='train', download=False, transform=None)
+        self.train_len = len(self.train_dataset)
+        self.test_dataset = torchvision.datasets.STL10(path, split='test', download=False, transform=None)
+        self.test_len = len(self.test_dataset)
+
+    def __len__(self):
+        return self.train_len + self.test_len
+
+    def __getitem__(self,index):
+        if index >= self.train_len:
+            index -= self.train_len
+            img, target = self.test_dataset[index]
+        else:
+            img, target = self.train_dataset[index]
+
+        imgs = self.aug(img)
+
+        out = {'image': imgs, 'target': target, 'meta': {'im_size': [3,96,96], 'index': index, 'class_name': 'unknown'}}
+
+        return out
+
+        #return imgs, target

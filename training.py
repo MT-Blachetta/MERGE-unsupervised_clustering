@@ -67,7 +67,7 @@ def scan_train(train_loader, model, criterion, optimizer, epoch, train_args, sec
         neighbors = batch['neighbor']
         if isinstance(neighbors,list):
             neighbors = [im.to('cuda:'+str(train_args['gpu_id']), non_blocking=True) for im in neighbors]
-        else: neighbor = neighbors.to('cuda:'+str(train_args['gpu_id']),non_blocking=True)
+        else: neighbors = neighbors.to('cuda:'+str(train_args['gpu_id']),non_blocking=True)
 
 
         if train_args['update_cluster_head_only']: # Only calculate gradient for backprop of linear layer
