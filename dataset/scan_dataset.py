@@ -661,11 +661,12 @@ class STL10_trainNtest(torchvision.datasets.VisionDataset):
 
 class STL10_eval(torchvision.datasets.VisionDataset):
     def __init__(self,path,aug):
-        self.aug = aug
+        self.transform = aug
         self.train_dataset = torchvision.datasets.STL10(path, split='train', download=False, transform=None)
         self.train_len = len(self.train_dataset)
         self.test_dataset = torchvision.datasets.STL10(path, split='test', download=False, transform=None)
         self.test_len = len(self.test_dataset)
+        self.classes = ['airplane','bird','car','cat','deer','dog','horse','monkey','ship','truck']
 
     def __len__(self):
         return self.train_len + self.test_len
@@ -677,9 +678,9 @@ class STL10_eval(torchvision.datasets.VisionDataset):
         else:
             img, target = self.train_dataset[index]
 
-        imgs = self.aug(img)
+        imgs = self.transform(img)
 
-        out = {'image': imgs, 'target': target, 'meta': {'im_size': [3,96,96], 'index': index, 'class_name': 'unknown'}}
+        out = { 'image': imgs, 'target': target, 'meta': {'im_size': [3,96,96], 'index': index, 'class_name': self.classes[target]} }
 
         return out
 
