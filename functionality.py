@@ -243,7 +243,7 @@ def get_val_dataloader(p):
             #from dataset.scan_dataset import STL10
             #dataset = STL10(split=split, transform=train_transformation, download=False)
             eval_dataset = STL10_eval(path='/space/blachetta/data',aug=val_transformations)
-            print('eval_dataset:len: ',len(eval_dataset))
+            #print('eval_dataset:len: ',len(eval_dataset))
             #eval_dataset = STL10(split='train',transform=val_transformations,download=False)
 
         else:
@@ -252,10 +252,10 @@ def get_val_dataloader(p):
 
         if p['to_neighbors_dataset']: # Dataset returns an image and one of its nearest neighbors.
             from dataset.scan_dataset import NeighborsDataset
-            print(p['topk_neighbors_train_path'])
+            #print(p['topk_neighbors_train_path'])
             indices = np.load(p['topk_neighbors_train_path'])
-            print(indices.shape)
-            eval_dataset = NeighborsDataset(eval_dataset, indices, p['num_neighbors'])
+            #print(indices.shape)
+            eval_dataset = NeighborsDataset(eval_dataset, indices ) # , p['num_neighbors'])
             
 
     else:
