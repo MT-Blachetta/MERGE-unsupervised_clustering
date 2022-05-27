@@ -152,13 +152,13 @@ def loss_track_session(components,p,prefix,gpu_id=0):
         if p['num_heads'] > 1: 
             if train_method == 'scan':
                 print('Make prediction on validation set ...')
-                predictions = get_predictions(device_id, p, val_dataloader, model)
+                predictions = get_predictions(device_id, p, val_loader, model)
                 print('Evaluate based on SCAN loss ...')
                 scan_stats = scan_evaluate(predictions)
                 print(scan_stats)
                 epoch_stats = {}
                 loss_metrics = scan_stats['scan'][best_loss_head]
-                detailed_metrics = evaluate_singleHead(device_id,model,val_dataloader,forwarding='singleHead_eval')
+                detailed_metrics = evaluate_singleHead(device_id,model,val_loader,forwarding='singleHead_eval')
                 epoch_stats['epoch'] = epoch
                 epoch_stats['entropy_loss'] = loss_metrics['entropy']
                 epoch_stats['consistency_loss'] = loss_metrics['consistency']
@@ -178,7 +178,7 @@ def loss_track_session(components,p,prefix,gpu_id=0):
                 #lowest_loss_head = scan_stats['lowest_loss_head']
                 #lowest_loss = scan_stats['lowest_loss']
             else: #result_dicts = evaluate_headlist(device_id,model,val_dataloader)
-                detailed_metrics = evaluate_singleHead(device_id,model,val_dataloader,forwarding='singleHead_eval')
+                detailed_metrics = evaluate_singleHead(device_id,model,val_loader,forwarding='singleHead_eval')
                 epoch_stats = {}
                 epoch_stats['epoch'] = epoch
                 epoch_stats['total_loss'] = c_loss
@@ -212,7 +212,7 @@ def loss_track_session(components,p,prefix,gpu_id=0):
                     #best_model_dict = result
 
                 if p['update_cluster_head_only']:
-                    torch.save( model.cluster_head[best_loss_head].state_dict(), prefix+'_best_mlpHead.pth')
+                    torch.save( model.cluster_head[best_loss_head].state_dict(), 'PRODUCTS/'+prefix+'_best_mlpHead.pth')
                 else:
                     torch.save(model.state_dict(),prefix+'_best_MODEL')
                 
@@ -254,7 +254,7 @@ def loss_track_session(components,p,prefix,gpu_id=0):
         torch.save({'optimizer': optimizer.state_dict(), 'model': model.state_dict(),'epoch': epoch + 1, 'best_loss': best_loss, 'best_loss_head': best_loss_head}, p['scan_checkpoint'])
 
 
-    loss_track.to_csv(prefix+'_loss_statistics.csv')
+    loss_track.to_csv('EVALUATION/'+prefix+'_loss_statistics.csv')
     print('best_epoch: ',best_epoch)
 
     if p['num_heads'] > 1: 
@@ -263,9 +263,9 @@ def loss_track_session(components,p,prefix,gpu_id=0):
             print(colored('Evaluate best model based on SCAN metric at the end', 'blue'))
             model_checkpoint = torch.load(p['scan_model'], map_location='cpu')
             model.load_state_dict(model_checkpoint['model'])
-            predictions = get_predictions(device_id, p, val_dataloader, model)
+            predictions = get_predictions(device_id, p, val_loader, model)
             clustering_stats = hungarian_evaluate(device_id, model_checkpoint['head'], predictions,
-                                    class_names=eval_dataset.dataset.classes,
+                                    class_names=val_loader.dataset.classes,
                                     compute_confusion_matrix=True,
                                     confusion_matrix_file=os.path.join(p['scan_dir'],prefix+'_confusion_matrix.png'))
 
@@ -291,7 +291,7 @@ def loss_track_session(components,p,prefix,gpu_id=0):
         print('AMI: ',result['AMI'])
 
 
-def general_session(end_epoch,gpu_id,components,p):
+def general_session(components,p,prefix,gpu_id=0):
 
     batch_loader = components['train_dataloader']
     model = components['model']
