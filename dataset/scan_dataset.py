@@ -63,7 +63,7 @@ class NeighborsDataset(Dataset):
             self.anchor_transform = transform
             self.neighbor_transform = transform
        
-        #dataset.transform = None
+        dataset.transform = None
         self.dataset = dataset
         self.indices = indices # Nearest neighbor indices (np.array  [len(dataset) x k])
 
@@ -679,7 +679,9 @@ class STL10_eval(torchvision.datasets.VisionDataset):
         else:
             img, target = self.train_dataset[index]
 
-        imgs = self.transform(img)
+        if self.transform is not None:
+            imgs = self.transform(img)
+        else: imgs = img
 
         out = { 'image': imgs, 'target': target, 'meta': {'im_size': [3,96,96], 'index': index, 'class_name': self.classes[target]} }
 
