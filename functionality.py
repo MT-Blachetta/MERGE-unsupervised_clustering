@@ -223,7 +223,7 @@ def get_val_dataloader(p):
                                 transforms.CenterCrop(p['transformation_kwargs']['crop_size']),
                                 transforms.ToTensor(),
                                 transforms.Normalize(**p['transformation_kwargs']['normalize'])])
-    #
+    
     split = p['split']
     dataset_type = p['dataset_type']
 
@@ -255,8 +255,8 @@ def get_val_dataloader(p):
             #print(p['topk_neighbors_train_path'])
             indices = np.load(p['topk_neighbors_train_path'])
             #print(indices.shape)
-            eval_dataset = NeighborsDataset(eval_dataset, indices ) # , p['num_neighbors'])
-            print('Function is not called in itself - ok')
+            eval_dataset = NeighborsDataset(eval_dataset, indices) # , p['num_neighbors'])
+            
             
 
     else:
