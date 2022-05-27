@@ -3,6 +3,9 @@ setup: scan
 epochs: 10
 batch_size: 512
 neighbor_prefix: scatnet_both
+neighbor_prefix_val: scatnet
+train_split: both
+val_split: train 
 
 train_method: scan
 
@@ -19,7 +22,7 @@ feature_dim: 128
 dataset_type: scan
 train_db_name: stl-10
 val_db_name: stl-10
-split: train 
+
 num_classes: 10
 num_neighbors: 20
 to_augmented_dataset: False 

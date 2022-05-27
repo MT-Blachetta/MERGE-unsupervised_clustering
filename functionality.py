@@ -149,7 +149,7 @@ def get_train_dataloader(p,train_transformation):
     # dataset:
     from dataset.scan_dataset import STL10_trainNtest
     #
-    split = p['split']
+    train_split = p['train_split']
     dataset_type = p['dataset_type']
 
     if dataset_type == 'scan':
@@ -166,9 +166,17 @@ def get_train_dataloader(p,train_transformation):
 
         elif p['train_db_name'] == 'stl-10':
             from dataset.scan_dataset import STL10
-            dataset = STL10(split=split, transform=train_transformation, download=False)
-            #eval_dataset = STL10_trainNtest(path='/space/blachetta/data',aug=val_transformations)
-            #eval_dataset = STL10(split='train',transform=val_transformations,download=False)
+
+            if train_split == 'train':
+                dataset = STL10(split='train', transform=train_transformation, download=False)
+            elif train_split == 'test':
+                dataset = STL10(split='test', transform=train_transformation, download=False)
+            elif train_split == 'both':
+                from dataset.scan_dataset import STL10_eval
+                dataset = STL10_eval(path='/space/blachetta/data',aug=train_transformation)
+            elif train_split == 'unlabeled':
+                dataset = STL10(split='train+unlabeled',transform=train_transformation, download=False)
+            else: raise ValueError('Invalid stl10 split')
 
         elif p['train_db_name'] == 'imagenet':
             from dataset.scan_dataset import ImageNet
@@ -224,7 +232,7 @@ def get_val_dataloader(p):
                                 transforms.ToTensor(),
                                 transforms.Normalize(**p['transformation_kwargs']['normalize'])])
     
-    split = p['split']
+    val_split = p['val_split']
     dataset_type = p['dataset_type']
 
     if dataset_type == 'scan':
@@ -240,9 +248,15 @@ def get_val_dataloader(p):
             eval_dataset = CIFAR20(train=False, transform=val_transformations, download=True)
 
         elif p['train_db_name'] == 'stl-10':
-            #from dataset.scan_dataset import STL10
-            #dataset = STL10(split=split, transform=train_transformation, download=False)
-            eval_dataset = STL10_eval(path='/space/blachetta/data',aug=val_transformations)
+            if val_split == 'train':
+                from dataset.scan_dataset import STL10
+                eval_dataset = STL10(split='train', transform=val_transformations, download=False)
+            elif val_split == 'test':
+                eval_dataset = STL10(split='test', transform=val_transformations, download=False)
+            elif val_split == 'both':
+                eval_dataset = STL10_eval(path='/space/blachetta/data',aug=val_transformations)
+            else: raise ValueError('Invalid stl10 split')
+
             #print('eval_dataset:len: ',len(eval_dataset))
             #eval_dataset = STL10(split='train',transform=val_transformations,download=False)
 
@@ -253,7 +267,7 @@ def get_val_dataloader(p):
         if p['to_neighbors_dataset']: # Dataset returns an image and one of its nearest neighbors.
             from dataset.scan_dataset import NeighborsDataset
             #print(p['topk_neighbors_train_path'])
-            indices = np.load(p['topk_neighbors_train_path'])
+            indices = np.load(p['topk_neighbors_val_path'])
             #print(indices.shape)
             eval_dataset = NeighborsDataset(eval_dataset, indices) # , p['num_neighbors'])
             

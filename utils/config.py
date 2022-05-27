@@ -21,6 +21,7 @@ def create_config(root_dir, config_file_exp, prefix):
 
     # Set paths for pretext task (These directories are needed in every stage)
     nfix =  cfg['neighbor_prefix']
+    nfix_v = cfg['neighbor_prefix_val']
     base_dir = os.path.join(root_dir, cfg['train_db_name'])
     pretext_dir = os.path.join(base_dir, 'pretext')
     mkdir_if_missing(base_dir)
@@ -30,7 +31,7 @@ def create_config(root_dir, config_file_exp, prefix):
     cfg['pretext_model'] = os.path.join(pretext_dir,prefix+'_model.pth.tar')
     #os.path.join('topk',prefix+'_topk-train-neighbors.npy')
     cfg['topk_neighbors_train_path'] = os.path.join(base_dir, 'topk/'+nfix+'_topk-train-neighbors.npy')
-    cfg['topk_neighbors_val_path'] = os.path.join(base_dir, 'topk/'+nfix+'_topk-val-neighbors.npy')
+    cfg['topk_neighbors_val_path'] = os.path.join(base_dir, 'topk/'+nfix_v+'_topk-val-neighbors.npy')
 
     # If we perform clustering or self-labeling step we need additional paths.
     # We also include a run identifier to support multiple runs w/ same hyperparams.
