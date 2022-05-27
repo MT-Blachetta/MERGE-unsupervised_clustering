@@ -256,6 +256,7 @@ def get_val_dataloader(p):
             indices = np.load(p['topk_neighbors_train_path'])
             #print(indices.shape)
             eval_dataset = NeighborsDataset(eval_dataset, indices ) # , p['num_neighbors'])
+            print('Function is not called in itself - ok')
             
 
     else:
