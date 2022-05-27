@@ -2,7 +2,7 @@ setup: scan
 
 epochs: 10
 batch_size: 512
-neighbor_prefix: scatnet 
+neighbor_prefix: scatnet_both
 
 train_method: scan
 

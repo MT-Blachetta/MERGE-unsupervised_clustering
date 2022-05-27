@@ -433,7 +433,7 @@ class Analysator():
         #first_set = selected_features == iv
         #first_row = self.scalar_statistics_from_selection(first_set,subfeature_values,parameters)
         #result_frame = pd.DataFrame(dict(first_row),columns=first_row.index,index=[names[0]])
-        #ni = 1
+        ni = 0
 
         while iv+interval <= val_range[1]:
 
@@ -442,6 +442,7 @@ class Analysator():
             added = pd.DataFrame(dict(next_row),columns=next_row.index,index=[names[ni]])
             result_frame = pd.concat([result_frame,added])
             iv += interval
+            ni += 1
     
 
         return result_frame
