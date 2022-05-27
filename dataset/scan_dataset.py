@@ -85,6 +85,7 @@ class NeighborsDataset(Dataset):
         neighbor['image'] = self.neighbor_transform(neighbor['image'])
 
         output['anchor'] = anchor['image']
+        output['image'] = anchor['image']
         output['neighbor'] = neighbor['image'] 
         output['possible_neighbors'] = torch.from_numpy(self.indices[index])
         output['target'] = anchor['target']
