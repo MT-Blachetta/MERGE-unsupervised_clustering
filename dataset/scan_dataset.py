@@ -63,13 +63,13 @@ class NeighborsDataset(Dataset):
             self.anchor_transform = transform
             self.neighbor_transform = transform
        
-        dataset.transform = None
+        #dataset.transform = None
         self.dataset = dataset
         self.indices = indices # Nearest neighbor indices (np.array  [len(dataset) x k])
 
         if num_neighbors is not None:
             self.indices = self.indices[:, :num_neighbors+1]
-        assert(self.indices.shape[0] >= len(self.dataset))
+        assert(self.indices.shape[0] == len(self.dataset))
 
     def __len__(self):
         return len(self.dataset)

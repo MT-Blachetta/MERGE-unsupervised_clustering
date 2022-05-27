@@ -202,7 +202,7 @@ def get_train_dataloader(p,train_transformation):
             
 
     else:
-        dataset = torchvision.datasets.STL10('/space/blachetta/data', split=split,transform=train_transformation, download=True)
+        dataset = torchvision.datasets.STL10('/space/blachetta/data', split=train_split,transform=train_transformation, download=True)
 
 
     ### data_loader:
