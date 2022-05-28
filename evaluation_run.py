@@ -43,7 +43,8 @@ def main():
 
     backbone_file = 'scatnet.pth'
     p['pretrain_path'] = os.path.join(args.pretrain_path,backbone_file)
-    print(p)
+    
+    print(str(p))
 
     # [{ }]
 
@@ -542,3 +543,7 @@ def store_statistic_analysis(p,model,val_loader,prefix,best_loss): # needs to cr
         data.return_statistic_summary(best_loss)
 
     torch.save({'analysator': data ,'parameter':p},'ANALYSIS/'+prefix+'_ANALYSE')
+
+
+if __name__ == "__main__":
+    main()
