@@ -20,7 +20,7 @@ class wrapped_resnet(nn.Module):
     def forward(self,x):
         return self.backbone(x).flatten(start_dim=1)
 
-""" Custom collate function """
+# Custom collate function 
 def collate_custom(batch):
     if isinstance(batch[0], np.int64):
         return np.stack(batch, 0)
@@ -473,4 +473,20 @@ def initialize_training(p):
                         'val_dataloader': val_loader }
 
     return components
+
+
+def initialize_evaluation(p,best_model_path=''):
+    
+    val_loader = get_val_dataloader(p)
+    backbone = get_backbone(p)
+    model = get_head_model(p,backbone)
+    
+    if p['train_method'] == 'scan':
+        savepoint = torch.load(p['scan_model'],map_location='cpu')
+        model.load_state_dict(savepoint)
+    else:
+        savepoint = torch.load(best_model_path,map_location='cpu')
+        model.load_state_dict(savepoint)
+
+    return model, val_loader
 
