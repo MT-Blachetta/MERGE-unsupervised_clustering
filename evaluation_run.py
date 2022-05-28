@@ -15,7 +15,7 @@ from transformation import Augment, Cutout
 from utils.config import create_config
 from utils.common_config import adjust_learning_rate
 from models import load_backbone_model
-from evaluate import evaluate_singleHead, evaluate_headlist
+from evaluate import evaluate_singleHead, Analysator
 from utils.evaluate_utils import get_predictions, scan_evaluate, hungarian_evaluate
 import pandas as pd
 
@@ -85,7 +85,7 @@ def loss_track_session(components,p,prefix,gpu_id=0):
     best_epoch = 0
     best_accuracy = 0
     #head_accuracy = None
-    best_model_dict = {}
+    #best_model_dict = {}
     device_id = 'cuda:'+str(gpu_id)
 
 
@@ -95,7 +95,7 @@ def loss_track_session(components,p,prefix,gpu_id=0):
 
             'epoch': [],
             'entropy_loss': [],
-            'consostency_loss': [],
+            'consistency_loss': [],
             'total_loss': [],
             'Accuracy': [],
             'Adjusted_Mutual_Information': [],
@@ -206,15 +206,14 @@ def loss_track_session(components,p,prefix,gpu_id=0):
                 if train_method == 'scan':
                     torch.save({'model': model.state_dict(), 'head': best_loss_head}, p['scan_model'])
                 else:
-                    #result = result_dicts[best_loss_head]
-                    #best_accuracy = result['ACC']
+                    torch.save(model.state_dict(),'PRODUCTS/'+prefix+'_best_model.pth')
                     print('\nLOSS accuracy: ', best_accuracy,'  on head ',best_loss_head)
-                    #best_model_dict = result
+                
 
-                if p['update_cluster_head_only']:
-                    torch.save( model.cluster_head[best_loss_head].state_dict(), 'PRODUCTS/'+prefix+'_best_mlpHead.pth')
-                else:
-                    torch.save(model.state_dict(),prefix+'_best_MODEL')
+                #if p['update_cluster_head_only']:
+                #    torch.save( model.cluster_head[best_loss_head].state_dict(), 'PRODUCTS/'+prefix+'_best_mlpHead.pth')
+                #else:
+                
                 
             else:
                 print('No new lowest loss on validation set')
@@ -242,11 +241,10 @@ def loss_track_session(components,p,prefix,gpu_id=0):
 
             if c_loss < best_loss:
                 best_loss = c_loss
-
-                if p['update_cluster_head_only']:
-                    torch.save(model.head.state_dict(),prefix+'_best_mlpHead.pth')                
-                else:
-                    torch.save(model.state_dict(),prefix+'_best_model.pth')
+                #if p['update_cluster_head_only']:
+                #    torch.save(model.head.state_dict(),'PRODUCTS/'+prefix+'_best_mlpHead.pth')                
+                #else:
+                torch.save(model.state_dict(),'PRODUCTS/'+prefix+'_best_model.pth')
  
 
             # Checkpoint
@@ -262,7 +260,13 @@ def loss_track_session(components,p,prefix,gpu_id=0):
             # Evaluate and save the final model
             print(colored('Evaluate best model based on SCAN metric at the end', 'blue'))
             model_checkpoint = torch.load(p['scan_model'], map_location='cpu')
-            model.load_state_dict(model_checkpoint['model'])
+            model.load_state_dict(model_checkpoint['model']) # Ab hier ist model optimal
+#------------------------------------------------------------------------------ get best model here for evaluation
+            metric_data = Analysator(device_id,model,val_loader,forwarding='singleHead_eval')
+            metric_data.compute_kNN_statistics(100)
+            metric_data.compute_real_consistency(0.5)
+            session_stats = metric_data.return_statistic_summary(best_loss)
+
             predictions = get_predictions(device_id, p, val_loader, model)
             clustering_stats = hungarian_evaluate(device_id, model_checkpoint['head'], predictions,
                                     class_names=val_loader.dataset.classes,
@@ -270,26 +274,46 @@ def loss_track_session(components,p,prefix,gpu_id=0):
                                     confusion_matrix_file=os.path.join(p['scan_dir'],prefix+'_confusion_matrix.png'))
 
             print(clustering_stats)
+            return session_stats
 
         else:
             print('best accuracy: ',best_accuracy)
             print('head_id: ',best_loss_head)
             print('\n')
+
+            best_copy = torch.load('PRODUCTS/'+prefix+'_best_model.pth',map_location='cpu')
+            model.load_state_dict(best_copy)
+#------------------------------------------------------------------------------ get best model here for evaluation
+            metric_data = Analysator(device_id,model,val_loader,forwarding='singleHead_eval')
+            metric_data.compute_kNN_statistics(100)
+            metric_data.compute_real_consistency(0.5)
+            return metric_data.return_statistic_summary(best_loss)
+
+            #model.best_head_id = best_loss_head
             #result = evaluate_headlist(device_id,model,val_dataloader)
-            for k in best_model_dict.keys():
-                print(k,': ',best_model_dict[k])
+            #for k in best_model_dict.keys():
+            #    print(k,': ',best_model_dict[k])
             #print(best_model_dict)
 
     else: 
 
-        result = evaluate_singleHead(device_id,model,val_loader)
-        print('best_loss: ',best_loss)
-        print('best_accuracy: ',best_accuracy)  
-        print('FINAL MODEL:')
-        print('ACC: ',result['ACC'])
-        print('ARI: ',result['ARI'])
-        print('AMI: ',result['AMI'])
+        best_copy = torch.load('PRODUCTS/'+prefix+'_best_model.pth',map_location='cpu')
+        model.load_state_dict(best_copy)
+#------------------------------------------------------------------------------ get best model here for evaluation
+        metric_data = Analysator(device_id,model,val_loader)
+        metric_data.compute_kNN_statistics(100)
+        metric_data.compute_real_consistency(0.5)
 
+        return metric_data.return_statistic_summary(best_loss)
+        #result = evaluate_singleHead(device_id,model,val_loader)
+        #print('best_loss: ',best_loss)
+        #print('best_accuracy: ',best_accuracy)  
+        #print('FINAL MODEL:')
+        #print('ACC: ',result['Accuracy'])
+        #print('ARI: ',result['Adjusted_Random_Information'])
+        #print('AMI: ',result['Adjusted_Mutual_Information'])
+
+#-------------------------------------------------------------------------------------------------------------------------------
 
 def general_session(components,p,prefix,gpu_id=0):
 

@@ -66,6 +66,7 @@ class NeighborsDataset(Dataset):
         dataset.transform = None
         self.dataset = dataset
         self.indices = indices # Nearest neighbor indices (np.array  [len(dataset) x k])
+        self.classes = dataset.classes
 
         if num_neighbors is not None:
             self.indices = self.indices[:, :num_neighbors+1]
