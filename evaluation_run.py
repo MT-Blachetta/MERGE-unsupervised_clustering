@@ -162,7 +162,7 @@ def loss_track_session(components,p,prefix,gpu_id=0):
 
 # first epoch
 
-    c_loss, best_head = train_one_epoch(train_loader=batch_loader, model=model, criterion=first_criterion, optimizer=optimizer, epoch=epoch, train_args=p['train_args'], second_criterion=second_criterion)
+    c_loss, best_head = train_one_epoch(train_loader=batch_loader, model=model, criterion=first_criterion, optimizer=optimizer, epoch=0, train_args=p['train_args'], second_criterion=second_criterion)
     
     if p['num_heads'] > 1:
         best_loss = c_loss
