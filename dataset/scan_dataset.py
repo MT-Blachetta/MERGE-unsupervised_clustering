@@ -55,7 +55,6 @@ class NeighborsDataset(Dataset):
     def __init__(self, dataset, indices, num_neighbors=None):
         super(NeighborsDataset, self).__init__()
         transform = dataset.transform
-        print('transform type = ',type(transform))
         
         if isinstance(transform, dict):
             self.anchor_transform = transform['standard']
@@ -65,7 +64,7 @@ class NeighborsDataset(Dataset):
             self.neighbor_transform = transform
        
         dataset.transform = None
-        print('AFTER: ',type(transform))
+
         self.dataset = dataset
         self.indices = indices # Nearest neighbor indices (np.array  [len(dataset) x k])
         self.classes = dataset.classes

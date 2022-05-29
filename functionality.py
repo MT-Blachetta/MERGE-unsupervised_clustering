@@ -98,6 +98,7 @@ def get_augmentation(p):
         else:
             raise ValueError('Invalid augmentation strategy {}'.format(p['augmentation_strategy']))
 
+
     else:
         aug_args = p['augmentation_kwargs']
         # get_train_transformations(p):
@@ -136,7 +137,7 @@ def get_augmentation(p):
             raise ValueError('Invalid augmentation strategy {}'.format(p['augmentation_strategy']))
 
 
-        return train_transformation
+    return train_transformation
 
 #train_transformations = get_train_transformations(p)
 
