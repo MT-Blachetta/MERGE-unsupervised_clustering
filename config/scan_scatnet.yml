@@ -1,4 +1,5 @@
-setup: scan_research
+setup: scan_scatnet
+prefix: scan_scatnet
 
 ### Technical Parameters (unimportant) FIXED
 num_workers: 8

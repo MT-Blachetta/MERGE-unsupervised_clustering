@@ -1,6 +1,7 @@
 ### Mode,Name/ID,Prefix
 
 setup: scan_clPcl
+prefix: scan_clPcl
 
 ### Technical Parameters (unimportant) FIXED
 num_workers: 8
