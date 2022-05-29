@@ -1,5 +1,5 @@
 python merge_training.py -p multiHeadTwist01 --config_env env.yml --config_exp CONFIG_FILES/scan_multicrop.yml --pretrain_path /home/blachm86/scatnet.pth
 
-python evaluation_run.py -p scanEvalTest -gpu 0 --root_dir RESULTS --config_exp CONFIG_FILES/default.yml --pretrain_path /home/blachm86/backbone_models
+python evaluation_run.py -p scan_research -gpu 0 --root_dir RESULTS --config_exp CONFIG_FILES/scan_research.yml --pretrain_path /home/blachm86/backbone_models
 
 

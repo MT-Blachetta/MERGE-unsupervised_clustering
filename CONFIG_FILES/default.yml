@@ -3,9 +3,9 @@ setup: scan
 epochs: 10
 batch_size: 512
 neighbor_prefix: scatnet_both
-neighbor_prefix_val: scatnet
+neighbor_prefix_val: scatnet_both
 train_split: both
-val_split: train 
+val_split: both 
 
 train_method: scan
 

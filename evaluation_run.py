@@ -27,7 +27,7 @@ FLAGS.add_argument('-gpu',help='number as gpu identifier')
 FLAGS.add_argument('-p',help='prefix file selection')
 FLAGS.add_argument('--root_dir', help='root directory for saves', default='RESULTS')
 FLAGS.add_argument('--config_exp', help='Location of experiments config file')
-FLAGS.add_argument('--pretrain_path', help='path to the model files')
+FLAGS.add_argument('--model_path', help='path to the model files')
 
 
 def main():
@@ -36,24 +36,39 @@ def main():
     p = create_config(args.root_dir, args.config_exp, args.p)
     prefix = args.p
     gpu_id = args.gpu
-
     num_cluster = p['num_classes']
     fea_dim = p['feature_dim']
     p['model_args']['num_neurons'] = [fea_dim, fea_dim, num_cluster]
+    backbone_file = p['pretrain_path']
+    p['pretrain_path'] = os.path.join(args.model_path,backbone_file)
+    params = initialize_training(p)
 
-    backbone_file = 'scatnet.pth'
-    p['pretrain_path'] = os.path.join(args.pretrain_path,backbone_file)
+    start_info, end_info, new_optimum = loss_track_session(params,p,prefix,gpu_id)
+
+    last_loss = 1000
+
+    from base_config import session_list_scan
+    i = 0
+    run_id = prefix
+    for session in session_list_scan:
+        run_id = prefix+str(i)
+        p = map_parameters(p,session,args.model_path)
+        params = initialize_training(p)
+        if session['save_data']:
+            start_info, end_info, new_optimum = loss_track_session(params,p,run_id,gpu_id)
+            if new_optimum: last_loss = end_info['loss']
+        else:
+            start_info, end_info, new_optimum = general_session(params,p,run_id,last_loss,gpu_id)
+            if new_optimum: 
+                last_loss = end_info['loss']
+            else: # delete files
+                if p['train_method'] == 'scan':
+                    if os.path.exists(p['scan_model']): os.remove(p['scan_model'])
+                else:
+                    if os.path.exists('PRODUCTS/'+run_id+'_best_model.pth'): os.remove('PRODUCTS/'+run_id+'_best_model.pth')
+        i += 1
+
     
-    print(str(p))
-
-    # [{ }]
-
-
-    #params = initialize_training(p)
-
-    #loss_track_session(params,p,prefix,gpu_id)
-
-    #print('-------------------SESSION COMPLETED--------------------------')
 
 
 
@@ -134,10 +149,31 @@ def loss_track_session(components,p,prefix,gpu_id=0):
 
 # start_epoch, best_loss, best_loss_head = resume_from_checkpoint(model,optimizer,p['scan_checkpoint'])
 
+# first epoch
+
+    c_loss, best_head = train_one_epoch(train_loader=batch_loader, model=model, criterion=first_criterion, optimizer=optimizer, epoch=epoch, train_args=p['train_args'], second_criterion=second_criterion)
+    
+    if p['num_heads'] > 1:
+        best_loss = c_loss
+        best_loss_head = best_head
+        starting_data = Analysator(device_id,model,val_loader,forwarding='singleHead_eval')
+        starting_data.compute_kNN_statistics(100)
+        starting_data.compute_real_consistency(0.5)
+        start_stats = starting_data.return_statistic_summary(c_loss)
+    else:
+        best_loss = c_loss
+        best_loss_head = best_head
+        starting_data = Analysator(device_id,model,val_loader)
+        starting_data.compute_kNN_statistics(100)
+        starting_data.compute_real_consistency(0.5)
+        start_stats = starting_data.return_statistic_summary(c_loss)
+    
+
+
     # Main loop
     print(colored('Starting main loop', 'blue'))
 
-    for epoch in range(start_epoch, end_epoch):
+    for epoch in range(start_epoch+1, end_epoch):
         print(colored('Epoch %d/%d' %(epoch+1, end_epoch), 'yellow'))
         print(colored('-'*15, 'yellow'))
 
@@ -158,7 +194,7 @@ def loss_track_session(components,p,prefix,gpu_id=0):
         loss_track     = parameter['loss_track']
        
  
-
+    print('-------------------SESSION COMPLETED--------------------------')
 
     loss_track.to_csv('EVALUATION/'+prefix+'_loss_statistics.csv')
     print('best_epoch: ',best_epoch)
@@ -182,7 +218,7 @@ def loss_track_session(components,p,prefix,gpu_id=0):
 
             torch.save({'analysator': metric_data,'parameter':p},'EVALUATION/'+prefix+'_ANALYSATOR')
 
-            return session_stats
+            return start_stats ,session_stats
 
         else:
             print('best accuracy: ',best_accuracy)
@@ -195,7 +231,7 @@ def loss_track_session(components,p,prefix,gpu_id=0):
             metric_data.compute_real_consistency(0.5)
             torch.save({'analysator': metric_data,'parameter':p},'EVALUATION/'+prefix+'_ANALYSATOR')
 
-            return metric_data.return_statistic_summary(best_loss)
+            return start_stats ,metric_data.return_statistic_summary(best_loss)
 
     else: 
 
@@ -206,14 +242,14 @@ def loss_track_session(components,p,prefix,gpu_id=0):
         metric_data.compute_real_consistency(0.5)
         torch.save({'analysator': metric_data,'parameter':p},'EVALUATION/'+prefix+'_ANALYSATOR')
 
-        return metric_data.return_statistic_summary(best_loss)
+        return start_stats, metric_data.return_statistic_summary(best_loss)
 
 
 
-def general_session(components,p,last_loss,gpu_id=0):
+def general_session(components,p,prefix,last_loss,gpu_id=0): #------------------------------------------------------
 
     end_epoch = p['epochs']
-    prefix = p['prefix']
+    #prefix = p['prefix']
     batch_loader = components['train_dataloader']
     model = components['model']
     first_criterion = components['criterion']
@@ -241,10 +277,27 @@ def general_session(components,p,last_loss,gpu_id=0):
 
     # start_epoch, best_loss, best_loss_head = resume_from_checkpoint(model,optimizer,p['scan_checkpoint'])
 
+    c_loss, best_head = train_one_epoch(train_loader=batch_loader, model=model, criterion=first_criterion, optimizer=optimizer, epoch=epoch, train_args=p['train_args'], second_criterion=second_criterion)
+    
+    if p['num_heads'] > 1:
+        best_loss = c_loss
+        best_loss_head = best_head
+        starting_data = Analysator(device_id,model,val_loader,forwarding='singleHead_eval')
+        starting_data.compute_kNN_statistics(100)
+        starting_data.compute_real_consistency(0.5)
+        start_stats = starting_data.return_statistic_summary(c_loss)
+    else:
+        best_loss = c_loss
+        best_loss_head = best_head
+        starting_data = Analysator(device_id,model,val_loader)
+        starting_data.compute_kNN_statistics(100)
+        starting_data.compute_real_consistency(0.5)
+        start_stats = starting_data.return_statistic_summary(c_loss)
+
     # Main loop
     print(colored('Starting main loop', 'blue'))
 
-    for epoch in range(start_epoch, end_epoch):
+    for epoch in range(start_epoch+1, end_epoch):
         print(colored('Epoch %d/%d' %(epoch+1, end_epoch), 'yellow'))
         print(colored('-'*15, 'yellow'))
 
@@ -264,7 +317,7 @@ def general_session(components,p,last_loss,gpu_id=0):
         best_epoch     = parameter['best_epoch']
        
  
-
+    print('-------------------SESSION COMPLETED--------------------------')
     print('best_epoch: ',best_epoch)
 
     if p['num_heads'] > 1: 
@@ -282,10 +335,10 @@ def general_session(components,p,last_loss,gpu_id=0):
             if best_loss > last_loss:
                 torch.save({'analysator': metric_data,'parameter':p},'EVALUATION/'+prefix+'_ANALYSATOR')
                 print('next_loss: ',best_loss,';  ',prefix)
-                return run_statistics, True
+                return start_stats,run_statistics, True
             
              # metric_data.return_statistic_summary(best_loss)
-            return run_statistics
+            return start_stats, run_statistics, False
              
             
 
@@ -302,9 +355,9 @@ def general_session(components,p,last_loss,gpu_id=0):
             if best_loss > last_loss:
                 torch.save({'analysator': metric_data,'parameter':p},'EVALUATION/'+prefix+'_ANALYSATOR')
                 print('next_loss: ',best_loss,';  ',prefix)
-                return metric_data.return_statistic_summary(best_loss), True
+                return start_stats ,metric_data.return_statistic_summary(best_loss), True
 
-            return metric_data.return_statistic_summary(best_loss), False
+            return start_stats ,metric_data.return_statistic_summary(best_loss), False
 
     else: 
 
@@ -317,9 +370,9 @@ def general_session(components,p,last_loss,gpu_id=0):
         if best_loss > last_loss:
             torch.save({'analysator': metric_data,'parameter':p},'EVALUATION/'+prefix+'_ANALYSATOR')
             print('next_loss: ',best_loss,';  ',prefix)
-            return metric_data.return_statistic_summary(best_loss), True
+            return start_stats ,metric_data.return_statistic_summary(best_loss), True
 
-        return metric_data.return_statistic_summary(best_loss), False
+        return start_stats ,metric_data.return_statistic_summary(best_loss), False
 
 
 def evaluate_loss_track(p,parameters):
@@ -543,6 +596,26 @@ def store_statistic_analysis(p,model,val_loader,prefix,best_loss): # needs to cr
         data.return_statistic_summary(best_loss)
 
     torch.save({'analysator': data ,'parameter':p},'ANALYSIS/'+prefix+'_ANALYSE')
+
+
+def map_parameters(p,params,model_path):
+    
+    for attribute in params.keys():
+        if '.' in attribute:
+            primary, secondary = attribute.split('.')
+            p[primary][secondary] = params[attribute]
+        else:
+            p[attribute] = params[attribute]
+        
+        num_cluster = p['num_classes']
+        fea_dim = p['feature_dim']
+        p['model_args']['num_neurons'] = [fea_dim, fea_dim, num_cluster]
+        backbone_file = p['pretrain_path']
+        p['pretrain_path'] = os.path.join(model_path,backbone_file)
+
+        return p
+        
+        
 
 
 if __name__ == "__main__":
