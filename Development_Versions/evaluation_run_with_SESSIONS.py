@@ -24,7 +24,7 @@ from functionality import initialize_training
 
 FLAGS = argparse.ArgumentParser(description='loss training')
 FLAGS.add_argument('-gpu',help='number as gpu identifier')
-#FLAGS.add_argument('-p',help='prefix for file selection')
+FLAGS.add_argument('-p',help='prefix for file selection')
 FLAGS.add_argument('--root_dir', help='root directory for saves', default='RESULTS')
 #FLAGS.add_argument('--config_exp', help='Location of experiments config file')
 FLAGS.add_argument('--model_path', help='path to the model files')
@@ -32,35 +32,41 @@ FLAGS.add_argument('--model_path', help='path to the model files')
 
 def main():
 
-    session_list = ['scan_scatnet','scan_clPcl'] # ,'twist',...]
     args = FLAGS.parse_args()
+    configname = args.p
+    config_file = 'CONFIG_FILES/'+args.p+'.yml'
+    trials = 'CONFIG_FILES/'+configname+'.trial'
+    session_list = load_trial_list(trials)
+    p = create_config(args.root_dir, config_file, args.p)
+    prefix = p['prefix']
+    gpu_id = args.gpu
+    num_cluster = p['num_classes']
+    fea_dim = p['feature_dim']
+    p['model_args']['num_neurons'] = [fea_dim, fea_dim, num_cluster]
+    backbone_file = p['pretrain_path']
+    p['pretrain_path'] = os.path.join(args.model_path,backbone_file)
+    
+    params = initialize_training(p)
+    start_info, end_info, new_optimum = loss_track_session(params,p,prefix,gpu_id)
 
+    
+
+    #from 'config.' import session_list
+
+    
     for session in session_list:
-        config_file = 'config/'+session+'.yml'
-        trials_file = 'config/'+session+'.py'
-        with open(trials_file, 'r') as f:
-            parsing_text = f.read()
-            trial_list = eval(parsing_text.strip(' \n'))
-
-        p = create_config(args.root_dir, config_file, session)
+        # Code per session:
+        p = map_parameters(p,session[0],args.model_path)
         prefix = p['prefix']
-        gpu_id = args.gpu
-        num_cluster = p['num_classes']
-        fea_dim = p['feature_dim']
-        p['model_args']['num_neurons'] = [fea_dim, fea_dim, num_cluster]
-        backbone_file = p['pretrain_path']
-        p['pretrain_path'] = os.path.join(args.model_path,backbone_file)
-
+        trial_list = session[1]
         i = 0
         run_id = prefix
         last_loss = 1000
 
-        session_table = pd.DataFrame()
-
         for trial in trial_list:
             # code per trial:
             run_id = prefix+str(i)
-            p = map_parameters(p,trial,args.model_path) # session needs to override p['scan_model'] OK
+            p = map_parameters(p,trial,args.model_path) # session needs to override p['scan_model']
             params = initialize_training(p)
             if trial['save_data']:
                 start_info, end_info, new_optimum = loss_track_session(params,p,run_id,gpu_id)
@@ -74,16 +80,13 @@ def main():
                         if os.path.exists(p['scan_model']): os.remove(p['scan_model'])
                     else:
                         if os.path.exists('PRODUCTS/'+run_id+'_best_model.pth'): os.remove('PRODUCTS/'+run_id+'_best_model.pth')
-            # compute table row statistics
-            session_table = evaluate_session_statistic(i,p,session_table,start_info,end_info)
-            #added = pd.DataFrame(dict(next_row),columns=next_row.index,index=[])
             i += 1
 
+    
 
-        session_table.to_csv('EVALUATION/'+prefix+'.csv')
-        
 
-    #configname = args.p
+
+#load_backbone_model(backbone,os.path.join(args.pretrain_path,p['backbone_file']),backbone_model_ID)
 
 
 
@@ -628,42 +631,8 @@ def map_parameters(p,params,model_path):
 
 
 #def load_trial_list(trial_file):
-
-def evaluate_session_statistic(id,para,session_table,start_series,end_series):
-     
-    hyperparams = pd.Series()
-    results = pd.Series()
-
-    idx = para['prefix']+'_'+str(id)
-
-    hyperparams['augmentation_strategy'] = para['augmentation_strategy']
-    hyperparams['backbone'] = para['backbone']
-    hyperparams['head_type'] = para['model_args']['head_type']
-    hyperparams['batch_norm'] = para['model_args']['batch_norm']
-    hyperparams['optimizer'] = para['optimizer']
-    hyperparams['full_model'] = para['update_cluster_head_only'] 
-    hyperparams['epochs'] = para['epochs']
-    hyperparams['batch_size'] = para['batch_size']
-    hyperparams['feature_dim'] = para['feature_dim']
-    hyperparams['num_heads'] = para['num_heads']
-     
-    info_part = pd.DataFrame(dict(hyperparams),colums=hyperparams.index,index=[idx])
-
-    for key in start_series.index:
-
-        s = 'start_'+str(key)
-        e = 'end_'+str(key)
-        d = 'd_'+str(key)
-
-        results[s] = start_series[key]
-        results[e] = end_series[key]
-        results[d] = end_series[key] - start_series[key]
-
-    data_part = pd.DataFrame(dict(results),colums=results.index,index=[idx])
-
-    next_row = pd.concat({'settings':info_part,'results': data_part},axis=1,names=['part:','values:'])
         
-    return pd.concat([session_table,next_row]) 
+        
 
 
 if __name__ == "__main__":

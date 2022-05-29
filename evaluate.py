@@ -10,24 +10,6 @@ from scipy.optimize import linear_sum_assignment
 import pandas as pd
 
 
-
-        
-
-
-
-#------------------------------------------------------------------------------
-
-
-
-     
-
-
-
-
-    
-
-
-
 def topk_consistency(features,predictions,num_neighbors):
     
     features = torch.nn.functional.normalize(features, dim = 1)
