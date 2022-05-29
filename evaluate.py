@@ -487,7 +487,7 @@ class Analysator():
 
         cluster_metric = self.categorical_from_selection(self.prediction_tensor)
 
-        statistic['cluster_size_min'] = min([ sum(self.C_train[ci,:]) for ci in range(10) ])
+        statistic['cluster_size_min'] = min([ sum(self.C[ci,:]) for ci in range(10) ])
 
         #cluster_metric['min']
         statistic['cluster_entropy'] = cluster_metric['entropy']
