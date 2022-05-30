@@ -326,7 +326,7 @@ def general_session(components,p,prefix,last_loss,gpu_id=0): #------------------
         print('Train ...')
         c_loss, best_head = train_one_epoch(train_loader=batch_loader, model=model, criterion=first_criterion, optimizer=optimizer, epoch=epoch, train_args=p['train_args'], second_criterion=second_criterion)
         # evaluate
-        pdict = {'model': model, 'best_head': best_head, 'c_loss': c_loss, 'best_loss_head': best_loss_head, 'best_epoch': best_epoch, 'epoch': epoch, 'prefix': prefix }
+        pdict = {'model': model, 'best_head': best_head, 'c_loss': c_loss, 'best_loss': best_loss,'best_loss_head': best_loss_head, 'best_epoch': best_epoch, 'epoch': epoch, 'prefix': prefix }
         parameter = evaluate_standard(p,pdict)
         best_loss  = parameter['best_loss']
         best_loss_head = parameter['best_loss_head']
