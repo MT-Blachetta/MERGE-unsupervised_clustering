@@ -30,16 +30,14 @@ def topk_consistency(features,predictions,num_neighbors):
 def cluster_size_entropy(costmatrix):
 
     absolute = costmatrix.sum(axis=1)
-    relative = absolute/sum(absolute)
+    relative = (absolute/sum(absolute)) + 0.00001
     entropy = - sum(relative*np.log(relative))
     
     return entropy
     #class_sum = costmatrix.sum(axis=0)
     #sizes = costmatrix.shape
-
     #class_relatives = [ costmatrix[:,i]/class_sum[i] for i in range(sizes[1]) ]
     #clas
-
     #for :
     #[ costmatrix[:class_id] ]
     #costmatrix.sum(axis=0)
@@ -916,6 +914,7 @@ class Analysator():
 
 
     def entropy_from_ratios(self,fractions):
+        fractions += 0.00001
         return to_value(-sum(fractions*torch.log(fractions)))
 
 
