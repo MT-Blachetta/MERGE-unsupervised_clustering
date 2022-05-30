@@ -63,7 +63,7 @@ def main():
             p = map_parameters(p,trial,args.model_path) # session needs to override p['scan_model'] OK
             params = initialize_training(p)
             if trial['save_data']:
-                start_info, end_info, new_optimum = loss_track_session(params,p,run_id,gpu_id)
+                start_info, end_info, new_optimum = loss_track_session(params,p,run_id,last_loss,gpu_id)
                 if new_optimum: last_loss = end_info['loss']
             else:
                 start_info, end_info, new_optimum = general_session(params,p,run_id,last_loss,gpu_id)
@@ -87,7 +87,7 @@ def main():
 
 
 
-def loss_track_session(components,p,prefix,gpu_id=0):
+def loss_track_session(components,p,prefix,last_loss,gpu_id=0):
 
     end_epoch = p['epochs']
 
@@ -160,7 +160,7 @@ def loss_track_session(components,p,prefix,gpu_id=0):
 
 # start_epoch, best_loss, best_loss_head = resume_from_checkpoint(model,optimizer,p['scan_checkpoint'])
 
-# first epoch
+    # first epoch
 
     c_loss, best_head = train_one_epoch(train_loader=batch_loader, model=model, criterion=first_criterion, optimizer=optimizer, epoch=0, train_args=p['train_args'], second_criterion=second_criterion)
     
@@ -229,7 +229,10 @@ def loss_track_session(components,p,prefix,gpu_id=0):
 
             torch.save({'analysator': metric_data,'parameter':p},'EVALUATION/'+prefix+'_ANALYSATOR')
 
-            return start_stats ,session_stats
+            if best_loss > last_loss:
+                return start_stats ,session_stats, True
+            else:
+                return start_stats ,session_stats, False
 
         else:
             print('best accuracy: ',best_accuracy)
@@ -242,7 +245,10 @@ def loss_track_session(components,p,prefix,gpu_id=0):
             metric_data.compute_real_consistency(0.5)
             torch.save({'analysator': metric_data,'parameter':p},'EVALUATION/'+prefix+'_ANALYSATOR')
 
-            return start_stats ,metric_data.return_statistic_summary(best_loss)
+            if best_loss > last_loss:
+                return start_stats ,session_stats, True
+            else:
+                return start_stats ,session_stats, False
 
     else: 
 
@@ -253,7 +259,10 @@ def loss_track_session(components,p,prefix,gpu_id=0):
         metric_data.compute_real_consistency(0.5)
         torch.save({'analysator': metric_data,'parameter':p},'EVALUATION/'+prefix+'_ANALYSATOR')
 
-        return start_stats, metric_data.return_statistic_summary(best_loss)
+        if best_loss > last_loss:
+            return start_stats ,session_stats, True
+        else:
+            return start_stats ,session_stats, False
 
 
 
@@ -289,7 +298,6 @@ def general_session(components,p,prefix,last_loss,gpu_id=0): #------------------
     # start_epoch, best_loss, best_loss_head = resume_from_checkpoint(model,optimizer,p['scan_checkpoint'])
 
     c_loss, best_head = train_one_epoch(train_loader=batch_loader, model=model, criterion=first_criterion, optimizer=optimizer, epoch=epoch, train_args=p['train_args'], second_criterion=second_criterion)
-    
     if p['num_heads'] > 1:
         best_loss = c_loss
         best_loss_head = best_head
@@ -305,21 +313,18 @@ def general_session(components,p,prefix,last_loss,gpu_id=0): #------------------
         starting_data.compute_real_consistency(0.5)
         start_stats = starting_data.return_statistic_summary(c_loss)
 
+
     # Main loop
     print(colored('Starting main loop', 'blue'))
-
     for epoch in range(start_epoch+1, end_epoch):
         print(colored('Epoch %d/%d' %(epoch+1, end_epoch), 'yellow'))
         print(colored('-'*15, 'yellow'))
-
         # Adjust lr
         lr = adjust_learning_rate(p, optimizer, epoch)
         print('Adjusted learning rate to {:.5f}'.format(lr))
-
         # Train
         print('Train ...')
         c_loss, best_head = train_one_epoch(train_loader=batch_loader, model=model, criterion=first_criterion, optimizer=optimizer, epoch=epoch, train_args=p['train_args'], second_criterion=second_criterion)
-
         # evaluate
         pdict = {'model': model, 'best_head': best_head, 'c_loss': c_loss, 'best_loss_head': best_loss_head, 'best_epoch': best_epoch, 'epoch': epoch, 'prefix': prefix }
         parameter = evaluate_standard(p,pdict)
