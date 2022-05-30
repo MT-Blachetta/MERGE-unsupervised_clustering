@@ -652,7 +652,7 @@ def evaluate_session_statistic(id,para,session_table,start_series,end_series):
     hyperparams['feature_dim'] = para['feature_dim']
     hyperparams['num_heads'] = para['num_heads']
      
-    info_part = pd.DataFrame(dict(hyperparams),colums=hyperparams.index,index=[idx])
+    info_part = pd.DataFrame(dict(hyperparams),columns=hyperparams.index,index=[idx])
 
     for key in start_series.index:
 
@@ -664,7 +664,7 @@ def evaluate_session_statistic(id,para,session_table,start_series,end_series):
         results[e] = end_series[key]
         results[d] = end_series[key] - start_series[key]
 
-    data_part = pd.DataFrame(dict(results),colums=results.index,index=[idx])
+    data_part = pd.DataFrame(dict(results),columns=results.index,index=[idx])
 
     next_row = pd.concat({'settings':info_part,'results': data_part},axis=1,names=['part:','values:'])
         
