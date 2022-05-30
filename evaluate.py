@@ -495,10 +495,10 @@ class Analysator():
         statistic['consistency_ratio'] = self.num_of_consistents(upper=0.5,lower=1.0,real_consistent=True)/self.dataset_size
         statistic['confidence_ratio'] = self.num_of_confidents(0.95)/self.dataset_size
 
-        statistic['correct_mean_confidence'] = self.mean_from_selection(self.correct_samples,self.confidence_tensor)
-        statistic['bad_mean_confidence'] = self.mean_from_selection(self.bad_samples,self.confidence_tensor)
-        statistic['correct_mean_consistency'] = self.mean_from_selection(self.correct_samples,self.criterion_consistent)
-        statistic['bad_mean_consistency'] = self.mean_from_selection(self.bad_samples,self.criterion_consistent)
+        statistic['correct_mean_confidence'] = self.mean_from_selection(self.correct_samples.cpu().numpy(),self.confidence_tensor.cpu().numpy())
+        statistic['bad_mean_confidence'] = self.mean_from_selection(self.bad_samples.cpu().numpy(),self.confidence_tensor.cpu().numpy())
+        statistic['correct_mean_consistency'] = self.mean_from_selection(self.correct_samples.cpu().numpy(),self.criterion_consistent.cpu().numpy())
+        statistic['bad_mean_consistency'] = self.mean_from_selection(self.bad_samples.cpu().numpy(),self.criterion_consistent.cpu().numpy())
 
         self.summary = statistic
 
