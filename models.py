@@ -565,3 +565,200 @@ def load_backbone_model(model,path,backbone_type):
         model.load_state_dict(pretrained,strict=True)
 
     else: raise ValueError
+
+
+def construct_spice_model(m_args,backbone):
+
+    feature_model = backbone  # get_backbone(m_args)
+
+    if m_args['model_type'] == 'spice_linearMLP':
+        m_args['batch_norm'] = False
+        m_args['last_activation'] = 'softmax'
+        m_args['last_batchnorm'] = False
+        return Sim2Sem(feature_model, m_args)
+
+
+    elif m_args['model_type'] == 'spice_batchnormMLP':
+        m_args['batch_norm'] = True
+        m_args['last_activation'] = 'softmax'
+        m_args['last_batchnorm'] = False
+        return Sim2Sem(feature_model, m_args)
+
+    elif m_args['model_type'] == 'spice_linearMLP_lastBatchnorm':
+        m_args['batch_norm'] = False
+        m_args['last_activation'] = 'softmax'
+        m_args['last_batchnorm'] = True
+        return Sim2Sem(feature_model, m_args)
+
+    elif m_args['model_type'] == 'spice_fullBatchnorm':
+        m_args['batch_norm'] = True
+        m_args['last_activation'] = 'softmax'
+        m_args['last_batchnorm'] = True
+        return Sim2Sem(feature_model, m_args)
+
+
+def load_spice_model(model,save_path,model_type):
+
+    savepoint = torch.load(save_path,map_location='cpu')
+    
+    if model_type == 'spice_linearMLP':
+        savepoint['head.lin1.weight'] = savepoint['head.head_0.classifier.lin1.weight']
+        del savepoint['head.head_0.classifier.lin1.weight']
+
+        savepoint['head.lin1.bias'] = savepoint['head.head_0.classifier.lin1.bias']
+        del savepoint['head.head_0.classifier.lin1.bias']
+
+        savepoint['head.lin2.weight'] = savepoint['head.head_0.classifier.lin2.weight']
+        del savepoint['head.head_0.classifier.lin2.weight']
+
+        savepoint['head.lin2.bias'] = savepoint['head.head_0.classifier.lin2.bias']
+        del savepoint['head.head_0.classifier.lin2.bias']
+
+
+    elif model_type == 'spice_batchnormMLP':
+        savepoint['head.lin1.weight'] = savepoint['head.head_0.classifier.lin1.weight']
+        del savepoint['head.head_0.classifier.lin1.weight']
+
+        savepoint['head.lin1.bias'] = savepoint['head.head_0.classifier.lin1.bias']
+        del savepoint['head.head_0.classifier.lin1.bias']
+
+        savepoint['head.bn1.weight'] = savepoint['head.head_0.classifier.bn1.weight']
+        del savepoint['head.head_0.classifier.bn1.weight']
+
+        savepoint['head.bn1.bias'] = savepoint['head.head_0.classifier.bn1.bias']
+        del savepoint['head.head_0.classifier.bn1.bias']
+
+        savepoint['head.bn1.running_mean'] = savepoint['head.head_0.classifier.bn1.running_mean']
+        del savepoint['head.head_0.classifier.bn1.running_mean']
+
+        savepoint['head.bn1.running_var'] = savepoint['head.head_0.classifier.bn1.running_var']
+        del savepoint['head.head_0.classifier.bn1.running_var']
+
+        savepoint['head.bn1.num_batches_tracked'] = savepoint['head.head_0.classifier.bn1.num_batches_tracked']
+        del savepoint['head.head_0.classifier.bn1.num_batches_tracked']
+
+        savepoint['head.lin2.weight'] = savepoint['head.head_0.classifier.lin2.weight']
+        del savepoint['head.head_0.classifier.lin2.weight']
+
+        savepoint['head.lin2.bias'] = savepoint['head.head_0.classifier.lin2.bias']
+        del savepoint['head.head_0.classifier.lin2.bias']
+
+        savepoint['head.bn2.weight'] = savepoint['head.head_0.classifier.bn2.weight']
+        del savepoint['head.head_0.classifier.bn2.weight']
+
+        savepoint['head.bn2.bias'] = savepoint['head.head_0.classifier.bn2.bias']
+        del savepoint['head.head_0.classifier.bn2.bias']
+
+        savepoint['head.bn2.running_mean'] = savepoint['head.head_0.classifier.bn2.running_mean']
+        del savepoint['head.head_0.classifier.bn2.running_mean']
+
+        savepoint['head.bn2.running_var'] = savepoint['head.head_0.classifier.bn2.running_var']
+        del savepoint['head.head_0.classifier.bn2.running_var']
+
+        savepoint['head.bn2.num_batches_tracked'] = savepoint['head.head_0.classifier.bn2.num_batches_tracked']
+        del savepoint['head.head_0.classifier.bn2.num_batches_tracked']
+        
+
+    elif model_type == 'spice_linearMLP_lastBatchnorm':
+        savepoint['head.lin1.weight'] = savepoint['head.head_0.classifier.lin1.weight']
+        del savepoint['head.head_0.classifier.lin1.weight']
+
+        savepoint['head.lin1.bias'] = savepoint['head.head_0.classifier.lin1.bias']
+        del savepoint['head.head_0.classifier.lin1.bias']
+
+        savepoint['head.lin2.weight'] = savepoint['head.head_0.classifier.lin2.weight']
+        del savepoint['head.head_0.classifier.lin2.weight']
+
+        savepoint['head.lin2.bias'] = savepoint['head.head_0.classifier.lin2.bias']
+        del savepoint['head.head_0.classifier.lin2.bias']
+
+        savepoint['head.final_bn.running_mean'] = savepoint['head.head_0.classifier.final_bn.running_mean']
+        del savepoint['head.head_0.classifier.final_bn.running_mean']
+        savepoint['head.final_bn.running_var'] = savepoint['head.head_0.classifier.final_bn.running_var']
+        del savepoint['head.head_0.classifier.final_bn.running_var']
+        savepoint['head.final_bn.num_batches_tracked'] = savepoint['head.head_0.classifier.final_bn.num_batches_tracked']
+        del savepoint['head.head_0.classifier.final_bn.num_batches_tracked']
+
+    elif model_type == 'spice_fullBatchnorm':
+
+        savepoint['head.lin1.weight'] = savepoint['head.head_0.classifier.lin1.weight']
+        del savepoint['head.head_0.classifier.lin1.weight']
+
+        savepoint['head.lin1.bias'] = savepoint['head.head_0.classifier.lin1.bias']
+        del savepoint['head.head_0.classifier.lin1.bias']
+
+        savepoint['head.bn1.weight'] = savepoint['head.head_0.classifier.bn1.weight']
+        del savepoint['head.head_0.classifier.bn1.weight']
+
+        savepoint['head.bn1.bias'] = savepoint['head.head_0.classifier.bn1.bias']
+        del savepoint['head.head_0.classifier.bn1.bias']
+
+        savepoint['head.bn1.running_mean'] = savepoint['head.head_0.classifier.bn1.running_mean']
+        del savepoint['head.head_0.classifier.bn1.running_mean']
+
+        savepoint['head.bn1.running_var'] = savepoint['head.head_0.classifier.bn1.running_var']
+        del savepoint['head.head_0.classifier.bn1.running_var']
+
+        savepoint['head.bn1.num_batches_tracked'] = savepoint['head.head_0.classifier.bn1.num_batches_tracked']
+        del savepoint['head.head_0.classifier.bn1.num_batches_tracked']
+
+        savepoint['head.lin2.weight'] = savepoint['head.head_0.classifier.lin2.weight']
+        del savepoint['head.head_0.classifier.lin2.weight']
+
+        savepoint['head.lin2.bias'] = savepoint['head.head_0.classifier.lin2.bias']
+        del savepoint['head.head_0.classifier.lin2.bias']
+
+        savepoint['head.bn2.weight'] = savepoint['head.head_0.classifier.bn2.weight']
+        del savepoint['head.head_0.classifier.bn2.weight']
+
+        savepoint['head.bn2.bias'] = savepoint['head.head_0.classifier.bn2.bias']
+        del savepoint['head.head_0.classifier.bn2.bias']
+
+        savepoint['head.bn2.running_mean'] = savepoint['head.head_0.classifier.bn2.running_mean']
+        del savepoint['head.head_0.classifier.bn2.running_mean']
+
+        savepoint['head.bn2.running_var'] = savepoint['head.head_0.classifier.bn2.running_var']
+        del savepoint['head.head_0.classifier.bn2.running_var']
+
+        savepoint['head.bn2.num_batches_tracked'] = savepoint['head.head_0.classifier.bn2.num_batches_tracked']
+        del savepoint['head.head_0.classifier.bn2.num_batches_tracked']
+
+        savepoint['head.final_bn.running_mean'] = savepoint['head.head_0.classifier.final_bn.running_mean']
+        del savepoint['head.head_0.classifier.final_bn.running_mean']
+        savepoint['head.final_bn.running_var'] = savepoint['head.head_0.classifier.final_bn.running_var']
+        del savepoint['head.head_0.classifier.final_bn.running_var']
+        savepoint['head.final_bn.num_batches_tracked'] = savepoint['head.head_0.classifier.final_bn.num_batches_tracked']
+        del savepoint['head.head_0.classifier.final_bn.num_batches_tracked']
+
+    else: raise ValueError('invalid model type')
+
+    model.load_state_dict(savepoint,strict=True)
+
+
+class Sim2Sem(nn.Module):
+
+    def __init__(self, feature_module, m_args):
+        super(Sim2Sem, self).__init__()
+        # ScatSimCLR(J=2, L=16, input_size=(96, 96, 3), res_blocks=30, out_dim=128)
+        self.feature_module = feature_module #build_feature_module(feature)
+        self.head = MLP(num_neurons = m_args['num_neurons'], last_activation = m_args['last_activation'],batch_norm = m_args['batch_norm'], last_batchnorm = m_args['last_batchnorm'])
+
+    def forward(self, images, forward_type="sem"):
+
+       # if forward_type not in ["sim2sem", "proto", "local_consistency"]:
+
+        if forward_type == "sem":
+            fea = self.feature_module(images)
+            fea = fea.flatten(start_dim=1)
+            return self.head.forward(fea)
+
+        elif forward_type == "features":
+            fea = self.feature_module(images)
+            fea = fea.flatten(start_dim=1)
+            return fea
+
+        elif forward_type == "head":
+            return self.head(images)
+
+        else:
+            raise TypeError
