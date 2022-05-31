@@ -558,7 +558,7 @@ def load_backbone_model(model,path,backbone_type):
         model.backbone.load_state_dict(pretrained,strict=True)
 
     elif backbone_type == 'clPcl':
-        missing = model['backbone'].load_state_dict(pretrained, strict=False)
+        missing = model.load_state_dict(pretrained, strict=False)
         print("missing layers: ",missing)
 
     elif backbone_type == 'scatnet':

@@ -58,7 +58,7 @@ def get_augmentation(p):
     augmentation_method = p['augmentation_strategy']
     augmentation_type = p['augmentation_type']
 
-    if augmentation_type == 'scan':
+    if augmentation_type == 'scan': # <return_type> torch.Tensor
 
         if p['augmentation_strategy'] == 'standard':
             # Standard augmentation strategy
@@ -99,8 +99,8 @@ def get_augmentation(p):
             raise ValueError('Invalid augmentation strategy {}'.format(p['augmentation_strategy']))
 
 
-    else:
-        aug_args = p['augmentation_kwargs']
+    else: # <input_type> PIL.Image
+        aug_args = p['augmentation_kwargs'] # <return_type> list[]
         # get_train_transformations(p):
         if augmentation_method == 'standard':
                 # Standard augmentation strategy
@@ -153,7 +153,7 @@ def get_train_dataloader(p,train_transformation):
     train_split = p['train_split']
     dataset_type = p['dataset_type']
 
-    if dataset_type == 'scan':
+    if dataset_type == 'scan': # <return_type> dict{'image': torch.Tensor,'target': int}
 
         if p['train_db_name'] == 'cifar-10':
             from dataset.scan_dataset import CIFAR10
@@ -202,14 +202,14 @@ def get_train_dataloader(p,train_transformation):
             dataset = NeighborsDataset(dataset, indices, p['num_neighbors'])
             
 
-    else:
+    else: # <return_type> (PIL.Image , label)
         dataset = torchvision.datasets.STL10('/space/blachetta/data', split=train_split,transform=train_transformation, download=True)
 
 
     ### data_loader:
 
 
-    if dataset_type == 'scan':
+    if dataset_type == 'scan': # returns single elements stacked at the lowest level to a torch.Tensor
 
         batch_loader = torch.utils.data.DataLoader(dataset, num_workers=p['num_workers'], 
                 batch_size=p['batch_size'], pin_memory=True, collate_fn=collate_custom,
@@ -311,9 +311,10 @@ def get_backbone(p):
         backbone = wrapped_resnet(coreModel)
         #backbone_outdim = 512
 
-    elif backbone_model_ID == 'clPcl':
+    elif backbone_model_ID == 'clPcl': # <return_type> dict{'backbone': ResNet(BasicBlock, [2, 2, 2, 2], **kwargs), 'dim': 512}
         from models import resnet18
-        backbone = resnet18()
+        res18 = resnet18()
+        backbone = res18['backbone']
         #backbone_outdim = 512
 
     elif backbone_model_ID == 'scatnet':
