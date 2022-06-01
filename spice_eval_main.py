@@ -9,6 +9,7 @@ from sklearn import cluster
 import sklearn
 from scipy.optimize import linear_sum_assignment
 import torchvision.transforms as transforms
+from scatnet import ScatSimCLR
 #from utils import compute_scan_dataset, compute_default_dataset
 
 def main():
@@ -43,9 +44,11 @@ def main():
             'out_dim': 128
             }
 
+ 
+    backbone = ScatSimCLR(J=m_args['J'], L=m_args['L'], input_size=tuple(m_args['input_size']), res_blocks=m_args['res_blocks'],out_dim=m_args['out_dim'])
 
     # get the model from file to the code
-    model = construct_spice_model(m_args)
+    model = construct_spice_model(m_args,backbone)
     load_spice_model(model,savefile,model_type)
 
     from dataset.scan_dataset import STL10_trainNtest, STL10_eval
