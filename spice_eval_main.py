@@ -115,7 +115,7 @@ def main():
     metric_data.compute_real_consistency(0.5)
     metric_data.return_statistic_summary()
 
-    pickle.dump(metric_data, open(prefix+".pck",'wb'))
+    pickle.dump(metric_data, open('SPICE_EVAL/'+prefix+".pck",'wb'))
 
 #---------------------------------------------------------------------------------------------
 
