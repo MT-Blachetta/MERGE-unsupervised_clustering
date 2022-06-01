@@ -26,7 +26,7 @@ def main():
     'transformation_kwargs': {'crop_size': 96, 'normalize': {'mean': [0.485, 0.456, 0.406], 'std': [0.229, 0.224, 0.225]}},
     'train_db_name': 'stl-10',
     'to_neighbors_dataset': True, 
-    'topk_neighbors_val_path': 'RESULTS/stl-10/topk/both_scatnet_topk-val-neighbors.npy',
+    'topk_neighbors_val_path': 'RESULTS/stl-10/topk/scatnet_both_topk-val-neighbors.npy',
     'num_workers': 8,
     'batch_size': 256
 
