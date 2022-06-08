@@ -24,7 +24,7 @@ from functionality import initialize_training
 
 FLAGS = argparse.ArgumentParser(description='loss training')
 FLAGS.add_argument('-gpu',help='number as gpu identifier')
-#FLAGS.add_argument('-p',help='prefix for file selection')
+FLAGS.add_argument('-list',help='path to the trial list')
 FLAGS.add_argument('--root_dir', help='root directory for saves', default='RESULTS')
 #FLAGS.add_argument('--config_exp', help='Location of experiments config file')
 FLAGS.add_argument('--model_path', help='path to the model files')
@@ -32,8 +32,11 @@ FLAGS.add_argument('--model_path', help='path to the model files')
 
 def main():
 
-    session_list = ['scan_scatnet','scan_clPcl'] # ,'twist',...]
+    #session_list = ['scan_scatnet','scan_clPcl'] # ,'twist',...]
     args = FLAGS.parse_args()
+    with open(args.list,'r') as lf:
+        pstr = lf.read()
+        session_list = eval(pstr.strip(' \n'))
 
     for session in session_list:
         config_file = 'config/'+session+'.yml'

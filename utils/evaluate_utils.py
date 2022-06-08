@@ -7,7 +7,7 @@ import torch
 import torch.nn.functional as F
 from utils.common_config import get_feature_dimensions_backbone
 from utils.utils import AverageMeter, confusion_matrix
-from dataset.scan_dataset import NeighborsDataset
+from datasets import NeighborsDataset
 from sklearn import metrics
 from scipy.optimize import linear_sum_assignment
 from losses.losses import entropy

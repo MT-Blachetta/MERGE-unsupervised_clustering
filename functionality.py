@@ -148,7 +148,7 @@ def get_train_dataloader(p,train_transformation):
 
     """ --------------- TRAINING: Select Dataset -------------------- """
     # dataset:
-    from dataset.scan_dataset import STL10_trainNtest
+    from datasets import STL10_trainNtest
     #
     train_split = p['train_split']
     dataset_type = p['dataset_type']
@@ -156,35 +156,35 @@ def get_train_dataloader(p,train_transformation):
     if dataset_type == 'scan': # <return_type> dict{'image': torch.Tensor,'target': int}
 
         if p['train_db_name'] == 'cifar-10':
-            from dataset.scan_dataset import CIFAR10
+            from datasets import CIFAR10
             dataset = CIFAR10(train=True, transform=train_transformation, download=True)
             #eval_dataset = CIFAR10(train=False, transform=val_transformations, download=True)
 
         elif p['train_db_name'] == 'cifar-20':
-            from dataset.scan_dataset import CIFAR20
+            from datasets import CIFAR20
             dataset = CIFAR20(train=True, transform=train_transformation, download=True)
             #eval_dataset = CIFAR20(train=False, transform=val_transformations, download=True)
 
         elif p['train_db_name'] == 'stl-10':
-            from dataset.scan_dataset import STL10
+            from datasets import STL10
 
             if train_split == 'train':
                 dataset = STL10(split='train', transform=train_transformation, download=False)
             elif train_split == 'test':
                 dataset = STL10(split='test', transform=train_transformation, download=False)
             elif train_split == 'both':
-                from dataset.scan_dataset import STL10_eval
+                from datasets import STL10_eval
                 dataset = STL10_eval(path='/space/blachetta/data',aug=train_transformation)
             elif train_split == 'unlabeled':
                 dataset = STL10(split='train+unlabeled',transform=train_transformation, download=False)
             else: raise ValueError('Invalid stl10 split')
 
         elif p['train_db_name'] == 'imagenet':
-            from dataset.scan_dataset import ImageNet
+            from datasets import ImageNet
             dataset = ImageNet(split='train', transform=train_transformation)
 
         elif p['train_db_name'] in ['imagenet_50', 'imagenet_100', 'imagenet_200']:
-            from dataset.scan_dataset import ImageNetSubset
+            from datasets import ImageNetSubset
             subset_file = './data/imagenet_subsets/%s.txt' %(p['train_db_name'])
             #dataset = ImageNetSubset(subset_file=subset_file, split='train', transform=val_transformations)
 
@@ -193,11 +193,11 @@ def get_train_dataloader(p,train_transformation):
         
         # Wrap into other dataset (__getitem__ changes)
         if p['to_augmented_dataset']: # Dataset returns an image and an augmentation of that image.
-            from dataset.scan_dataset import AugmentedDataset
+            from datasets import AugmentedDataset
             dataset = AugmentedDataset(dataset)
 
         if p['to_neighbors_dataset']: # Dataset returns an image and one of its nearest neighbors.
-            from dataset.scan_dataset import NeighborsDataset
+            from datasets import NeighborsDataset
             indices = np.load(p['topk_neighbors_train_path'])
             dataset = NeighborsDataset(dataset, indices, p['num_neighbors'])
             
@@ -225,7 +225,7 @@ def get_train_dataloader(p,train_transformation):
 def get_val_dataloader(p):
     
     # dataset:
-    from dataset.scan_dataset import STL10_trainNtest, STL10_eval
+    from datasets import STL10_trainNtest, STL10_eval
 
 
     val_transformations = transforms.Compose([
@@ -239,18 +239,18 @@ def get_val_dataloader(p):
     if dataset_type == 'scan':
 
         if p['train_db_name'] == 'cifar-10':
-            from dataset.scan_dataset import CIFAR10
+            from datasets import CIFAR10
             #dataset = CIFAR10(train=True, transform=train_transformation, download=True)
             eval_dataset = CIFAR10(train=False, transform=val_transformations, download=True)
 
         elif p['train_db_name'] == 'cifar-20':
-            from dataset.scan_dataset import CIFAR20
+            from datasets import CIFAR20
             #dataset = CIFAR20(train=True, transform=train_transformation, download=True)
             eval_dataset = CIFAR20(train=False, transform=val_transformations, download=True)
 
         elif p['train_db_name'] == 'stl-10':
             if val_split == 'train':
-                from dataset.scan_dataset import STL10
+                from datasets import STL10
                 eval_dataset = STL10(split='train', transform=val_transformations, download=False)
             elif val_split == 'test':
                 eval_dataset = STL10(split='test', transform=val_transformations, download=False)
@@ -266,7 +266,7 @@ def get_val_dataloader(p):
         
 
         if p['to_neighbors_dataset']: # Dataset returns an image and one of its nearest neighbors.
-            from dataset.scan_dataset import NeighborsDataset
+            from datasets import NeighborsDataset
             #print(p['topk_neighbors_train_path'])
             indices = np.load(p['topk_neighbors_val_path'])
             #print(indices.shape)
