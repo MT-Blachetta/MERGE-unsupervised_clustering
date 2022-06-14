@@ -58,7 +58,7 @@ def main():
         run_id = prefix
         last_loss = 1000
 
-        session_table = pd.DataFrame()
+        session_stats = statisics_register()
 
         for trial in trial_list:
             # code per trial:
@@ -78,12 +78,12 @@ def main():
                     else:
                         if os.path.exists('PRODUCTS/'+run_id+'_best_model.pth'): os.remove('PRODUCTS/'+run_id+'_best_model.pth')
             # compute table row statistics
-            session_table = evaluate_session_statistic(i,p,session_table,start_info,end_info)
+            session_stats.add_session_statistic(i,p,start_info,end_info)
             #added = pd.DataFrame(dict(next_row),columns=next_row.index,index=[])
             i += 1
 
 
-        session_table.to_csv('EVALUATION/'+prefix+'.csv')
+        torch.save(session_stats,'EVALUATION/'+prefix+'.session')
         
 
     #configname = args.p
@@ -246,6 +246,7 @@ def loss_track_session(components,p,prefix,last_loss,gpu_id=0):
             metric_data = Analysator(device_id,model,val_loader,forwarding='singleHead_eval')
             metric_data.compute_kNN_statistics(100)
             metric_data.compute_real_consistency(0.5)
+            session_stats = metric_data.return_statistic_summary(best_loss)
             torch.save({'analysator': metric_data,'parameter':p},'EVALUATION/'+prefix+'_ANALYSATOR')
 
             if best_loss > last_loss:
@@ -260,6 +261,7 @@ def loss_track_session(components,p,prefix,last_loss,gpu_id=0):
         metric_data = Analysator(device_id,model,val_loader)
         metric_data.compute_kNN_statistics(100)
         metric_data.compute_real_consistency(0.5)
+        session_stats = metric_data.return_statistic_summary(best_loss)
         torch.save({'analysator': metric_data,'parameter':p},'EVALUATION/'+prefix+'_ANALYSATOR')
 
         if best_loss > last_loss:
@@ -637,41 +639,65 @@ def map_parameters(p,params,model_path):
 
 #def load_trial_list(trial_file):
 
-def evaluate_session_statistic(id,para,session_table,start_series,end_series):
+
+class statisics_register():
+
+    def __init__(self):
+        self.meta_track = []
+        self.start_track = []
+        self.performance_track = []
+        self.difference_table = pd.DataFrame()
+        self.hyperparameter_table = pd.DataFrame()
+        self.output_table = pd.DataFrame()
+        self.session_table = pd.DataFrame()
+
+    def add_session_statistic(self,id,para,start_series,end_series):
      
-    hyperparams = pd.Series()
-    results = pd.Series()
+        hyperparams = pd.Series()
+        results = pd.Series()
+        delta = pd.Series()
 
-    idx = para['prefix']+'_'+str(id)
+        self.performance_track.append(end_series)
+        self.start_track.append(start_series)
+        self.output_table = pd.concat([self.output_table,pd.DataFrame(dict(end_series),columns=end_series.index,index=[idx])])
 
-    hyperparams['augmentation_strategy'] = para['augmentation_strategy']
-    hyperparams['backbone'] = para['backbone']
-    hyperparams['head_type'] = para['model_args']['head_type']
-    hyperparams['batch_norm'] = para['model_args']['batch_norm']
-    hyperparams['optimizer'] = para['optimizer']
-    hyperparams['full_model'] = para['update_cluster_head_only'] 
-    hyperparams['epochs'] = para['epochs']
-    hyperparams['batch_size'] = para['batch_size']
-    hyperparams['feature_dim'] = para['feature_dim']
-    hyperparams['num_heads'] = para['num_heads']
-     
-    info_part = pd.DataFrame(dict(hyperparams),columns=hyperparams.index,index=[idx])
+        idx = para['prefix']+'_'+str(id)
 
-    for key in start_series.index:
-
-        s = 'start_'+str(key)
-        e = 'end_'+str(key)
-        d = 'd_'+str(key)
-
-        results[s] = start_series[key]
-        results[e] = end_series[key]
-        results[d] = end_series[key] - start_series[key]
-
-    data_part = pd.DataFrame(dict(results),columns=results.index,index=[idx])
-
-    next_row = pd.concat({'settings':info_part,'results': data_part},axis=1,names=['part:','values:'])
+        hyperparams['augmentation_strategy'] = para['augmentation_strategy']
+        hyperparams['backbone'] = para['backbone']
+        hyperparams['head_type'] = para['model_args']['head_type']
+        hyperparams['batch_norm'] = para['model_args']['batch_norm']
+        hyperparams['optimizer'] = para['optimizer']
+        hyperparams['full_model'] = para['update_cluster_head_only'] 
+        hyperparams['epochs'] = para['epochs']
+        hyperparams['batch_size'] = para['batch_size']
+        hyperparams['feature_dim'] = para['feature_dim']
+        hyperparams['num_heads'] = para['num_heads']
         
-    return pd.concat([session_table,next_row]) 
+        self.meta_track.append(hyperparams)
+        info_part = pd.DataFrame(dict(hyperparams),columns=hyperparams.index,index=[idx])
+        self.hyperparameter_table = pd.concat([self.hyperparameter_table, info_part])
+
+        for key in start_series.index:
+
+            s = 'start_'+str(key)
+            e = 'end_'+str(key)
+            d = 'd_'+str(key)
+
+            results[s] = start_series[key]
+            results[e] = end_series[key]
+            delta[d] = end_series[key] - start_series[key]
+            results[d] = end_series[key] - start_series[key]
+
+        self.difference_table = pd.concat([self.difference_table,pd.DataFrame(dict(delta),columns=delta.index,index=[idx])])
+
+        data_part = pd.DataFrame(dict(results),columns=results.index,index=[idx])
+
+        next_row = pd.concat({'settings':info_part,'results': data_part},axis=1,names=['part:','values:'])
+            
+        return pd.concat([self.session_table,next_row])
+
+
 
 
 if __name__ == "__main__":

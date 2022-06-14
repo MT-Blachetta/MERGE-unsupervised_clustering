@@ -40,7 +40,7 @@ augmentation_kwargs:
 #     length: 32
 #     random: True
     color_jitter: 0.4 
-    img_size: 96
+    img_size: 32
     global_crops_scale: [0.4, 1.0]
     local_crops_scale: [0.05, 0.4]
     local_crops_size: 32
