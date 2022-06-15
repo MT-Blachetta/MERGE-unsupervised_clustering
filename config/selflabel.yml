@@ -3,6 +3,7 @@ setup: pseudolabel
 prefix: scatnetMLP_selflabel
 
 pretrain_path: "RESULTS/stl-10/scan_scatnet/scan_scatnet_model.pth.tar"
+pretrain_type: scan
 
 ### Technical Parameters (unimportant) FIXED
 num_workers: 8

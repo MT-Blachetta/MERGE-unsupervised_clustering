@@ -518,8 +518,12 @@ def initialize_training(p):
         backbone = get_backbone(p)
         model = get_head_model(p,backbone)
         pretrained = torch.load(p['pretrain_path'],map_location='cpu')
-        model.load_state_dict(pretrained,strict=True)
-        model = transfer_multihead_model(p,model)
+        if p['pretrain_type'] == 'scan':
+            model.load_state_dict(pretrained['model'],strict=True)
+            model = transfer_multihead_model(p,model,pretrained['head'])
+        else:
+            model.load_state_dict(pretrained,strict=True)
+            model = transfer_multihead_model(p,model)
         train_loader = None
     else:
         train_loader = get_train_dataloader(p,aug_transform)

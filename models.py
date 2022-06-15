@@ -566,21 +566,26 @@ def load_backbone_model(model,path,backbone_type):
 
     else: raise ValueError
 
-def transfer_multihead_model(p,model):
+def transfer_multihead_model(p,model,head_id=0):
 
     backbone = model.backbone
     backbone_dim = model.backbone_dim
     p['model_args']['nheads'] = p['num_heads']
     model_args = p['model_args']
 
-    if p['model_type'] == 'clusterHeads':
+    if p['pretrain_type'] == 'scan':
         transfer_model = MlpHeadModel(backbone, backbone_dim, model_args)
-        transfer_model.head = model.cluster_head[model.best_head_id]
-    elif p['model_type'] == '[multiheadTWIST]':
-        pass # TO DO
-    else:
-        return model
-        #raise ValueError('Invalid model type')
+        transfer_model.head = model.cluster_head[head_id]
+    else: return model
+
+   # if p['model_type'] == 'clusterHeads':
+   #     transfer_model = MlpHeadModel(backbone, backbone_dim, model_args)
+   #     transfer_model.head = model.cluster_head[head_id]
+   # elif p['model_type'] == '[multiheadTWIST]':
+   #    pass # TO DO
+   #else:
+   #    return model
+    #    #raise ValueError('Invalid model type')
 
     return transfer_model
 

@@ -34,8 +34,8 @@ num_cluster = p['num_classes']
 fea_dim = p['feature_dim']
 p['model_args']['num_neurons'] = [fea_dim, fea_dim, num_cluster]
 
-with open('p_info.txt','w') as f:
-    f.write(str(p))
+#with open('p_info.txt','w') as f:
+#    f.write(str(p))
 
 params = initialize_training(p)
 
