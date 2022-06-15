@@ -398,7 +398,7 @@ def pseudolabel_train(train_loader, model, criterion, optimizer, epoch, train_ar
 
     for i, batch in enumerate(train_loader):
         images = batch['image']
-        targets = batch['targets']
+        targets = batch['target']
         images = images.to(device)
 
         features = model(images)

@@ -207,6 +207,7 @@ class ReliableSamplesSet(Dataset):
     def select_top_samples(self):
 
         min_size = (len(self.dataset)/self.num_clusters)*0.1
+        print('min_size = ',min_size)
         start_ratio_cf = 0.99
         #start_ratio_cs = 0.99
 
@@ -214,7 +215,9 @@ class ReliableSamplesSet(Dataset):
         confirmed_samples, num_confirmed = self.get_consistent_samples(confident_samples)  # ,start_ratio_cs)
 
         while((num_confident < min_size) and (num_confirmed < 1)):
+            
             start_ratio_cf -= 0.005
+            print('reduce confidence to ', start_ratio_cf)
             confident_samples, num_confident = self.get_confident_samples(ratio=start_ratio_cf)
             confirmed_samples, num_confirmed = self.get_consistent_samples(confident_samples)
         
@@ -280,6 +283,7 @@ class ReliableSamplesSet(Dataset):
                     if num_c < min_consistency: min_consistency = num_c
 
         print('consistency_ratio: ',ratio)
+        print('min_confirmed = ',min_consistency)
         return confirmed_samples, min_consistency
 
     def get_alternative_consistence(self,confident_samples):
