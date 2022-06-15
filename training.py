@@ -399,9 +399,17 @@ def pseudolabel_train(train_loader, model, criterion, optimizer, epoch, train_ar
     for i, batch in enumerate(train_loader):
         images = batch['image']
         targets = batch['target']
+        print('images(type): ', type(images))
+        print('images.shape: ',images.shape)
         images = images.to(device)
 
+
         features = model(images)
+        print('features(type): ', type(images))
+        print('features.shape: ',images.shape)
+        print('targets(type): ', type(targets))
+        print('targets.shape: ',targets.shape)
+        print('targets[0]: ',str(targets[0]))
 
         loss = criterion(features, targets)
         print('epoch: ',epoch,' / batch: ',i)

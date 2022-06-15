@@ -153,7 +153,8 @@ class ReliableSamplesSet(Dataset):
         #self.softlabel_tensor = torch.cat(soft_labels)
         self.predictions = torch.cat(predictions)
         self.predictions = self.predictions.type(torch.LongTensor)
-        self.num_clusters = self.predictions.max()+1  
+        self.num_clusters = self.predictions.max()+1
+        print('num_clusters: ',self.num_clusters)
         #self.label_tensor = torch.cat(labels)
         self.confidence = torch.cat(confidences)
         dataset_size = len(self.dataset)
@@ -206,6 +207,7 @@ class ReliableSamplesSet(Dataset):
 
     def select_top_samples(self):
 
+        print('len(dataset): ',len(self.dataset))
         min_size = (len(self.dataset)/self.num_clusters)*0.1
         print('min_size = ',min_size)
         start_ratio_cf = 0.99
