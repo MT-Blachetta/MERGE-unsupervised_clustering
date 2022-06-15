@@ -28,6 +28,7 @@ p = create_config(args.root, args.config, args.prefix)
 p['train_args'] = {}
 p['train_args']['device'] = 'cuda'
 p['train_args']['gpu_id'] = args.gpu
+p['device'] = 'cuda:'+str(args.gpu)
 #p['prefix'] = args.prefix
 #p['gpu_id'] = args.gpu
 num_cluster = p['num_classes']
