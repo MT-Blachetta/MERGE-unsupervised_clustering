@@ -15,6 +15,12 @@ FLAGS.add_argument('-root',help='root directory')
 FLAGS.add_argument('-config', help='path to the model files')
 
 args = FLAGS.parse_args()
+
+print('arguments.gpu = ',args.gpu)
+print('arguments.prefix = ',args.prefix)
+print('arguments.config = ',args.config)
+print('arguments.root = ',args.root)
+
 #!@ref
 
 p = create_config(args.root, args.config, args.prefix)
@@ -27,6 +33,10 @@ p['train_args']['gpu_id'] = args.gpu
 num_cluster = p['num_classes']
 fea_dim = p['feature_dim']
 p['model_args']['num_neurons'] = [fea_dim, fea_dim, num_cluster]
+
+with open('p_info.txt','w') as f:
+    f.write(str(p))
+
 params = initialize_training(p)
 
 dataset = params['dataset']
