@@ -415,7 +415,7 @@ def get_criterion(p):
 
     elif loss_ID == 'pseudolabel':
         first_criterion = torch.nn.CrossEntropyLoss
-        print('selected criterion: ',print(first_criterion))
+        print('@ref[criterion_retrieval]: selected criterion: ',print(first_criterion))
 
     elif loss_ID == 'scan_selflabel':
         from loss import ConfidenceBasedCE
@@ -511,14 +511,14 @@ def get_dataset(p,train_transformation):
     else:
         raise ValueError('not implemented error')
 
-    print('dataset: ',str(dataset))
+    print('dataset: ',type(dataset))
     return dataset
 
 def initialize_training(p):
     
     aug_transform = get_augmentation(p)
     val_loader = get_val_dataloader(p)  
-    first_criterion, second_criterion = get_criterion(p)
+    first_criterion, second_criterion = get_criterion(p) #@ref[criterion_retrieval]
     train_one_epoch = get_train_function(p['train_method'])
 
     if p['setup'] == 'pseudolabel':
@@ -540,7 +540,7 @@ def initialize_training(p):
         model = get_head_model(p,backbone)
         dataset = None
 
-    print('model_type: ',type(model))
+    print('@ref[model_related]: model_type: ',type(model))
 
 
     optimizer = get_optimizer(p,model)
