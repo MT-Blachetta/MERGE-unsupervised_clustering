@@ -94,6 +94,234 @@ class NeighborsDataset(Dataset):
         
         return output
 
+class ReliableSamplesSet(Dataset):
+
+    def __init__(self,dataset,eval_transform):
+        self.dataset = dataset
+        self.index_mapping = []
+        self.predictions = None
+        self.dsize = 1
+        self.transform = self.dataset.transform
+        self.eval_transform = eval_transform
+        self.num_clusters = 0
+
+        self.confidence = None
+        self.alternative_consistency = None
+        self.consistency = None
+
+
+    def evaluate_samples(self,model,p,collate_function,forwarding='head',knn=100):
+
+        device = p['device']
+        self.dataset.transform = self.eval_transform
+
+        val_dataloader = torch.utils.data.DataLoader(self.dataset, num_workers=p['num_workers'],
+                                                    batch_size=p['batch_size'], pin_memory=True, collate_fn=collate_function,
+                                                    drop_last=False, shuffle=False)
+
+        model.eval()
+        predictions = []
+        #labels = []
+        features = []
+        soft_labels = []
+        confidences = []
+
+        model = model.to(device)
+
+
+        with torch.no_grad():      
+            for batch in val_dataloader:
+                if isinstance(batch,dict):
+                    image = batch['image']
+                    #label = batch['target']
+                else:
+                    image = batch[0]
+                    #label = batch[1]
+
+                image = image.to(device,non_blocking=True)
+                fea = model(image,forward_pass='features')
+                features.append(fea)
+                preds = model(fea,forward_pass=forwarding)
+                soft_labels.append(preds)
+                max_confidence, prediction = torch.max(preds,dim=1) 
+                predictions.append(prediction)
+                confidences.append(max_confidence)
+                #labels.append(label)
+
+        feature_tensor = torch.cat(features)
+        #self.softlabel_tensor = torch.cat(soft_labels)
+        self.predictions = torch.cat(predictions)
+        self.predictions = self.predictions.type(torch.LongTensor)
+        self.num_clusters = self.predictions.max()+1  
+        #self.label_tensor = torch.cat(labels)
+        self.confidence = torch.cat(confidences)
+        dataset_size = len(self.dataset)
+
+        feature_tensor = torch.nn.functional.normalize(feature_tensor, dim = 1)
+        similarity_matrix = torch.einsum('nd,cd->nc', [feature_tensor, feature_tensor]) # removed .cpu()
+
+        #self.knn = knn
+        scores, idx_k = similarity_matrix.topk(k=knn, dim=1)
+        #self.proximity = torch.mean(scores_k,dim=1)
+        #self.kNN_indices = idx_k
+        labels_topk = torch.zeros_like(idx_k)
+        confidence_topk = torch.zeros_like(idx_k,dtype=torch.float)
+        for s in range(knn):
+            labels_topk[:, s] = self.predictions[idx_k[:, s]]
+            confidence_topk[:, s] = self.confidence[idx_k[:, s]]
+        
+        kNN_consistent = labels_topk[:, 0:1] == labels_topk # <boolean mask>
+        #kNN_labels = labels_topk
+        kNN_confidences = confidence_topk
+        criterion_consistent = []
+        for i in range(dataset_size):
+            confids = kNN_confidences[i][kNN_consistent[i]] # +logical_index > +true for index of consistent label; +size=knn > +indexes topk instances
+            real = confids > 0.5
+            criterion_consistent.append(sum(real)/knn)
+
+        self.alternative_consistency = kNN_consistent.sum(dim=1)/knn
+
+        self.consistency = torch.Tensor(criterion_consistent)
+        self.select_top_samples()
+        self.dataset.transform = self.transform
+
+
+    def __len__(self):
+        return self.dsize
+
+
+    def __getitem__(self, index):
+        
+        lx = self.index_mapping[index]
+        out = self.dataset.__getitem__(lx)
+        imagelist = out['image']
+        target = self.predictions[lx]
+
+        if isinstance(imagelist,list):
+            return {'image': imagelist[0], 'target': target}
+        else:
+            return {'image':imagelist, 'target': target}
+
+
+    def select_top_samples(self):
+
+        min_size = (len(self.dataset)/self.num_clusters)*0.1
+        start_ratio_cf = 0.99
+        #start_ratio_cs = 0.99
+
+        confident_samples, num_confident = self.get_confident_samples(ratio=start_ratio_cf)
+        confirmed_samples, num_confirmed = self.get_consistent_samples(confident_samples)  # ,start_ratio_cs)
+
+        while((num_confident < min_size) and (num_confirmed < 1)):
+            start_ratio_cf -= 0.005
+            confident_samples, num_confident = self.get_confident_samples(ratio=start_ratio_cf)
+            confirmed_samples, num_confirmed = self.get_consistent_samples(confident_samples)
+        
+        self.index_mapping = []
+
+        for label_samples in confirmed_samples:
+            self.index_mapping.extend([ s.item() for s in list(label_samples[:num_confirmed]) ])
+
+        self.dsize = len(self.index_mapping)
+
+        # num confirmed kommt in den index [:]
+
+
+    def get_confident_samples(self,ratio):
+
+        confirmed_samples = []
+        min_confirmed = 100000000
+
+        for label in range(self.num_clusters):
+            label_indices = torch.where(self.predictions == label)[0]
+            label_confidence = self.confidence[self.predictions == label]
+            label_confirmed = label_indices[label_confidence > ratio]
+            label_confirmed = label_confirmed.type(torch.LongTensor)
+            confirmed_samples.append(label_confirmed)
+            num_confirmed = len(label_confirmed)
+            if num_confirmed < min_confirmed: min_confirmed = num_confirmed
+
+        return confirmed_samples, min_confirmed            
+        
+
+    def get_consistent_samples(self,confident_samples):
+
+        ratio = 0.99
+
+        min_size = (len(self.dataset)/self.num_clusters)*0.1
+        min_consistency = 100000000
+        confirmed_samples = []
+
+        for indices in confident_samples:
+            consistencies = self.consistency[indices]
+            confirmed = indices[consistencies > ratio]
+            confirmed_samples.append(confirmed)
+            num_c = len(confirmed)
+            if num_c < min_consistency: min_consistency = num_c
+
+
+        while(min_consistency < min_size):
+
+            ratio -= 0.01
+
+            if ratio < 0.899: 
+                confirmed_samples, min_consistency = self.get_alternative_consistence(confident_samples)
+                if min_consistency < 1: return confirmed_samples, min_consistency
+            else:
+                min_consistency = 100000000
+                confirmed_samples = []
+
+                for indices in confident_samples:
+                    consistencies = self.consistency[indices]
+                    confirmed = indices[consistencies > ratio]
+                    confirmed_samples.append(confirmed)
+                    num_c = len(confirmed)
+                    if num_c < min_consistency: min_consistency = num_c
+
+        print('consistency_ratio: ',ratio)
+        return confirmed_samples, min_consistency
+
+    def get_alternative_consistence(self,confident_samples):
+        
+        print('looking for alternative consistency criterion')
+        ratio = 0.99
+
+        min_size = (len(self.dataset)/self.num_clusters)*0.1
+        min_consistency = 100000000
+        confirmed_samples = []
+
+        for indices in confident_samples:
+            consistencies = self.alternative_consistency[indices]
+            confirmed = indices[consistencies > ratio]
+            confirmed_samples.append(confirmed)
+            num_c = len(confirmed)
+            if num_c < min_consistency: min_consistency = num_c
+
+
+        while(min_consistency < min_size):
+
+            ratio -= 0.01
+
+            if ratio < 0.899:
+                print('minimum consistency tolerance reached')
+                return confirmed_samples, -1
+            else:
+                min_consistency = 100000000
+                confirmed_samples = []
+
+                for indices in confident_samples:
+                    consistencies = self.alternative_consistency[indices]
+                    confirmed = indices[consistencies > ratio]
+                    confirmed_samples.append(confirmed)
+                    num_c = len(confirmed)
+                    if num_c < min_consistency: min_consistency = num_c
+
+        print('alternative_consistency_ratio: ',ratio)
+        return confirmed_samples, min_consistency
+
+        #index_of_confidents = torch.where(self.confidence > 0.99)[0]
+
+
 
 
 class CIFAR10(Dataset):

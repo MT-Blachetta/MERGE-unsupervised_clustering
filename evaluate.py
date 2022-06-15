@@ -370,7 +370,7 @@ class Analysator():
         confidences = []
         #self.run_parameters = run_parameters
 
-        model.to(device)
+        model = model.to(device)
 
 
         with torch.no_grad():      
@@ -421,7 +421,7 @@ class Analysator():
         self.kNN_labels = None
         self.kNN_consistent = None
         self.kNN_confidences = None
-        self.proximity = None # mean distance of the top nearest neigh
+        self.proximity = None # mean distance of the top nearest neighbors
         self.local_consistency = None
         self.criterion_consistent = None
         self.summary = None
