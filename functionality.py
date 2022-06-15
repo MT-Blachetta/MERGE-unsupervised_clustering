@@ -94,6 +94,8 @@ def get_augmentation(p):
                     n_holes = p['augmentation_kwargs']['cutout_kwargs']['n_holes'],
                     length = p['augmentation_kwargs']['cutout_kwargs']['length'],
                     random = p['augmentation_kwargs']['cutout_kwargs']['random'])])
+
+            print(' selected augmentation_type scan & augmentation_strategy ours ')
         
         else:
             raise ValueError('Invalid augmentation strategy {}'.format(p['augmentation_strategy']))
@@ -320,6 +322,7 @@ def get_backbone(p):
     elif backbone_model_ID == 'scatnet':
         from scatnet import ScatSimCLR
         backbone = ScatSimCLR(J=p['scatnet_args']['J'], L=p['scatnet_args']['L'], input_size=tuple(p['scatnet_args']['input_size']), res_blocks=p['scatnet_args']['res_blocks'],out_dim=p['scatnet_args']['out_dim'])
+        print('get scatnet backbone ')
         #backbone_outdim = p['scatnet_args']['out_dim']
 
     else: raise ValueError
@@ -346,6 +349,7 @@ def get_head_model(p,backbone):
     elif model_type == 'clusterHeads':
         from models import ClusteringModel
         model = ClusteringModel(backbone = {'backbone': backbone ,'dim': backbone_outdim } , nclusters = num_cluster , m = model_args)
+        print('clusterHeads selected')
 
     elif model_type == 'mlpHead':
         from models import MlpHeadModel
@@ -372,6 +376,7 @@ def get_optimizer(p,model):
         params = list(filter(lambda p: p.requires_grad, model.parameters()))
         #assert(len(params) == 2 * p['num_heads'])
     else:
+        print('optimizer gets full model parameters')
         params = model.parameters()
 
 
@@ -410,6 +415,7 @@ def get_criterion(p):
 
     elif loss_ID == 'pseudolabel':
         first_criterion = torch.nn.CrossEntropyLoss
+        print('selected criterion: ',print(first_criterion))
 
     elif loss_ID == 'scan_selflabel':
         from loss import ConfidenceBasedCE
@@ -441,6 +447,7 @@ def get_train_function(train_method):
     elif train_method == 'pseudolabel':
         from training import pseudolabel_train
         train_one_epoch = pseudolabel_train
+        print('train function is pseudolabel_train')
 
     elif train_method == 'double':
         from training import double_training
@@ -504,6 +511,7 @@ def get_dataset(p,train_transformation):
     else:
         raise ValueError('not implemented error')
 
+    print('dataset: ',str(dataset))
     return dataset
 
 def initialize_training(p):
@@ -531,6 +539,8 @@ def initialize_training(p):
         load_backbone_model(backbone,p['pretrain_path'],p['backbone'])
         model = get_head_model(p,backbone)
         dataset = None
+
+    print('model_type: ',type(model))
 
 
     optimizer = get_optimizer(p,model)

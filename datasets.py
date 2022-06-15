@@ -103,6 +103,7 @@ class ReliableSamplesSet(Dataset):
         self.predictions = None
         self.dsize = 1
         self.transform = self.dataset.transform
+        #print('self.transform: ',self.transform )
         self.eval_transform = eval_transform
         self.num_clusters = 0
 
@@ -116,9 +117,18 @@ class ReliableSamplesSet(Dataset):
         device = p['device']
         self.dataset.transform = self.eval_transform
 
+        #print('dataset[0].shape ',type(self.dataset[0]))
+        #print('dataset[0].shape ',self.dataset[0].shape)
+
+
         val_dataloader = torch.utils.data.DataLoader(self.dataset, num_workers=p['num_workers'],
                                                     batch_size=p['batch_size'], pin_memory=True, collate_fn=collate_custom,
                                                     drop_last=False, shuffle=False)
+
+        #testbatch = next(iter(val_dataloader))
+        #print('testbatch-type: ',type(testbatch))
+        #print('testbatch-len: ',len(testbatch))
+        #print('testbatch-shape: ',testbatch.shape)
 
         model.eval()
         predictions = []
@@ -128,6 +138,7 @@ class ReliableSamplesSet(Dataset):
         confidences = []
 
         model = model.to(device)
+        print('MODEL AFTER CRITICAL EXPRESSION: ',type(model))
 
 
         with torch.no_grad():      

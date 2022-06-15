@@ -395,13 +395,15 @@ def pseudolabel_train(train_loader, model, criterion, optimizer, epoch, train_ar
 
     model.train()
     model = model.to(device)
+    print('MODEL AFTER CRITICAL EXPRESSION 2: ',type(model))
 
     for i, batch in enumerate(train_loader):
         images = batch['image']
         targets = batch['target']
+
+        images = images.to(device)
         print('images(type): ', type(images))
         print('images.shape: ',images.shape)
-        images = images.to(device)
 
 
         features = model(images)
