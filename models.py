@@ -321,7 +321,7 @@ class MlpHeadModel(nn.Module):
             features = self.forward_backbone(x,aug_type)
             return self.head(features)
 
-        elif forward_pass == 'backbone':
+        elif forward_pass in ['backbone','features']:
             return self.forward_backbone(x,aug_type)
 
         elif forward_pass == 'head':
@@ -565,6 +565,24 @@ def load_backbone_model(model,path,backbone_type):
         model.load_state_dict(pretrained,strict=True)
 
     else: raise ValueError
+
+def transfer_multihead_model(p,model):
+
+    backbone = model.backbone
+    backbone_dim = model.backbone_dim
+    p['model_args']['nheads'] = p['num_heads']
+    model_args = p['model_args']
+
+    if p['model_type'] == 'clusterHeads':
+        transfer_model = MlpHeadModel(backbone, backbone_dim, model_args)
+        transfer_model.head = model.cluster_head[model.best_head_id]
+    elif p['model_type'] == '[multiheadTWIST]':
+        pass # TO DO
+    else:
+        return model
+        #raise ValueError('Invalid model type')
+
+    return transfer_model
 
 
 def construct_spice_model(m_args,backbone):

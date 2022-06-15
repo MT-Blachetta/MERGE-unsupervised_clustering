@@ -335,6 +335,10 @@ def multihead_twist_train(train_loader, model, criterion, optimizer, epoch, trai
 
     device = 'cuda:'+str(train_args['gpu_id'])
     model.to(device)
+    if train_args['update_cluster_head_only']:
+        model.eval() # No need to update BN
+    else:
+        model.train() # Update BN
 
 
     for i, return_object in enumerate(train_loader):
@@ -383,3 +387,26 @@ def multihead_twist_train(train_loader, model, criterion, optimizer, epoch, trai
         optimizer.step()
 
     return twist_all.item(), best_head
+
+
+def pseudolabel_train(train_loader, model, criterion, optimizer, epoch, train_args, second_criterion=None):
+
+    device = 'cuda:'+str(train_args['gpu_id'])
+
+    model.train()
+    model = model.to(device)
+
+    for i, batch in enumerate(train_loader):
+        images = batch['image']
+        targets = batch['targets']
+        images = images.to(device)
+
+        features = model(images)
+
+        loss = criterion(features, targets)
+        print('epoch: ',epoch,' / batch: ',i)
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+    #criterion.to(device)

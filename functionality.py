@@ -11,7 +11,7 @@ import torch.nn.functional as F
 from termcolor import colored
 import torchvision.transforms as transforms
 from transformation import Augment, Cutout
-from models import load_backbone_model
+from models import load_backbone_model, transfer_multihead_model
 
 class wrapped_resnet(nn.Module):
     def __init__(self, backbone):
@@ -408,7 +408,10 @@ def get_criterion(p):
         from loss import SCANLoss
         first_criterion = SCANLoss(p['entropy_weight'])
 
-    elif loss_ID == 'selflabel':
+    elif loss_ID == 'pseudolabel':
+        first_criterion = torch.nn.CrossEntropyLoss
+
+    elif loss_ID == 'scan_selflabel':
         from loss import ConfidenceBasedCE
         first_criterion = ConfidenceBasedCE(p['loss_args']['threshold'], p['loss_args']['apply_class_balancing'])
 
@@ -431,9 +434,13 @@ def get_train_function(train_method):
         from training import simclr_train
         train_one_epoch = simclr_train
 
-    elif train_method == 'selflabel':
+    elif train_method == 'scan_selflabel':
         from training import selflabel_train
         train_one_epoch = selflabel_train
+
+    elif train_method == 'pseudolabel':
+        from training import pseudolabel_train
+        train_one_epoch = pseudolabel_train
 
     elif train_method == 'double':
         from training import double_training
@@ -451,19 +458,77 @@ def get_train_function(train_method):
 
     return train_one_epoch
 
+def get_dataset(p,train_transformation):
+    
+    train_split = p['train_split']
+    dataset_type = p['dataset_type']
+
+    if dataset_type == 'scan': # <return_type> dict{'image': torch.Tensor,'target': int}
+
+        if p['train_db_name'] == 'cifar-10':
+            from datasets import CIFAR10
+            dataset = CIFAR10(train=True, transform=train_transformation, download=True)
+            #eval_dataset = CIFAR10(train=False, transform=val_transformations, download=True)
+
+        elif p['train_db_name'] == 'cifar-20':
+            from datasets import CIFAR20
+            dataset = CIFAR20(train=True, transform=train_transformation, download=True)
+            #eval_dataset = CIFAR20(train=False, transform=val_transformations, download=True)
+
+        elif p['train_db_name'] == 'stl-10':
+            from datasets import STL10
+
+            if train_split == 'train':
+                dataset = STL10(split='train', transform=train_transformation, download=False)
+            elif train_split == 'test':
+                dataset = STL10(split='test', transform=train_transformation, download=False)
+            elif train_split == 'both':
+                from datasets import STL10_eval
+                dataset = STL10_eval(path='/space/blachetta/data',aug=train_transformation)
+            elif train_split == 'unlabeled':
+                dataset = STL10(split='train+unlabeled',transform=train_transformation, download=False)
+            else: raise ValueError('Invalid stl10 split')
+
+        elif p['train_db_name'] == 'imagenet':
+            from datasets import ImageNet
+            dataset = ImageNet(split='train', transform=train_transformation)
+
+        elif p['train_db_name'] in ['imagenet_50', 'imagenet_100', 'imagenet_200']:
+            from datasets import ImageNetSubset
+            subset_file = './data/imagenet_subsets/%s.txt' %(p['train_db_name'])
+            #dataset = ImageNetSubset(subset_file=subset_file, split='train', transform=val_transformations)
+
+        else:
+            raise ValueError('Invalid train dataset {}'.format(p['train_db_name']))
+
+    else:
+        raise ValueError('not implemented error')
+
+    return dataset
 
 def initialize_training(p):
     
     aug_transform = get_augmentation(p)
-    val_loader = get_val_dataloader(p)
-    train_loader = get_train_dataloader(p,aug_transform)
+    val_loader = get_val_dataloader(p)  
     first_criterion, second_criterion = get_criterion(p)
     train_one_epoch = get_train_function(p['train_method'])
-    backbone = get_backbone(p)
 
-    load_backbone_model(backbone,p['pretrain_path'],p['backbone'])
+    if p['setup'] == 'pseudolabel':
+        dataset = get_dataset(p,aug_transform)
+        backbone = get_backbone(p)
+        model = get_head_model(p,backbone)
+        pretrained = torch.load(p['pretrain_path'],map_location='cpu')
+        model.load_state_dict(pretrained,strict=True)
+        model = transfer_multihead_model(p,model)
+        train_loader = None
+    else:
+        train_loader = get_train_dataloader(p,aug_transform)
+        backbone = get_backbone(p)
+        load_backbone_model(backbone,p['pretrain_path'],p['backbone'])
+        model = get_head_model(p,backbone)
+        dataset = None
 
-    model = get_head_model(p,backbone)
+
     optimizer = get_optimizer(p,model)
 
     components = {'train_dataloader': train_loader,
@@ -472,7 +537,8 @@ def initialize_training(p):
                         'model': model,
                         'optimizer': optimizer,
                         'train_method': train_one_epoch,
-                        'val_dataloader': val_loader }
+                        'val_dataloader': val_loader, 
+                        'dataset': dataset }
 
     return components
 

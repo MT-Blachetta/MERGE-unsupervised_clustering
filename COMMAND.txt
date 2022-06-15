@@ -4,5 +4,9 @@ python evaluation_run.py -p scan_research -gpu 0 --root_dir RESULTS --config_exp
 
 python evaluation_run.py -gpu 0 --root_dir RESULTS --model_path /home/blachm86/backbone_models
 
+selflabel commands:
+
+python selflabel_main.py -config config/selflabel.yml -prefix scatnetMLP_selflabel -root SELFLABEL
+
 
 

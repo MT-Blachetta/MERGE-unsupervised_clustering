@@ -18,6 +18,7 @@ import os
 import pickle
 import sys
 from torchvision.datasets.utils import check_integrity, download_and_extract_archive
+from functionality import collate_custom
 
 class AugmentedDataset(Dataset):
     def __init__(self, dataset):
@@ -110,13 +111,13 @@ class ReliableSamplesSet(Dataset):
         self.consistency = None
 
 
-    def evaluate_samples(self,model,p,collate_function,forwarding='head',knn=100):
+    def evaluate_samples(self,p,model,forwarding='head',knn=100):
 
         device = p['device']
         self.dataset.transform = self.eval_transform
 
         val_dataloader = torch.utils.data.DataLoader(self.dataset, num_workers=p['num_workers'],
-                                                    batch_size=p['batch_size'], pin_memory=True, collate_fn=collate_function,
+                                                    batch_size=p['batch_size'], pin_memory=True, collate_fn=collate_custom,
                                                     drop_last=False, shuffle=False)
 
         model.eval()
