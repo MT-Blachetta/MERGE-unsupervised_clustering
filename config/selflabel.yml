@@ -79,7 +79,7 @@ scheduler: constant
 
 # <dependent>
 backbone: scatnet
-pretrain_path: scatnet.pth # file to load from the backbone directory
+
 feature_dim: 128
 scatnet_args: 
     J: 2

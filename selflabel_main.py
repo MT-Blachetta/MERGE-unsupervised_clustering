@@ -7,16 +7,16 @@ from functionality import collate_custom
 from utils.common_config import adjust_learning_rate
 import torch
 
-
+#@ref=[main_command_line]
 FLAGS = argparse.ArgumentParser(description='loss training')
 FLAGS.add_argument('-gpu',help='number as gpu identifier', default=0)
 FLAGS.add_argument('-prefix',help='prefix name')
 FLAGS.add_argument('-root',help='root directory')
 FLAGS.add_argument('-config', help='path to the model files')
 
-# CONDITION: config file contains 'pretrain_path'
-
 args = FLAGS.parse_args()
+#!@ref
+
 p = create_config(args.root, args.config, args.prefix)
 
 p['train_args'] = {}
