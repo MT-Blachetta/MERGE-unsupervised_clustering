@@ -414,7 +414,7 @@ def get_criterion(p):
         first_criterion = SCANLoss(p['entropy_weight'])
 
     elif loss_ID == 'pseudolabel':
-        first_criterion = torch.nn.CrossEntropyLoss
+        first_criterion = torch.nn.CrossEntropyLoss()
         print('@ref[criterion_retrieval]: selected criterion: ',first_criterion)
 
     elif loss_ID == 'scan_selflabel':

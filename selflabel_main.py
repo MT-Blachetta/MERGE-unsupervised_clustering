@@ -5,6 +5,7 @@ from datasets import ReliableSamplesSet
 import torchvision.transforms as transforms
 from functionality import collate_custom
 from utils.common_config import adjust_learning_rate
+from testmodule import TEST_initial_module
 import torch
 
 #@ref=[main_command_line]
@@ -60,6 +61,8 @@ val_transformations = transforms.Compose([
                             transforms.ToTensor(),
                             transforms.Normalize(**p['transformation_kwargs']['normalize'])])
 
+TEST_initial_module(model,dataset,val_transformations)
+
 print('start training loop...')
 for epoch in range(0, p['epochs']):
 
@@ -84,6 +87,10 @@ for epoch in range(0, p['epochs']):
     # Evaluation
 
 torch.save(model.state_dict(),'SELFLABEL/'+args.prefix+'_model.pth')
+
+
+
+
 
 
 

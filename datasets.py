@@ -165,7 +165,8 @@ class ReliableSamplesSet(Dataset): # §: ReliableSamplesSet_Initialisation
         self.predictions = torch.cat(predictions)
         print('max_prediction A: ',self.predictions.max())
         self.predictions = self.predictions.type(torch.LongTensor)
-        print('max_prediction A: ',self.predictions.max())
+        print('max_prediction B: ',self.predictions.max())
+        print('len(self.predictions) B: ',len(self.predictions))
         self.num_clusters = self.predictions.max()+1 # !issue: by test config assert(self.num_clusters == 10) get 9
         print('num_clusters: ',self.num_clusters)
         #self.label_tensor = torch.cat(labels)

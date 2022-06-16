@@ -409,6 +409,7 @@ def pseudolabel_train(train_loader, model, criterion, optimizer, epoch, train_ar
         features = model(images)
         print('features(type): ', type(features))
         print('features.shape: ',features.shape)
+        print('feature[0]',str(feature[0]))
         print('targets(type): ', type(targets))
         print('targets.shape: ',targets.shape)
         print('targets[0]: ',str(targets[0]))
