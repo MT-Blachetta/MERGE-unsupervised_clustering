@@ -56,6 +56,7 @@ def TEST_initial_model(model,dataset,transformation):
 
     max_confidence, prediction = torch.max(preds,dim=1)
     prediction = prediction.type(torch.LongTensor)
+    prediction = prediction.cuda()
     print('prediction.type: ',type(prediction))
     print('prediction.shape: ',prediction.shape)
     print('prediction_max: ',prediction.max())
