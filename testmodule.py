@@ -18,6 +18,9 @@ def TEST_initial_model(model,dataset,transformation):
 
     dataset.transform = transformation
 
+    model.eval()
+    model = model.cuda()
+
     batch_loader = torch.utils.data.DataLoader(dataset, num_workers=8, batch_size=256, pin_memory=True, collate_fn=collate_custom, drop_last=False, shuffle=True)
 
     batch = next(iter(batch_loader))
@@ -29,6 +32,8 @@ def TEST_initial_model(model,dataset,transformation):
     else:
         images = batch[0]
         target = batch[1]
+
+    images = images.cuda()
 
     print('images_type: ',type(images))
     print('images_shape: ',images.shape)
@@ -55,7 +60,8 @@ def TEST_initial_model(model,dataset,transformation):
     print('prediction.shape: ',prediction.shape)
     print('prediction_max: ',prediction.max())
 
-    loss_test = torch.nn.CrossEntropyLoss(preds,prediction)
+    loss_fn = torch.nn.CrossEntropyLoss()
+    loss_test = loss_fn(preds,prediction)
     print(loss_test)
 
     print('-------------END_TEST---------------')
