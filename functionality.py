@@ -415,7 +415,7 @@ def get_criterion(p):
 
     elif loss_ID == 'pseudolabel':
         first_criterion = torch.nn.CrossEntropyLoss
-        print('@ref[criterion_retrieval]: selected criterion: ',print(first_criterion))
+        print('@ref[criterion_retrieval]: selected criterion: ',first_criterion)
 
     elif loss_ID == 'scan_selflabel':
         from loss import ConfidenceBasedCE

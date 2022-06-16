@@ -394,21 +394,21 @@ def pseudolabel_train(train_loader, model, criterion, optimizer, epoch, train_ar
     device = 'cuda:'+str(train_args['gpu_id'])
 
     model.train()
-    model = model.to(device)
-    print('MODEL AFTER CRITICAL EXPRESSION 2: ',type(model))
+    model = model.to(device) # OK(%-cexp_00)
+    #print('MODEL AFTER CRITICAL EXPRESSION 2: ',type(model))
 
     for i, batch in enumerate(train_loader):
         images = batch['image']
         targets = batch['target']
 
-        images = images.to(device)
+        images = images.to(device) # OK(%-cexp_00)
         print('images(type): ', type(images))
         print('images.shape: ',images.shape)
 
 
         features = model(images)
-        print('features(type): ', type(images))
-        print('features.shape: ',images.shape)
+        print('features(type): ', type(features))
+        print('features.shape: ',features.shape)
         print('targets(type): ', type(targets))
         print('targets.shape: ',targets.shape)
         print('targets[0]: ',str(targets[0]))

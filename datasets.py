@@ -95,7 +95,7 @@ class NeighborsDataset(Dataset):
         
         return output
 
-class ReliableSamplesSet(Dataset):
+class ReliableSamplesSet(Dataset): # §: ReliableSamplesSet_Initialisation
 
     def __init__(self,dataset,eval_transform):
         self.dataset = dataset
@@ -137,8 +137,8 @@ class ReliableSamplesSet(Dataset):
         soft_labels = []
         confidences = []
 
-        model = model.to(device)
-        print('MODEL AFTER CRITICAL EXPRESSION: ',type(model))
+        model = model.to(device) # OK(%-cexp_00)
+        #print('MODEL first critical expresssion: ',type(model))
 
 
         with torch.no_grad():      
@@ -150,7 +150,7 @@ class ReliableSamplesSet(Dataset):
                     image = batch[0]
                     #label = batch[1]
 
-                image = image.to(device,non_blocking=True)
+                image = image.to(device,non_blocking=True) # OK(%-cexp_00)
                 fea = model(image,forward_pass='features')
                 features.append(fea)
                 preds = model(fea,forward_pass=forwarding)
@@ -163,8 +163,10 @@ class ReliableSamplesSet(Dataset):
         feature_tensor = torch.cat(features)
         #self.softlabel_tensor = torch.cat(soft_labels)
         self.predictions = torch.cat(predictions)
+        print('max_prediction A: ',self.predictions.max())
         self.predictions = self.predictions.type(torch.LongTensor)
-        self.num_clusters = self.predictions.max()+1
+        print('max_prediction A: ',self.predictions.max())
+        self.num_clusters = self.predictions.max()+1 # !issue: by test config assert(self.num_clusters == 10) get 9
         print('num_clusters: ',self.num_clusters)
         #self.label_tensor = torch.cat(labels)
         self.confidence = torch.cat(confidences)
@@ -197,7 +199,7 @@ class ReliableSamplesSet(Dataset):
         self.consistency = torch.Tensor(criterion_consistent)
         self.select_top_samples()
         self.dataset.transform = self.transform
-
+# §
 
     def __len__(self):
         return self.dsize

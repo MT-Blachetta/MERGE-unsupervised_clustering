@@ -46,6 +46,15 @@ criterion = params['criterion']
 optimizer = params['optimizer']
 train_epoch = params['train_method']
 
+#print('-----MODEL ANALYSIS-----')
+#with open('model_analysis','w') as f: f.write(str(model))
+#print('model_backbone',type(model.backbone))
+#print('model_backbone_dim',model.backbone_dim)
+#print('model_nheads',model.nheads)
+#print('model_aug_type',model.aug_type)
+#print('model_head',type(model.head))
+
+
 val_transformations = transforms.Compose([
                             transforms.CenterCrop(p['transformation_kwargs']['crop_size']),
                             transforms.ToTensor(),
