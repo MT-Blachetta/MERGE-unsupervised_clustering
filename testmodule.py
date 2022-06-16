@@ -60,7 +60,7 @@ def TEST_initial_model(model,dataset,transformation):
     print('prediction.shape: ',prediction.shape)
     print('prediction_max: ',prediction.max())
 
-    loss_fn = torch.nn.CrossEntropyLoss()
+    loss_fn = torch.nn.CrossEntropyLoss().cuda()
     loss_test = loss_fn(preds,prediction)
     print(loss_test)
 
