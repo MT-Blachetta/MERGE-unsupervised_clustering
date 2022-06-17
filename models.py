@@ -568,17 +568,18 @@ def load_backbone_model(model,path,backbone_type):
 
 def transfer_multihead_model(p,model,head_id=0):
 
-    backbone = model.backbone
-    backbone_dim = model.backbone_dim
+    backbone_dim = p['feature_dim']
     p['model_args']['nheads'] = p['num_heads']
     model_args = p['model_args']
 
     if p['pretrain_type'] == 'scan':
+        backbone = model.backbone
         transfer_model = MlpHeadModel(backbone, backbone_dim, model_args)
         transfer_model.head = model.cluster_head[head_id]
     elif p['pretrain_type'] == 'spice':
+        backbone = model.feature_module
         transfer_model = MlpHeadModel(backbone, backbone_dim, model_args)
-        transfer_model.head = model.head
+        transfer_model.head = model.head # OK
     else: return model
 
    # if p['model_type'] == 'clusterHeads':
