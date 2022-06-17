@@ -238,17 +238,17 @@ def get_val_dataloader(p):
 
     if dataset_type == 'scan':
 
-        if p['train_db_name'] == 'cifar-10':
+        if p['val_db_name'] == 'cifar-10':
             from datasets import CIFAR10
             #dataset = CIFAR10(train=True, transform=train_transformation, download=True)
             eval_dataset = CIFAR10(train=False, transform=val_transformations, download=True)
 
-        elif p['train_db_name'] == 'cifar-20':
+        elif p['val_db_name'] == 'cifar-20':
             from datasets import CIFAR20
             #dataset = CIFAR20(train=True, transform=train_transformation, download=True)
             eval_dataset = CIFAR20(train=False, transform=val_transformations, download=True)
 
-        elif p['train_db_name'] == 'stl-10':
+        elif p['val_db_name'] == 'stl-10':
             if val_split == 'train':
                 from datasets import STL10
                 eval_dataset = STL10(split='train', transform=val_transformations, download=False)
@@ -466,9 +466,13 @@ def get_train_function(train_method):
 
     return train_one_epoch
 
-def get_dataset(p,train_transformation):
+def get_dataset(p,train_transformation,train=True):
     
-    train_split = p['train_split']
+    if train:
+        _split = p['train_split']
+    else:
+        _split = 'both'
+
     dataset_type = p['dataset_type']
 
     if dataset_type == 'scan': # <return_type> dict{'image': torch.Tensor,'target': int}
@@ -486,14 +490,14 @@ def get_dataset(p,train_transformation):
         elif p['train_db_name'] == 'stl-10':
             from datasets import STL10
 
-            if train_split == 'train':
+            if _split == 'train':
                 dataset = STL10(split='train', transform=train_transformation, download=False)
-            elif train_split == 'test':
+            elif _split == 'test':
                 dataset = STL10(split='test', transform=train_transformation, download=False)
-            elif train_split == 'both':
+            elif _split == 'both':
                 from datasets import STL10_eval
                 dataset = STL10_eval(path='/space/blachetta/data',aug=train_transformation)
-            elif train_split == 'unlabeled':
+            elif _split == 'unlabeled':
                 dataset = STL10(split='train+unlabeled',transform=train_transformation, download=False)
             else: raise ValueError('Invalid stl10 split')
 
@@ -521,9 +525,14 @@ def initialize_training(p):
     val_loader = get_val_dataloader(p)  
     first_criterion, second_criterion = get_criterion(p) #@ref[criterion_retrieval]
     train_one_epoch = get_train_function(p['train_method'])
+    #val_transformations = transforms.Compose([
+    #                        transforms.CenterCrop(p['transformation_kwargs']['crop_size']),
+    #                        transforms.ToTensor(),
+    #                        transforms.Normalize(**p['transformation_kwargs']['normalize'])])
 
     if p['setup'] == 'pseudolabel':
         dataset = get_dataset(p,aug_transform)
+        #val_dataset = get_dataset(p,val_transformations,train=False)
         backbone = get_backbone(p)
         model = get_head_model(p,backbone)
         
@@ -539,7 +548,7 @@ def initialize_training(p):
             model.load_state_dict(pretrained,strict=True)
             model = transfer_multihead_model(p,model)
         train_loader = None
-        
+
     else:
         train_loader = get_train_dataloader(p,aug_transform)
         backbone = get_backbone(p)

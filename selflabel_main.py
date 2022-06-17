@@ -84,7 +84,7 @@ for epoch in range(0, p['epochs']):
     #@COMPONENT:Evaluation&Measures
     val_dataset = copy.deepcopy(dataset)
     val_dataset.transform = val_transformations
-    val_loader = torch.utils.data.DataLoader(training_set, 
+    val_loader = torch.utils.data.DataLoader(val_dataset, 
                                                 num_workers=p['num_workers'], 
                                                 batch_size=p['batch_size'], 
                                                 pin_memory=True, 
@@ -104,7 +104,7 @@ for epoch in range(0, p['epochs']):
 #@COMPONENT:Evaluation&Measures
 val_dataset = dataset
 val_dataset.transform = val_transformations
-val_loader = torch.utils.data.DataLoader(training_set, 
+val_loader = torch.utils.data.DataLoader(val_dataset, 
                                                 num_workers=p['num_workers'], 
                                                 batch_size=p['batch_size'], 
                                                 pin_memory=True, 

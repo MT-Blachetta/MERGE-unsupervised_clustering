@@ -406,7 +406,7 @@ class Analysator():
         y_train = self.label_tensor.detach().cpu().numpy()
         pred = self.prediction_tensor.detach().cpu().numpy()
         max_label = max(y_train)
-        assert(max_label==9)
+        #assert(max_label==9)
 
         self.C = get_cost_matrix(pred, y_train, max_label+1)
         ri, ci = assign_classes_hungarian(self.C)
