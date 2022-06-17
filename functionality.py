@@ -11,7 +11,7 @@ import torch.nn.functional as F
 from termcolor import colored
 import torchvision.transforms as transforms
 from transformation import Augment, Cutout
-from models import load_backbone_model, transfer_multihead_model
+from models import load_backbone_model, transfer_multihead_model, load_spice_model
 
 class wrapped_resnet(nn.Module):
     def __init__(self, backbone):
@@ -142,8 +142,6 @@ def get_augmentation(p):
     return train_transformation
 
 #train_transformations = get_train_transformations(p)
-
-
 
 
 def get_train_dataloader(p,train_transformation):
@@ -300,7 +298,6 @@ def get_val_dataloader(p):
 
 """ ------------- Build MODEL ------------------"""
 
-
 def get_backbone(p):
 
     backbone_model_ID = p['backbone']
@@ -358,6 +355,10 @@ def get_head_model(p,backbone):
     elif model_type == 'twist':
         from models import TWIST
         model = TWIST(hidden_dim,num_cluster,backbone,backbone_outdim)
+
+    elif model_type in ['spice_linearMLP','spice_batchnormMLP','spice_linearMLP_lastBatchnorm','spice_fullBatchnorm']:
+        from models import Sim2Sem
+        model = Sim2Sem(backbone,model_args)
 
     else: raise ValueError
 
@@ -525,14 +526,20 @@ def initialize_training(p):
         dataset = get_dataset(p,aug_transform)
         backbone = get_backbone(p)
         model = get_head_model(p,backbone)
-        pretrained = torch.load(p['pretrain_path'],map_location='cpu')
+        
         if p['pretrain_type'] == 'scan':
+            pretrained = torch.load(p['pretrain_path'],map_location='cpu')
             model.load_state_dict(pretrained['model'],strict=True)
             model = transfer_multihead_model(p,model,pretrained['head'])
+        elif p['pretrain_type'] == 'spice':
+            model = load_spice_model(model,p['pretrain_path'],p['model_type'])        
+            model = transfer_multihead_model(p,model)
         else:
+            pretrained = torch.load(p['pretrain_path'],map_location='cpu')
             model.load_state_dict(pretrained,strict=True)
             model = transfer_multihead_model(p,model)
         train_loader = None
+        
     else:
         train_loader = get_train_dataloader(p,aug_transform)
         backbone = get_backbone(p)

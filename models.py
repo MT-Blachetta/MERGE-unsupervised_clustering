@@ -576,6 +576,9 @@ def transfer_multihead_model(p,model,head_id=0):
     if p['pretrain_type'] == 'scan':
         transfer_model = MlpHeadModel(backbone, backbone_dim, model_args)
         transfer_model.head = model.cluster_head[head_id]
+    elif p['pretrain_type'] == 'spice':
+        transfer_model = MlpHeadModel(backbone, backbone_dim, model_args)
+        transfer_model.head = model.head
     else: return model
 
    # if p['model_type'] == 'clusterHeads':
@@ -755,7 +758,7 @@ def load_spice_model(model,save_path,model_type):
 
     else: raise ValueError('invalid model type')
 
-    model.load_state_dict(savepoint,strict=True)
+    return model.load_state_dict(savepoint,strict=True)
 
 
 class Sim2Sem(nn.Module):

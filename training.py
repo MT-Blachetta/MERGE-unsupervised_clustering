@@ -395,6 +395,7 @@ def pseudolabel_train(train_loader, model, criterion, optimizer, epoch, train_ar
 
     model.train()
     model = model.to(device) # OK(%-cexp_00)
+    
     #print('MODEL AFTER CRITICAL EXPRESSION 2: ',type(model))
 
     for i, batch in enumerate(train_loader):
@@ -402,20 +403,20 @@ def pseudolabel_train(train_loader, model, criterion, optimizer, epoch, train_ar
         targets = batch['target']
 
         images = images.to(device) # OK(%-cexp_00)
-        print('images(type): ', type(images))
-        print('images.shape: ',images.shape)
+        #print('images(type): ', type(images))
+        #print('images.shape: ',images.shape)
 
 
         features = model(images)
-        print('features(type): ', type(features))
-        print('features.shape: ',features.shape)
-        print('feature[0]',str(feature[0]))
-        print('targets(type): ', type(targets))
-        print('targets.shape: ',targets.shape)
-        print('targets[0]: ',str(targets[0]))
+        #print('features(type): ', type(features))
+        #print('features.shape: ',features.shape)
+        #print('feature[0]',str(feature[0]))
+        #print('targets(type): ', type(targets))
+        #print('targets.shape: ',targets.shape)
+        #print('targets[0]: ',str(targets[0]))
 
         loss = criterion(features, targets)
-        print('epoch: ',epoch,' / batch: ',i)
+        #print('epoch: ',epoch,' / batch: ',i)
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
