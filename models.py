@@ -758,7 +758,10 @@ def load_spice_model(model,save_path,model_type):
 
     else: raise ValueError('invalid model type')
 
-    return model.load_state_dict(savepoint,strict=True)
+    rv = model.load_state_dict(savepoint,strict=True)
+    print(rv)
+
+    return model
 
 
 class Sim2Sem(nn.Module):
