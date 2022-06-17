@@ -395,6 +395,7 @@ def pseudolabel_train(train_loader, model, criterion, optimizer, epoch, train_ar
 
     model.train()
     model = model.to(device) # OK(%-cexp_00)
+    #criterion = criterion.to(device)
     
     #print('MODEL AFTER CRITICAL EXPRESSION 2: ',type(model))
 
@@ -403,6 +404,7 @@ def pseudolabel_train(train_loader, model, criterion, optimizer, epoch, train_ar
         targets = batch['target']
 
         images = images.to(device) # OK(%-cexp_00)
+        targets = targets.to(device) # OK(%-cexp_00)
         #print('images(type): ', type(images))
         #print('images.shape: ',images.shape)
 
