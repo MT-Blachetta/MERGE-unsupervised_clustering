@@ -5,8 +5,10 @@ from datasets import ReliableSamplesSet
 import torchvision.transforms as transforms
 from functionality import collate_custom
 from utils.common_config import adjust_learning_rate
+from evaluate import Analysator
 #from testmodule import TEST_initial_model
 import torch
+import copy
 
 #@ref=[main_command_line]
 FLAGS = argparse.ArgumentParser(description='loss training')
@@ -65,8 +67,6 @@ val_transformations = transforms.Compose([
 
 print('start training loop...')
 for epoch in range(0, p['epochs']):
-
-    print('\nepoch: ',epoch)
     
     training_set = ReliableSamplesSet(dataset,val_transformations)
     training_set.evaluate_samples(p,model)
@@ -80,11 +80,40 @@ for epoch in range(0, p['epochs']):
         # Train
     print('Train ...')
     train_epoch(batch_loader, model, criterion, optimizer, epoch, p['train_args'])
+    
+    #@COMPONENT:Evaluation&Measures
+    val_dataset = copy.deepcopy(dataset)
+    val_dataset.transform = val_transformations
+    val_loader = torch.utils.data.DataLoader(training_set, 
+                                                num_workers=p['num_workers'], 
+                                                batch_size=p['batch_size'], 
+                                                pin_memory=True, 
+                                                collate_fn=collate_custom,
+                                                drop_last=False, 
+                                                shuffle=False)
+    metric_data = Analysator(p['device'],model,val_loader)
+    print('\nepoch: ',epoch)
+    print('Accuracy: ',metric_data.get_accuracy())
+    #!@
 
     # TO DO:
     
     # Checkpoint
     # Evaluation
+
+#@COMPONENT:Evaluation&Measures
+val_dataset = dataset
+val_dataset.transform = val_transformations
+val_loader = torch.utils.data.DataLoader(training_set, 
+                                                num_workers=p['num_workers'], 
+                                                batch_size=p['batch_size'], 
+                                                pin_memory=True, 
+                                                collate_fn=collate_custom,
+                                                drop_last=False, 
+                                                shuffle=False)
+metric_data = Analysator(p['device'],model,val_loader)
+torch.save({'analysator': metric_data,'parameter':p},'SELFLABEL/'+args.prefix+'_ANALYSATOR')
+#!@
 
 torch.save(model.state_dict(),'SELFLABEL/'+args.prefix+'_model.pth')
 

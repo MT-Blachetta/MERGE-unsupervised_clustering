@@ -26,7 +26,6 @@ def topk_consistency(features,predictions,num_neighbors):
     return num_consistent/num_neighbors
 
 
-
 def cluster_size_entropy(costmatrix):
 
     absolute = costmatrix.sum(axis=1)
@@ -55,7 +54,6 @@ def confidence_statistic(softmatrix):
 def batches(l, n):
     for i in range(0, len(l), n): # step_size = n, [i] is a multiple of n
         yield l[i:i + n] # teilt das array [l] in batch sub_sequences der Länge n auf
-
 
 
 

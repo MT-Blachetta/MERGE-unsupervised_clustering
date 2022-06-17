@@ -243,6 +243,7 @@ class ReliableSamplesSet(Dataset): # §: ReliableSamplesSet_Initialisation
             self.index_mapping.extend([ s.item() for s in list(label_samples[:num_confirmed]) ])
 
         self.dsize = len(self.index_mapping)
+        print('reliableSamples_size = ',self.dsize)
 
         # num confirmed kommt in den index [:]
 
