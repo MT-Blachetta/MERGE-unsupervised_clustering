@@ -1,6 +1,3 @@
-"""
-This code is based on the Torchvision repository, which was licensed under the BSD 3-Clause.
-"""
 from PIL import Image
 from torchvision.datasets.utils import check_integrity, download_and_extract_archive, verify_str_arg
 from torch.utils.data import Dataset
@@ -19,6 +16,7 @@ import pickle
 import sys
 from torchvision.datasets.utils import check_integrity, download_and_extract_archive
 from functionality import collate_custom
+from evaluate import get_cost_matrix, assign_classes_hungarian, accuracy_from_assignment
 
 class AugmentedDataset(Dataset):
     def __init__(self, dataset):
@@ -132,7 +130,7 @@ class ReliableSamplesSet(Dataset): # §: ReliableSamplesSet_Initialisation
 
         model.eval()
         predictions = []
-        #labels = []
+        labels = []
         features = []
         soft_labels = []
         confidences = []
@@ -145,10 +143,10 @@ class ReliableSamplesSet(Dataset): # §: ReliableSamplesSet_Initialisation
             for batch in val_dataloader:
                 if isinstance(batch,dict):
                     image = batch['image']
-                    #label = batch['target']
+                    label = batch['target']
                 else:
                     image = batch[0]
-                    #label = batch[1]
+                    label = batch[1]
 
                 image = image.to(device,non_blocking=True) # OK(%-cexp_00)
                 fea = model(image,forward_pass='features')
@@ -158,7 +156,7 @@ class ReliableSamplesSet(Dataset): # §: ReliableSamplesSet_Initialisation
                 max_confidence, prediction = torch.max(preds,dim=1) 
                 predictions.append(prediction)
                 confidences.append(max_confidence)
-                #labels.append(label)
+                labels.append(label)
 
         feature_tensor = torch.cat(features)
         #self.softlabel_tensor = torch.cat(soft_labels)
@@ -169,9 +167,20 @@ class ReliableSamplesSet(Dataset): # §: ReliableSamplesSet_Initialisation
         #print('len(self.predictions) B: ',len(self.predictions))
         self.num_clusters = self.predictions.max()+1 # !issue: by test config assert(self.num_clusters == 10) get 9
         #print('num_clusters: ',self.num_clusters)
-        #self.label_tensor = torch.cat(labels)
+        self.label_tensor = torch.cat(labels)
         self.confidence = torch.cat(confidences)
         dataset_size = len(self.dataset)
+
+        # §_Compute_Accuracy-------------------------------
+        y_train = self.label_tensor.detach().cpu().numpy()
+        pred = self.predictions.detach().cpu().numpy()
+        max_label = max(y_train)
+        #assert(max_label==9)
+        C = get_cost_matrix(pred, y_train, max_label+1)
+        ri, ci = assign_classes_hungarian(self.C)
+        accuracy = accuracy_from_assignment(C,ri,ci)
+        print('top_samples accuracy: ',accuracy)
+        # §------------------------------------------------
 
         feature_tensor = torch.nn.functional.normalize(feature_tensor, dim = 1)
         similarity_matrix = torch.einsum('nd,cd->nc', [feature_tensor, feature_tensor]) # removed .cpu()
