@@ -232,7 +232,7 @@ class ReliableSamplesSet(Dataset): # §: ReliableSamplesSet_Initialisation
     def select_top_samples(self):
 
         print('len(dataset): ',len(self.dataset))
-        min_size = (len(self.dataset)/self.num_clusters)*0.1
+        min_size = 3 #(len(self.dataset)/self.num_clusters)*0.1
         print('min_size = ',min_size)
         start_ratio_cf = 0.99
         #start_ratio_cs = 0.99

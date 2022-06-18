@@ -9,7 +9,7 @@ num_workers: 8
 
 ### Universal Parameters
 epochs: 100
-batch_size: 256
+batch_size: 32
 
 update_cluster_head_only: False
 hidden_dim: 4096
