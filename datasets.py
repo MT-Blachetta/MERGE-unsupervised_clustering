@@ -209,7 +209,7 @@ class ReliableSamplesSet(Dataset): # §: ReliableSamplesSet_Initialisation
         self.consistency = torch.Tensor(criterion_consistent)
         self.select_top_samples()
         self.dataset.transform = self.transform
-        self.top_samples_accuracy()
+        #self.top_samples_accuracy()
 # §
 
     def __len__(self):
@@ -232,7 +232,7 @@ class ReliableSamplesSet(Dataset): # §: ReliableSamplesSet_Initialisation
     def select_top_samples(self):
 
         print('len(dataset): ',len(self.dataset))
-        min_size = 3 #(len(self.dataset)/self.num_clusters)*0.1
+        min_size = (len(self.dataset)/self.num_clusters)*0.05
         print('min_size = ',min_size)
         start_ratio_cf = 0.99
         #start_ratio_cs = 0.99
@@ -279,7 +279,7 @@ class ReliableSamplesSet(Dataset): # §: ReliableSamplesSet_Initialisation
 
         ratio = 0.99
 
-        min_size = 3 #(len(self.dataset)/self.num_clusters)*0.1
+        min_size = (len(self.dataset)/self.num_clusters)*0.05
         min_consistency = 100000000
         confirmed_samples = []
 
@@ -318,7 +318,7 @@ class ReliableSamplesSet(Dataset): # §: ReliableSamplesSet_Initialisation
         print('looking for alternative consistency criterion')
         ratio = 0.99
 
-        min_size = 3#(len(self.dataset)/self.num_clusters)*0.1
+        min_size = (len(self.dataset)/self.num_clusters)*0.05
         min_consistency = 100000000
         confirmed_samples = []
 

@@ -1,7 +1,7 @@
 setup: pseudolabel
 prefix: scatnetSPICE_selflabel
 
-pretrain_path: "/home/blachm86/SPICE-main/results/stl10/scatnet_self_5head_batchnorm/checkpoint_select.pth.tar"
+pretrain_path: "/home/blachm86/SPICE-main/results/stl10/scatnet_FullSelf_5head_linear/checkpoint_best.pth.tar"
 pretrain_type: spice
 
 ### Technical Parameters (unimportant) FIXED
@@ -93,13 +93,13 @@ scatnet_args:
 
 # <dependent>
 num_heads: 1
-model_type: spice_batchnormMLP
+model_type: spice_linearMLP
 # <dependent>
 
 model_args: # softmax is performed over loss function
     head_type: mlp
     aug_type: default
-    batch_norm: True
+    batch_norm: False
     last_batchnorm: False
     last_activation: softmax
     drop_out: -1

@@ -389,9 +389,12 @@ def multihead_twist_train(train_loader, model, criterion, optimizer, epoch, trai
     return twist_all.item(), best_head
 
 
-def pseudolabel_train(train_loader, model, criterion, optimizer, epoch, train_args, second_criterion=None):
+def pseudolabel_train(train_loader, model, criterion, optimizer, epoch, train_args, use_softmax=False):
 
     device = 'cuda:'+str(train_args['gpu_id'])
+
+    if use_softmax: softmax_fn = torch.nn.Softmax(dim = 1)
+
 
     model.train()
     model = model.to(device) # OK(%-cexp_00)
@@ -410,6 +413,7 @@ def pseudolabel_train(train_loader, model, criterion, optimizer, epoch, train_ar
 
 
         features = model(images)
+        if use_softmax: features = softmax_fn(features)
         #print('features(type): ', type(features))
         #print('features.shape: ',features.shape)
         #print('feature[0]',str(feature[0]))
