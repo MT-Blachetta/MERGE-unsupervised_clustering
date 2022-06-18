@@ -179,7 +179,7 @@ class ReliableSamplesSet(Dataset): # §: ReliableSamplesSet_Initialisation
         C = get_cost_matrix(pred, y_train, max_label+1)
         ri, ci = assign_classes_hungarian(C)
         accuracy = accuracy_from_assignment(C,ri,ci)
-        print('top_samples accuracy: ',accuracy)
+        print('Accuracy: ',accuracy)
         # §------------------------------------------------
 
         feature_tensor = torch.nn.functional.normalize(feature_tensor, dim = 1)
@@ -209,6 +209,7 @@ class ReliableSamplesSet(Dataset): # §: ReliableSamplesSet_Initialisation
         self.consistency = torch.Tensor(criterion_consistent)
         self.select_top_samples()
         self.dataset.transform = self.transform
+        self.top_samples_accuracy()
 # §
 
     def __len__(self):
@@ -352,7 +353,31 @@ class ReliableSamplesSet(Dataset): # §: ReliableSamplesSet_Initialisation
 
         #index_of_confidents = torch.where(self.confidence > 0.99)[0]
 
+    def top_samples_accuracy(self):
+        
+        labels = []
+        predlist = []
+        for i in self.index_mapping:
+            out = self.dataset.__getitem__(i)
+            labels.append(to_value(out['target']))
+            predlist.append(to_value(self.predictions[i]))
 
+        y_train = np.array(labels)
+        pred = np.array(predlist)
+        max_label = max(y_train)
+        C = get_cost_matrix(pred, y_train, max_label+1)
+        ri, ci = assign_classes_hungarian(C)
+        accuracy = accuracy_from_assignment(C,ri,ci)
+        print('top_samples accuracy: ',accuracy)
+
+        
+
+
+
+def to_value(v):
+    if isinstance(v,torch.Tensor):
+        v = v.item()        
+    return v
 
 
 class CIFAR10(Dataset):
