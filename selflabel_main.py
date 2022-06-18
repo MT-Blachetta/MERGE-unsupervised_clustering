@@ -48,6 +48,7 @@ model = params['model']
 criterion = params['criterion']
 optimizer = params['optimizer']
 train_epoch = params['train_method']
+val_loader = params['val_dataloader']
 
 #print('-----MODEL ANALYSIS-----')
 #with open('model_analysis','w') as f: f.write(str(model))
@@ -82,15 +83,9 @@ for epoch in range(0, p['epochs']):
     train_epoch(batch_loader, model, criterion, optimizer, epoch, p['train_args'])
     
     #@COMPONENT:Evaluation&Measures
-    val_dataset = copy.deepcopy(dataset)
-    val_dataset.transform = val_transformations
-    val_loader = torch.utils.data.DataLoader(val_dataset, 
-                                                num_workers=p['num_workers'], 
-                                                batch_size=p['batch_size'], 
-                                                pin_memory=True, 
-                                                collate_fn=collate_custom,
-                                                drop_last=False, 
-                                                shuffle=False)
+    #val_dataset = copy.deepcopy(dataset)
+    #val_dataset.transform = val_transformations
+    #val_loader = torch.utils.data.DataLoader(val_dataset, num_workers=p['num_workers'], batch_size=p['batch_size'], pin_memory=True,collate_fn=collate_custom, drop_last=False, shuffle=False)
     metric_data = Analysator(p['device'],model,val_loader)
     print('\nepoch: ',epoch)
     print('Accuracy: ',metric_data.get_accuracy())
@@ -102,15 +97,9 @@ for epoch in range(0, p['epochs']):
     # Evaluation
 
 #@COMPONENT:Evaluation&Measures
-val_dataset = dataset
-val_dataset.transform = val_transformations
-val_loader = torch.utils.data.DataLoader(val_dataset, 
-                                                num_workers=p['num_workers'], 
-                                                batch_size=p['batch_size'], 
-                                                pin_memory=True, 
-                                                collate_fn=collate_custom,
-                                                drop_last=False, 
-                                                shuffle=False)
+#val_dataset = dataset
+#val_dataset.transform = val_transformations
+#val_loader = torch.utils.data.DataLoader(val_dataset, num_workers=p['num_workers'], batch_size=p['batch_size'], pin_memory=True, collate_fn=collate_custom, drop_last=False, shuffle=False)
 metric_data = Analysator(p['device'],model,val_loader)
 torch.save({'analysator': metric_data,'parameter':p},'SELFLABEL/'+args.prefix+'_ANALYSATOR')
 #!@

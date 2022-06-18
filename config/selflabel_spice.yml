@@ -8,7 +8,7 @@ pretrain_type: spice
 num_workers: 8
 
 ### Universal Parameters
-epochs: 10
+epochs: 100
 batch_size: 256
 
 update_cluster_head_only: False
