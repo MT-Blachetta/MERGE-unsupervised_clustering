@@ -177,7 +177,7 @@ class ReliableSamplesSet(Dataset): # §: ReliableSamplesSet_Initialisation
         max_label = max(y_train)
         #assert(max_label==9)
         C = get_cost_matrix(pred, y_train, max_label+1)
-        ri, ci = assign_classes_hungarian(self.C)
+        ri, ci = assign_classes_hungarian(C)
         accuracy = accuracy_from_assignment(C,ri,ci)
         print('top_samples accuracy: ',accuracy)
         # §------------------------------------------------
