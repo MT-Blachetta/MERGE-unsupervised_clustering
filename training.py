@@ -394,7 +394,7 @@ def pseudolabel_train(train_loader, model, criterion, optimizer, epoch, train_ar
 
     device = 'cuda:'+str(train_args['gpu_id'])
 
-    softmax_fn = torch.nn.Softmax(dim = 1)
+    #softmax_fn = torch.nn.Softmax(dim = 1)
 
 
 
@@ -405,15 +405,15 @@ def pseudolabel_train(train_loader, model, criterion, optimizer, epoch, train_ar
     #print('MODEL AFTER CRITICAL EXPRESSION 2: ',type(model))
 
     for i, batch in enumerate(train_loader):
-        weak_images = batch['image']
+        #weak_images = batch['image']
         input_imgs = batch['image_augment']
-        weak_images = weak_images.to(device)
+        #weak_images = weak_images.to(device)
         input_imgs = input_imgs.to(device)
-        #targets = batch['target']
-        weak_features = model(weak_images)
-        weak_features = softmax_fn(weak_features)
+        targets = batch['target']
+        #weak_features = model(weak_images)
+        #weak_features = softmax_fn(weak_features)
         inputs = model(input_imgs)
-        probs, targets = torch.max(weak_features,dim=1)
+        #probs, targets = torch.max(weak_features,dim=1)
 
          # OK(%-cexp_00)
         targets = targets.to(device) # OK(%-cexp_00)

@@ -99,14 +99,17 @@ val_transformations = transforms.Compose([
                             transforms.ToTensor(),
                             transforms.Normalize(**p['transformation_kwargs']['normalize'])])
 
+training_set = ReliableSamplesSet(dataset,val_transformations,strong_transform)
+training_set.evaluate_samples(p,model)
+
 #TEST_initial_model(model,dataset,val_transformations)
 
 print('start training loop...')
 for epoch in range(0, p['epochs']):
     
     print('\nepoch: ',epoch)
-    training_set = ReliableSamplesSet(dataset,val_transformations,strong_transform)
-    training_set.evaluate_samples(p,model)
+    print('dataset_len = ',len(training_set))
+
     batch_loader = torch.utils.data.DataLoader(training_set, num_workers=p['num_workers'], 
                                                 batch_size=p['batch_size'], pin_memory=True, collate_fn=collate_custom,
                                                 drop_last=True, shuffle=True)

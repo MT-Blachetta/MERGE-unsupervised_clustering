@@ -17,6 +17,7 @@ import sys
 from torchvision.datasets.utils import check_integrity, download_and_extract_archive
 from functionality import collate_custom
 from evaluate import get_cost_matrix, assign_classes_hungarian, accuracy_from_assignment
+import random
 
 class AugmentedDataset(Dataset):
     def __init__(self, dataset):
@@ -96,6 +97,7 @@ class NeighborsDataset(Dataset):
 class ReliableSamplesSet(Dataset): # §: ReliableSamplesSet_Initialisation
 
     def __init__(self,dataset,eval_transform,strong_transform):
+        super(ReliableSamplesSet, self).__init__()
         self.dataset = dataset
         self.index_mapping = []
         self.predictions = None
@@ -264,8 +266,11 @@ class ReliableSamplesSet(Dataset): # §: ReliableSamplesSet_Initialisation
         for label_samples in confirmed_samples:
             self.index_mapping.extend([ s.item() for s in list(label_samples[:num_confirmed]) ])
 
+        random.shuffle(self.index_mapping)
         self.dsize = len(self.index_mapping)
         print('reliableSamples_size = ',self.dsize)
+        print('min_index: ',min(self.index_mapping))
+        print('max_index: ',max(self.index_mapping))
 
         # num confirmed kommt in den index [:]
 
