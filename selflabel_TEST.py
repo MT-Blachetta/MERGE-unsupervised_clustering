@@ -6,10 +6,12 @@ import torchvision.transforms as transforms
 from utils.common_config import adjust_learning_rate
 from evaluate import Analysator
 import torchvision
-
+import numpy as np
 #from testmodule import TEST_initial_model
 import torch
 import copy
+from evaluate import get_cost_matrix, assign_classes_hungarian, accuracy_from_assignment
+
 
 #@ref=[main_command_line]
 FLAGS = argparse.ArgumentParser(description='loss training')
@@ -62,6 +64,38 @@ train_optimizer = get_optimizer(p,train_model)
 #print('model_aug_type',model.aug_type)
 #print('model_head',type(model.head))
 
+def compute_accuracy(device,model,loader):
+        
+    model.eval()
+    model = model.to(device) # OK(%-cexp_00)
+    predictions = []
+    labels = []
+    softmax_fn = torch.nn.Softmax(dim = 1)
+
+    with torch.no_grad():      
+        for batch in loader:
+            if isinstance(batch,dict):
+                image = batch['image']
+                label = batch['target']
+            else:
+                image = batch[0]
+                label = batch[1]
+
+            image = image.to(device,non_blocking=True)
+            preds = model(image)
+            max_confidence, predict = torch.max(softmax_fn(preds),dim=1) 
+            predictions.append(predict)
+            labels.append(label)
+
+    y_train = np.array(labels)
+    pred = np.array(predictions)
+    max_label = max(y_train)
+    C = get_cost_matrix(pred, y_train, max_label+1)
+    ri, ci = assign_classes_hungarian(C)
+    accuracy = accuracy_from_assignment(C,ri,ci)
+    print('PERFORMANCE: ',accuracy)
+            
+
 
 val_transformations = transforms.Compose([
                             transforms.CenterCrop(p['transformation_kwargs']['crop_size']),
@@ -94,8 +128,10 @@ for epoch in range(0, p['epochs']):
     #val_dataset = copy.deepcopy(dataset)
     #val_dataset.transform = val_transformations
     #val_loader = torch.utils.data.DataLoader(val_dataset, num_workers=p['num_workers'], batch_size=p['batch_size'], pin_memory=True,collate_fn=collate_custom, drop_last=False, shuffle=False)
-    metric_data = Analysator(p['device'],train_model,val_loader)
-    print('Accuracy: ',metric_data.get_accuracy())
+    #metric_data = Analysator(p['device'],train_model,val_loader)
+    compute_accuracy(p['device'],train_model,val_loader)
+
+    #print('Accuracy: ',metric_data.get_accuracy())
     #!@
 
     # TO DO:
@@ -111,4 +147,4 @@ for epoch in range(0, p['epochs']):
 #torch.save({'analysator': metric_data,'parameter':p},'SELFLABEL/'+args.prefix+'_ANALYSATOR')
 #!@
 
-#torch.save(model.state_dict(),'SELFLABEL/'+args.prefix+'_model.pth')
+torch.save(train_model.state_dict(),'SELFLABEL/'+args.prefix+'_model.pth')
