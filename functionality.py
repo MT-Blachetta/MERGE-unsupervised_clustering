@@ -100,6 +100,7 @@ def get_augmentation(p):
         else:
             raise ValueError('Invalid augmentation strategy {}'.format(p['augmentation_strategy']))
 
+    elif p['augmentation_type'] == 'pseudolabel': return None
 
     else: # <input_type> PIL.Image
         aug_args = p['augmentation_kwargs'] # <return_type> list[]
@@ -535,6 +536,8 @@ def initialize_training(p):
         #val_dataset = get_dataset(p,val_transformations,train=False)
         backbone = get_backbone(p)
         model = get_head_model(p,backbone)
+        p['augmentation_type'] = 'scan'
+        strong_transform = get_augmentation(p)
         
         if p['pretrain_type'] == 'scan':
             pretrained = torch.load(p['pretrain_path'],map_location='cpu')
@@ -555,6 +558,7 @@ def initialize_training(p):
         load_backbone_model(backbone,p['pretrain_path'],p['backbone'])
         model = get_head_model(p,backbone)
         dataset = None
+        strong_transform = None
 
     print('@ref[model_related]: model_type: ',type(model))
 
@@ -568,7 +572,8 @@ def initialize_training(p):
                         'optimizer': optimizer,
                         'train_method': train_one_epoch,
                         'val_dataloader': val_loader, 
-                        'dataset': dataset }
+                        'dataset': dataset, 
+                        'augmentation': strong_transform}
 
     return components
 

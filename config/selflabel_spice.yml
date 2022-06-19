@@ -38,7 +38,7 @@ val_split: both
 ### AUGMENTATION related
 
 # <dependent>
-augmentation_type: scan 
+augmentation_type: pseudolabel
 
 # VERSION: default scan loss for stl_10
 # Transformations
@@ -101,7 +101,7 @@ model_args: # softmax is performed over loss function
     aug_type: default
     batch_norm: True
     last_batchnorm: False
-    last_activation: softmax
+    last_activation: None
     drop_out: -1
 
 

@@ -9,6 +9,7 @@ from evaluate import Analysator
 #from testmodule import TEST_initial_model
 import torch
 import copy
+from evaluate import get_cost_matrix, assign_classes_hungarian, accuracy_from_assignment
 
 #@ref=[main_command_line]
 FLAGS = argparse.ArgumentParser(description='loss training')
@@ -49,6 +50,7 @@ criterion = params['criterion']
 optimizer = params['optimizer']
 train_epoch = params['train_method']
 val_loader = params['val_dataloader']
+strong_transform = params['augmentation']
 
 #print('-----MODEL ANALYSIS-----')
 #with open('model_analysis','w') as f: f.write(str(model))
@@ -57,6 +59,38 @@ val_loader = params['val_dataloader']
 #print('model_nheads',model.nheads)
 #print('model_aug_type',model.aug_type)
 #print('model_head',type(model.head))
+def compute_accuracy(device,model,loader):
+        
+    model.eval()
+    model = model.to(device) # OK(%-cexp_00)
+    predictions = []
+    labels = []
+    softmax_fn = torch.nn.Softmax(dim = 1)
+
+    with torch.no_grad():      
+        for batch in loader:
+            if isinstance(batch,dict):
+                image = batch['image']
+                label = batch['target']
+            else:
+                image = batch[0]
+                label = batch[1]
+
+            image = image.to(device,non_blocking=True)
+            preds = model(image)
+            max_confidence, predict = torch.max(softmax_fn(preds),dim=1) 
+            predictions.append(predict)
+            labels.append(label)
+
+    yt = torch.cat(labels)
+    pr = torch.cat(predictions)
+    y_train = np.array(yt.detach().cpu().numpy())
+    pred = np.array(pr.detach().cpu().numpy())
+    max_label = max(y_train)
+    C = get_cost_matrix(pred, y_train, max_label+1)
+    ri, ci = assign_classes_hungarian(C)
+    accuracy = accuracy_from_assignment(C,ri,ci)
+    print('PERFORMANCE: ',accuracy)
 
 
 val_transformations = transforms.Compose([
@@ -70,7 +104,7 @@ print('start training loop...')
 for epoch in range(0, p['epochs']):
     
     print('\nepoch: ',epoch)
-    training_set = ReliableSamplesSet(dataset,val_transformations)
+    training_set = ReliableSamplesSet(dataset,val_transformations,strong_transform)
     training_set.evaluate_samples(p,model)
     batch_loader = torch.utils.data.DataLoader(training_set, num_workers=p['num_workers'], 
                                                 batch_size=p['batch_size'], pin_memory=True, collate_fn=collate_custom,
@@ -89,6 +123,7 @@ for epoch in range(0, p['epochs']):
     #val_loader = torch.utils.data.DataLoader(val_dataset, num_workers=p['num_workers'], batch_size=p['batch_size'], pin_memory=True,collate_fn=collate_custom, drop_last=False, shuffle=False)
     #metric_data = Analysator(p['device'],model,val_loader)
     #print('Accuracy: ',metric_data.get_accuracy())
+    compute_accuracy(p['device'],model,val_loader)
     #!@
 
     # TO DO:
@@ -100,8 +135,8 @@ for epoch in range(0, p['epochs']):
 #val_dataset = dataset
 #val_dataset.transform = val_transformations
 #val_loader = torch.utils.data.DataLoader(val_dataset, num_workers=p['num_workers'], batch_size=p['batch_size'], pin_memory=True, collate_fn=collate_custom, drop_last=False, shuffle=False)
-metric_data = Analysator(p['device'],model,val_loader)
-torch.save({'analysator': metric_data,'parameter':p},'SELFLABEL/'+args.prefix+'_ANALYSATOR')
+#metric_data = Analysator(p['device'],model,val_loader)
+#torch.save({'analysator': metric_data,'parameter':p},'SELFLABEL/'+args.prefix+'_ANALYSATOR')
 #!@
 
 torch.save(model.state_dict(),'SELFLABEL/'+args.prefix+'_model.pth')

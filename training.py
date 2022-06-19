@@ -1,6 +1,7 @@
 import torch
 import numpy as np
 from utils.utils import AverageMeter, ProgressMeter
+import torch.nn.functional as F
 
 
 
@@ -393,7 +394,8 @@ def pseudolabel_train(train_loader, model, criterion, optimizer, epoch, train_ar
 
     device = 'cuda:'+str(train_args['gpu_id'])
 
-    if use_softmax: softmax_fn = torch.nn.Softmax(dim = 1)
+    softmax_fn = torch.nn.Softmax(dim = 1)
+
 
 
     model.train()
@@ -403,17 +405,23 @@ def pseudolabel_train(train_loader, model, criterion, optimizer, epoch, train_ar
     #print('MODEL AFTER CRITICAL EXPRESSION 2: ',type(model))
 
     for i, batch in enumerate(train_loader):
-        images = batch['image']
-        targets = batch['target']
+        weak_images = batch['image']
+        input_imgs = batch['image_augment']
+        weak_images = weak_images.to(device)
+        input_imgs = input_imgs.to(device)
+        #targets = batch['target']
+        weak_features = model(weak_images)
+        weak_features = softmax_fn(weak_features)
+        inputs = model(input_imgs)
+        probs, targets = torch.max(weak_features,dim=1)
 
-        images = images.to(device) # OK(%-cexp_00)
+         # OK(%-cexp_00)
         targets = targets.to(device) # OK(%-cexp_00)
         #print('images(type): ', type(images))
         #print('images.shape: ',images.shape)
 
-
-        features = model(images)
-        if use_softmax: features = softmax_fn(features)
+        #features = model(images)
+        #if use_softmax: features = softmax_fn(features)
         #print('features(type): ', type(features))
         #print('features.shape: ',features.shape)
         #print('feature[0]',str(feature[0]))
@@ -421,7 +429,8 @@ def pseudolabel_train(train_loader, model, criterion, optimizer, epoch, train_ar
         #print('targets.shape: ',targets.shape)
         #print('targets[0]: ',str(targets[0]))
 
-        loss = criterion(features, targets)
+        loss = F.cross_entropy(inputs,targets,weight=None,reduction='mean')
+        
         #print('epoch: ',epoch,' / batch: ',i)
         optimizer.zero_grad()
         loss.backward()

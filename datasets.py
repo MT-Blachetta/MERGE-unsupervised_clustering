@@ -95,12 +95,12 @@ class NeighborsDataset(Dataset):
 
 class ReliableSamplesSet(Dataset): # §: ReliableSamplesSet_Initialisation
 
-    def __init__(self,dataset,eval_transform):
+    def __init__(self,dataset,eval_transform,strong_transform):
         self.dataset = dataset
         self.index_mapping = []
         self.predictions = None
         self.dsize = 1
-        self.transform = self.dataset.transform
+        self.strong_transform = strong_transform
         #print('self.transform: ',self.transform )
         self.eval_transform = eval_transform
         self.num_clusters = 0
@@ -216,8 +216,8 @@ class ReliableSamplesSet(Dataset): # §: ReliableSamplesSet_Initialisation
 
             self.consistency = torch.Tensor(criterion_consistent)
             self.select_top_samples()
-            self.dataset.transform = self.transform
-            #self.top_samples_accuracy()
+            self.dataset.transform = None
+            self.top_samples_accuracy()
 # §
 
     def __len__(self):
@@ -228,13 +228,15 @@ class ReliableSamplesSet(Dataset): # §: ReliableSamplesSet_Initialisation
         
         lx = self.index_mapping[index]
         out = self.dataset.__getitem__(lx)
-        imagelist = out['image']
+        image = out['image']
+        input_img = self.strong_transform(image)
+        pred_img = self.eval_transform(image)
         target = self.predictions[lx]
 
-        if isinstance(imagelist,list):
-            return {'image': imagelist[0], 'target': target}
+        if isinstance(input_img,list):
+            return {'image':pred_img, 'image_augment': input_img[0], 'target': target}
         else:
-            return {'image':imagelist, 'target': target}
+            return {'image':pred_img , 'image_augment':input_img, 'target':target} 
 
 
     def select_top_samples(self):
