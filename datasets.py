@@ -158,58 +158,58 @@ class ReliableSamplesSet(Dataset): # §: ReliableSamplesSet_Initialisation
                 confidences.append(max_confidence)
                 labels.append(label)
 
-        feature_tensor = torch.cat(features)
-        #self.softlabel_tensor = torch.cat(soft_labels)
-        self.predictions = torch.cat(predictions)
-        #print('max_prediction A: ',self.predictions.max())
-        self.predictions = self.predictions.type(torch.LongTensor)
-        #print('max_prediction B: ',self.predictions.max())
-        #print('len(self.predictions) B: ',len(self.predictions))
-        self.num_clusters = self.predictions.max()+1 # !issue: by test config assert(self.num_clusters == 10) get 9
-        #print('num_clusters: ',self.num_clusters)
-        self.label_tensor = torch.cat(labels)
-        self.confidence = torch.cat(confidences)
-        dataset_size = len(self.dataset)
+            feature_tensor = torch.cat(features)
+                #self.softlabel_tensor = torch.cat(soft_labels)
+            self.predictions = torch.cat(predictions)
+                #print('max_prediction A: ',self.predictions.max())
+            self.predictions = self.predictions.type(torch.LongTensor)
+                #print('max_prediction B: ',self.predictions.max())
+                #print('len(self.predictions) B: ',len(self.predictions))
+            self.num_clusters = self.predictions.max()+1 # !issue: by test config assert(self.num_clusters == 10) get 9
+                #print('num_clusters: ',self.num_clusters)
+            self.label_tensor = torch.cat(labels)
+            self.confidence = torch.cat(confidences)
+            dataset_size = len(self.dataset)
 
         # §_Compute_Accuracy-------------------------------
-        y_train = self.label_tensor.detach().cpu().numpy()
-        pred = self.predictions.detach().cpu().numpy()
-        max_label = max(y_train)
-        #assert(max_label==9)
-        C = get_cost_matrix(pred, y_train, max_label+1)
-        ri, ci = assign_classes_hungarian(C)
-        accuracy = accuracy_from_assignment(C,ri,ci)
-        print('Accuracy: ',accuracy)
-        # §------------------------------------------------
+            y_train = self.label_tensor.detach().cpu().numpy()
+            pred = self.predictions.detach().cpu().numpy()
+            max_label = max(y_train)
+            #assert(max_label==9)
+            C = get_cost_matrix(pred, y_train, max_label+1)
+            ri, ci = assign_classes_hungarian(C)
+            accuracy = accuracy_from_assignment(C,ri,ci)
+            print('Accuracy: ',accuracy)
+            # §------------------------------------------------
 
-        feature_tensor = torch.nn.functional.normalize(feature_tensor, dim = 1)
-        similarity_matrix = torch.einsum('nd,cd->nc', [feature_tensor, feature_tensor]) # removed .cpu()
+            feature_tensor = torch.nn.functional.normalize(feature_tensor, dim = 1)
+            similarity_matrix = torch.einsum('nd,cd->nc', [feature_tensor, feature_tensor]) # removed .cpu()
 
-        #self.knn = knn
-        scores, idx_k = similarity_matrix.topk(k=knn, dim=1)
-        #self.proximity = torch.mean(scores_k,dim=1)
-        #self.kNN_indices = idx_k
-        labels_topk = torch.zeros_like(idx_k)
-        confidence_topk = torch.zeros_like(idx_k,dtype=torch.float)
-        for s in range(knn):
-            labels_topk[:, s] = self.predictions[idx_k[:, s]]
-            confidence_topk[:, s] = self.confidence[idx_k[:, s]]
-        
-        kNN_consistent = labels_topk[:, 0:1] == labels_topk # <boolean mask>
-        #kNN_labels = labels_topk
-        kNN_confidences = confidence_topk
-        criterion_consistent = []
-        for i in range(dataset_size):
-            confids = kNN_confidences[i][kNN_consistent[i]] # +logical_index > +true for index of consistent label; +size=knn > +indexes topk instances
-            real = confids > 0.5
-            criterion_consistent.append(sum(real)/knn)
+            #self.knn = knn
+            scores, idx_k = similarity_matrix.topk(k=knn, dim=1)
+            #self.proximity = torch.mean(scores_k,dim=1)
+            #self.kNN_indices = idx_k
+            labels_topk = torch.zeros_like(idx_k)
+            confidence_topk = torch.zeros_like(idx_k,dtype=torch.float)
+            for s in range(knn):
+                labels_topk[:, s] = self.predictions[idx_k[:, s]]
+                confidence_topk[:, s] = self.confidence[idx_k[:, s]]
+            
+            kNN_consistent = labels_topk[:, 0:1] == labels_topk # <boolean mask>
+            #kNN_labels = labels_topk
+            kNN_confidences = confidence_topk
+            criterion_consistent = []
+            for i in range(dataset_size):
+                confids = kNN_confidences[i][kNN_consistent[i]] # +logical_index > +true for index of consistent label; +size=knn > +indexes topk instances
+                real = confids > 0.5
+                criterion_consistent.append(sum(real)/knn)
 
-        self.alternative_consistency = kNN_consistent.sum(dim=1)/knn
+            self.alternative_consistency = kNN_consistent.sum(dim=1)/knn
 
-        self.consistency = torch.Tensor(criterion_consistent)
-        self.select_top_samples()
-        self.dataset.transform = self.transform
-        #self.top_samples_accuracy()
+            self.consistency = torch.Tensor(criterion_consistent)
+            self.select_top_samples()
+            self.dataset.transform = self.transform
+            #self.top_samples_accuracy()
 # §
 
     def __len__(self):
