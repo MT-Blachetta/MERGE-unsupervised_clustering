@@ -110,7 +110,7 @@ class ReliableSamplesSet(Dataset): # §: ReliableSamplesSet_Initialisation
         self.consistency = None
 
 
-    def evaluate_samples(self,p,model,forwarding='head',knn=100):
+    def evaluate_samples(self,p,model,forwarding='head',knn=100,display=False):
 
         device = p['device']
         self.dataset.transform = self.eval_transform
@@ -172,14 +172,15 @@ class ReliableSamplesSet(Dataset): # §: ReliableSamplesSet_Initialisation
             dataset_size = len(self.dataset)
 
         # §_Compute_Accuracy-------------------------------
-            y_train = self.label_tensor.detach().cpu().numpy()
-            pred = self.predictions.detach().cpu().numpy()
-            max_label = max(y_train)
-            #assert(max_label==9)
-            C = get_cost_matrix(pred, y_train, max_label+1)
-            ri, ci = assign_classes_hungarian(C)
-            accuracy = accuracy_from_assignment(C,ri,ci)
-            print('Accuracy: ',accuracy)
+            if display:
+                y_train = self.label_tensor.detach().cpu().numpy()
+                pred = self.predictions.detach().cpu().numpy()
+                max_label = max(y_train)
+                #assert(max_label==9)
+                C = get_cost_matrix(pred, y_train, max_label+1)
+                ri, ci = assign_classes_hungarian(C)
+                accuracy = accuracy_from_assignment(C,ri,ci)
+                print('Accuracy: ',accuracy)
         # §------------------------------------------------
 
             feature_tensor = torch.nn.functional.normalize(feature_tensor, dim = 1)
@@ -217,7 +218,8 @@ class ReliableSamplesSet(Dataset): # §: ReliableSamplesSet_Initialisation
             self.consistency = torch.Tensor(criterion_consistent)
             self.select_top_samples()
             self.dataset.transform = None
-            self.top_samples_accuracy()
+            
+            if display: self.top_samples_accuracy()
 # §
 
     def __len__(self):

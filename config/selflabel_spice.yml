@@ -1,9 +1,10 @@
 setup: pseudolabel
-prefix: scatnetSPICE_selflabel
+prefix: scatnetSPICE_full
 
-pretrain_path: "/home/blachm86/SPICE-main/results/stl10/scatnet_self_5head_batchnorm/checkpoint_select.pth.tar"
+pretrain_path: "/home/blachm86/SPICE-main/results/stl10/scatnet_FullSelf_5head_linear/checkpoint_best.pth.tar"
 pretrain_type: spice
 
+# "/home/blachm86/SPICE-main/results/stl10/scatnet_self_5head_batchnorm/checkpoint_select.pth.tar"
 ### Technical Parameters (unimportant) FIXED
 num_workers: 8
 
@@ -31,7 +32,7 @@ to_neighbors_dataset: False
 
 ## for stl10 dataset
 # split of stl10 for training
-train_split: both
+train_split: unlabeled
 # split of stl10 for validation
 val_split: both
 
@@ -93,13 +94,14 @@ scatnet_args:
 
 # <dependent>
 num_heads: 1
-model_type: spice_batchnormMLP
+model_type: spice_linearMLP
+#spice_batchnormMLP
 # <dependent>
 
 model_args: # softmax is performed over loss function
     head_type: mlp
     aug_type: default
-    batch_norm: True
+    batch_norm: False
     last_batchnorm: False
     last_activation: None
     drop_out: -1
