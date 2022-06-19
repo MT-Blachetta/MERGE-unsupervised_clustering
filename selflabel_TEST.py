@@ -104,11 +104,13 @@ val_transformations = transforms.Compose([
                             transforms.ToTensor(),
                             transforms.Normalize(**p['transformation_kwargs']['normalize'])])
 
+dataset.transform = val_transformations
+
 #TEST_initial_model(model,dataset,val_transformations)
 
-training_set = ReliableSamplesSet(dataset,val_transformations)
-training_set.evaluate_samples(p,model)
-batch_loader = torch.utils.data.DataLoader(training_set, num_workers=p['num_workers'], 
+#training_set = ReliableSamplesSet(dataset,val_transformations)
+#training_set.evaluate_samples(p,model)
+batch_loader = torch.utils.data.DataLoader(dataset, num_workers=p['num_workers'], 
                                                 batch_size=p['batch_size'], pin_memory=True, collate_fn=collate_custom,
                                                 drop_last=True, shuffle=True)
 

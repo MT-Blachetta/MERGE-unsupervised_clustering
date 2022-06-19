@@ -31,9 +31,9 @@ to_neighbors_dataset: False
 
 ## for stl10 dataset
 # split of stl10 for training
-train_split: unlabeled
+train_split: test
 # split of stl10 for validation
-val_split: both
+val_split: train
 
 ### AUGMENTATION related
 
