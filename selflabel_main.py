@@ -9,6 +9,7 @@ from evaluate import Analysator
 #from testmodule import TEST_initial_model
 import torch
 import copy
+import numpy as np
 from evaluate import get_cost_matrix, assign_classes_hungarian, accuracy_from_assignment
 
 #@ref=[main_command_line]
