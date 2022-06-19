@@ -50,9 +50,9 @@ criterion = params['criterion']
 optimizer = params['optimizer']
 train_epoch = params['train_method']
 val_loader = params['val_dataloader']
-train_model = torchvision.model.resnet18()
-train_model.fc = torch.nn.Linear(512,p['num_classes'])
-train_optimizer = get_optimizer(p,train_model)
+train_model = torchvision.models.resnet18() # %tv_res18
+train_model.fc = torch.nn.Linear(512,p['num_classes']) # %tv_res18
+train_optimizer = get_optimizer(p,train_model) 
 
 #print('-----MODEL ANALYSIS-----')
 #with open('model_analysis','w') as f: f.write(str(model))
