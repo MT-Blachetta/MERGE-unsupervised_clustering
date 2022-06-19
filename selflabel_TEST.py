@@ -87,8 +87,10 @@ def compute_accuracy(device,model,loader):
             predictions.append(predict)
             labels.append(label)
 
-    y_train = np.array(labels)
-    pred = np.array(predictions)
+    yt = torch.cat(labels)
+    pr = torch.cat(predictions)
+    y_train = np.array(yt.detach().cpu().numpy())
+    pred = np.array(pr.detach().cpu().numpy())
     max_label = max(y_train)
     C = get_cost_matrix(pred, y_train, max_label+1)
     ri, ci = assign_classes_hungarian(C)
