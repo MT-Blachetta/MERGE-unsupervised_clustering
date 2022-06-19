@@ -180,13 +180,21 @@ class ReliableSamplesSet(Dataset): # §: ReliableSamplesSet_Initialisation
             ri, ci = assign_classes_hungarian(C)
             accuracy = accuracy_from_assignment(C,ri,ci)
             print('Accuracy: ',accuracy)
-            # §------------------------------------------------
+        # §------------------------------------------------
 
             feature_tensor = torch.nn.functional.normalize(feature_tensor, dim = 1)
-            similarity_matrix = torch.einsum('nd,cd->nc', [feature_tensor, feature_tensor]) # removed .cpu()
+
+            idx_list = []
+            for i in range(len(feature_tensor)):
+                feature = torch.unsqueeze(feature_tensor[i],dim=0)
+                similarities = torch.mm(feature,feature_tensor.t())
+                scores, idx_ = similarities.topk(k=knn, dim=1)
+                idx_list.append(idx_)
+            idx_k = torch.cat(idx_list)
+            #similarity_matrix = torch.einsum('nd,cd->nc', [feature_tensor, feature_tensor]) # removed .cpu()
 
             #self.knn = knn
-            scores, idx_k = similarity_matrix.topk(k=knn, dim=1)
+            #scores, idx_k = similarity_matrix.topk(k=knn, dim=1)
             #self.proximity = torch.mean(scores_k,dim=1)
             #self.kNN_indices = idx_k
             labels_topk = torch.zeros_like(idx_k)
