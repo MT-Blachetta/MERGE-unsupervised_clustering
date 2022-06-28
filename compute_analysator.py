@@ -75,6 +75,7 @@ class ClusteringModel(nn.Module):
 
 class MLP_head_model(nn.Module):
     def __init__(self,backbone,head):
+        super(MLP_head_model, self).__init__()
         self.backbone = backbone
         self.head = head
 
