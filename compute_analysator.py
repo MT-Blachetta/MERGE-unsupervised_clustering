@@ -93,10 +93,11 @@ class MLP_head_model(nn.Module):
 
 # build scatnet backbone
 backbone = ScatSimCLR(J=2, L=16, input_size=(96, 96, 3), res_blocks=30, out_dim=128)
+backbone_dict = {'backbone': backbone, 'dim': 128}
 
 # wrap it into ClusteringModel
 
-model = ClusteringModel(backbone,10,10)
+model = ClusteringModel(backbone_dict,10,10)
 
 scan_save = torch.load('/home/blachm86/SCAN/RESULTS/stl-10/scan/scatnet_model.pth.tar',map_location='cpu')
 itext = model.load_state_dict(scan_save['model'],strict=True)
@@ -105,11 +106,12 @@ print('itext: ',itext)
 best_head = model.cluster_head[scan_save['head']]
 torch.save(best_head.state_dict(),'scan_transfer_head.pth')
 
+
 eval_model = MLP_head_model(model.backbone,best_head)
 
 # now get dataset with dataloader
 
-
+print('get validation dataset')
     
     # dataset:
 from datasets import STL10_eval
@@ -127,6 +129,8 @@ eval_dataset = STL10_eval(path='/space/blachetta/data',aug=val_transformations)
 val_dataloader = torch.utils.data.DataLoader(eval_dataset, num_workers=8,
                 batch_size=256, pin_memory=True, collate_fn=collate_custom,
                 drop_last=False, shuffle=False)
+
+print('compute features in Analysator')
 
 eval_object = Analysator('cuda:3',eval_model,val_dataloader)
 
