@@ -4,6 +4,7 @@ import torch.nn.functional as F
 from scatnet import ScatSimCLR
 from evaluate import Analysator
 import torchvision.transforms as transforms
+import copy
 
 class MLP(nn.Module): # id MlpHead
     def __init__(self, num_neurons, batch_norm=True):
@@ -104,7 +105,8 @@ scan_save = torch.load('/home/blachm86/SCAN/RESULTS/stl-10/scan/scatnet_model.pt
 itext = model.load_state_dict(scan_save['model'],strict=True)
 print('itext: ',itext)
 
-best_head = model.cluster_head[scan_save['head']]
+best_head = copy.deepcopy(model.cluster_head[scan_save['head']])
+print('best_head: ',best_head)
 torch.save(best_head.state_dict(),'scan_transfer_head.pth')
 
 
