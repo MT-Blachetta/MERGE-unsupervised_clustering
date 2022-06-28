@@ -45,7 +45,7 @@ def confidence_statistic(softmatrix):
     max_confidences, _ = torch.max(softmatrix,dim=1)
     num_confident_samples = len(torch.where(max_confidences > 0.95)[0])
     confidence_ratio = num_confident_samples/len(max_confidences)
-    confidence_std, confidence_mean = torch.std_mean(max_confidences, unbiased=False)
+    confidence_std, confidence_mean = torch.std_mean(max_confidences, unbiased=True)
 
     return confidence_mean, confidence_std, confidence_ratio
     
@@ -659,8 +659,10 @@ class Analysator():
 
         for c in bins:
 
-            category_names.append(str(c.item()))
-            counting_mask = category_values == c
+            if isinstance(c,torch.Tensor):
+                category_names.append(str(c.item()))
+            else: category_names.append(str(c))
+            counting_mask = match_value(category_values,c)
             end_value = self.count_set(counting_mask,measurements,mode)
             amounts.append(end_value)
 
