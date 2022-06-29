@@ -773,21 +773,21 @@ class Sim2Sem(nn.Module):
         self.feature_module = feature_module #build_feature_module(feature)
         self.head = MLP(num_neurons = m_args['num_neurons'], last_activation = m_args['last_activation'],batch_norm = m_args['batch_norm'], last_batchnorm = m_args['last_batchnorm'])
 
-    def forward(self, images, forward_type="sem"):
+    def forward(self, images, forward_pass="sem"):
 
        # if forward_type not in ["sim2sem", "proto", "local_consistency"]:
 
-        if forward_type == "sem":
+        if forward_pass == "sem":
             fea = self.feature_module(images)
             fea = fea.flatten(start_dim=1)
             return self.head.forward(fea)
 
-        elif forward_type == "features":
+        elif forward_pass == "features":
             fea = self.feature_module(images)
             fea = fea.flatten(start_dim=1)
             return fea
 
-        elif forward_type == "head":
+        elif forward_pass == "head":
             return self.head(images)
 
         else:
