@@ -86,11 +86,13 @@ class MLP_head_model(nn.Module):
             features = self.backbone(x)
             return self.head(features)
 
-        elif forward_pass == 'backbone':
+        elif forward_pass == 'features':
             return self.backbone(x)
 
         elif forward_pass == 'head':
             return self.head(x)
+
+        else: ValueError('invalid forward pass')
 
 
 # build scatnet backbone
