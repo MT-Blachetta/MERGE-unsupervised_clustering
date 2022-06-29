@@ -108,8 +108,8 @@ itext = model.load_state_dict(scan_save['model'],strict=True)
 print('itext: ',itext)
 
 best_head = copy.deepcopy(model.cluster_head[scan_save['head']])
-print('best_head: ',best_head)
-torch.save(best_head.state_dict(),'scan_transfer_head.pth')
+#print('best_head: ',best_head)
+#torch.save(best_head.state_dict(),'scan_transfer_head.pth')
 
 
 eval_model = MLP_head_model(model.backbone,best_head)
