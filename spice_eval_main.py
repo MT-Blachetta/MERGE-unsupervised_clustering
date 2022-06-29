@@ -120,7 +120,7 @@ def main():
     metric_data.return_statistic_summary(0)
 
     #pickle.dump(metric_data, open('SPICE_EVAL/'+prefix+".pck",'wb'))
-    torch.save('SPICE_EVAL/'+prefix+".torch")
+    torch.save(metric_data,'SPICE_EVAL/'+prefix+".torch")
 
 #---------------------------------------------------------------------------------------------
 
