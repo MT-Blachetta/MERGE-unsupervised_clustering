@@ -52,7 +52,7 @@ def main():
     model = construct_spice_model(m_args,backbone)
     load_spice_model(model,savefile,model_type)
 
-    from dataset.scan_dataset import STL10_trainNtest, STL10_eval
+    from datasets import STL10_trainNtest, STL10_eval
 
 
     val_transformations = transforms.Compose([
@@ -66,18 +66,18 @@ def main():
     if dataset_type == 'scan':
 
         if p['train_db_name'] == 'cifar-10':
-            from dataset.scan_dataset import CIFAR10
+            from datasets import CIFAR10
             #dataset = CIFAR10(train=True, transform=train_transformation, download=True)
             eval_dataset = CIFAR10(train=False, transform=val_transformations, download=True)
 
         elif p['train_db_name'] == 'cifar-20':
-            from dataset.scan_dataset import CIFAR20
+            from datasets import CIFAR20
             #dataset = CIFAR20(train=True, transform=train_transformation, download=True)
             eval_dataset = CIFAR20(train=False, transform=val_transformations, download=True)
 
         elif p['train_db_name'] == 'stl-10':
             if val_split == 'train':
-                from dataset.scan_dataset import STL10
+                from datasets import STL10
                 eval_dataset = STL10(split='train', transform=val_transformations, download=False)
             elif val_split == 'test':
                 eval_dataset = STL10(split='test', transform=val_transformations, download=False)
@@ -93,7 +93,7 @@ def main():
             
 
         if p['to_neighbors_dataset']: # Dataset returns an image and one of its nearest neighbors.
-            from dataset.scan_dataset import NeighborsDataset
+            from datasets import NeighborsDataset
             #print(p['topk_neighbors_train_path'])
             indices = np.load(p['topk_neighbors_val_path'])
             #print(indices.shape)
