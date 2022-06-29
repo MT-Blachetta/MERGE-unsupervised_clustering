@@ -90,7 +90,7 @@ class MLP_head_model(nn.Module):
             return self.backbone(x)
 
         elif forward_pass == 'head':
-            return self.head(x)
+            return torch.nn.functional.softmax(self.head(x),dim=1)
 
         else: ValueError('invalid forward pass')
 
