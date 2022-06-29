@@ -117,7 +117,7 @@ def main():
     metric_data = Analysator(device,model,val_dataloader)
     metric_data.compute_kNN_statistics(100)
     metric_data.compute_real_consistency(0.5)
-    metric_data.return_statistic_summary()
+    metric_data.return_statistic_summary(0)
 
     #pickle.dump(metric_data, open('SPICE_EVAL/'+prefix+".pck",'wb'))
     torch.save('SPICE_EVAL/'+prefix+".torch")
