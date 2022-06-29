@@ -639,7 +639,7 @@ class Analysator():
             bins = torch.unique(category_mapping)
         else: bins = set(category_mapping)
 
-        category_values = category_mapping[selection_mask]
+        category_values = self.select_mask(category_mapping,selection_mask) # ADAPT !
 
         if values_to_count is not None: measurements = values_to_count[selection_mask]
         else: measurements = None
@@ -662,7 +662,7 @@ class Analysator():
             if isinstance(c,torch.Tensor):
                 category_names.append(str(c.item()))
             else: category_names.append(str(c))
-            counting_mask = match_value(category_values,c)
+            counting_mask = self.match_value(category_values,c) # outputs a Tensor of size category_values with True if value matches
             end_value = self.count_set(counting_mask,measurements,mode)
             amounts.append(end_value)
 
@@ -950,6 +950,27 @@ class Analysator():
             if 'mean' in count_mode:
                 feature_values = measurements[set_mask]
                 return to_value(sum(feature_values)/len(feature_values))
-            else: return to_value(sum(feature_values)) 
+            else: return to_value(sum(feature_values))
+
+    def select_mask(self,category_values,selection_mask):
+ 
+        if isinstance(category_values,torch.Tensor):
+            return category_values[selection_mask]
+        else:
+            result = []
+            for i in range(len(selection_mask)):
+                if selection_mask[i]: result.append(category_values[i])        
+            return result
+
+    def match_value(self,values,query):
+
+        if isinstance(query,str):
+            result = torch.full([len(values)],False)
+            for i in range(len(values)):
+                result[i] = values[i] == query
+            return result
+        else:
+            return values == query
+
 
 
