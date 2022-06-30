@@ -1,3 +1,7 @@
+import torch
+import torch.nn as nn
+import torchvision
+import torchvision.transforms as transforms
 from cmath import nan
 import torch
 import numpy as np
@@ -8,6 +12,206 @@ from sklearn.decomposition import IncrementalPCA
 from tqdm import trange, tqdm
 from scipy.optimize import linear_sum_assignment
 import pandas as pd
+
+
+
+def main():
+
+    args = {
+    'dataset':'stl10',
+    'lam1':0.0 ,
+    'lam2':1.0 ,
+    'tau':1.0 ,
+    'lbn_type':'bn' ,
+    'determine':0,
+    'aug':'multicrop' ,
+    'img_size':96 ,
+    'drop':0.0 ,
+    'clip_norm':0.0 ,
+    'EPS':1e-5,
+    'reduce_mean':0,
+    'eval_only':0,
+    'inference_only':0,
+    'img_path':'./test.jpg',
+    'match_path':'',
+    'threshold':0.0,
+    'quantile':0.5,
+    'quantile_end':0.6,
+    'enable_watch':1,
+    'use_momentum_encoder':0,
+    'momentum_start':0.996,
+    'momentum_end':1.0,
+    'freeze_embedding':0,
+    'mme_epochs':500,
+    'sl_warmup_epochs':5,
+    'lr_sl':0.05,
+    'act':'relu',
+    'patch':16,
+    'backbone':'resnet50',
+    'weight':1.5e-6,
+    'optim':'lars',
+    'lr':0.5,
+    'proj_trunc_init':0,
+    'proj_norm':'bn',
+    'drop_path':0.0,
+    'local_crops_number':4,
+    'crops_interact_style':'sparse', 
+    'min1':0.4,
+    'max1':1.0,
+    'min2':0.05,
+    'max2':0.4,
+    'batch_size':128,
+    'bunch':256,
+    'epochs':500,
+    'dim':10,
+    'hid_dim':4096,
+    'eval':0,
+    'exclude':1,
+    'sched':'cosine',
+    'lr_wbr':1.0,
+    'warmup_epochs':10,
+    'data':'/nothing/',
+    'output_dir':'RESULTS',
+    'device':'cuda',
+    'seed':0,
+    'resume':'',
+    'start_epoch':0,
+    'num_workers':8,
+    'pin_mem': True,
+    'no_pin_mem': False,
+    'use_lmdb':True,
+    'amp':1,
+    'exclude_bias_weight_decay': 1,
+    'weight_decay': 1.5e-6,
+    'weight_decay_end': 1.5e-6
+    }
+
+    from datasets import STL10_eval
+    from functionality import collate_custom
+
+
+    val_transformations = transforms.Compose([
+                                transforms.CenterCrop(96),
+                                transforms.ToTensor(),
+                                transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])])
+    
+    eval_dataset = STL10_eval(path='/space/blachetta/data',aug=val_transformations)
+
+
+    val_dataloader = torch.utils.data.DataLoader(eval_dataset, num_workers=8,
+                    batch_size=256, pin_memory=True, collate_fn=collate_custom,
+                    drop_last=False, shuffle=False)
+
+
+    resnet = torchvision.models.resnet18()
+    backbone = nn.Sequential(*list(resnet.children())[:-1])
+    #mpath = 'backbone_'+prefix+'.pth'
+    #backbone.load_state_dict(mdict,strict=False) 
+    model = TWIST(args,backbone)
+    mdict = torch.load('/home/blachm86/twist_singleProcess/FINAL_OUTPUT.pth',map_location='cpu')
+    model.load_state_dict(mdict,strict=True)
+
+    model_data = Analysator('cuda:3',model,val_dataloader)
+    model_data.compute_kNN_statistics(100)
+    model_data.compute_real_consistency(0.5)
+    info = model_data.return_statistic_summary(0)
+    print(info)
+    torch.save(model_data,'/home/blachm86/TWIST_analysator.torch')
+
+#model.to(device)
+
+class TWIST(nn.Module):
+    def __init__(self, args, backbone):
+        super(TWIST, self).__init__()
+        #if args['backbone'].startswith('resnet'):
+        #widen_resnet.__dict__['resnet50'] = torchvision.models.resnet50
+        self.backbone = backbone  # widen_resnet.__dict__[args['backbone']]()
+        self.feature_dim = 512  #  self.backbone.fc.weight.shape[1]
+
+
+        #self.backbone.fc = nn.Identity()
+        #self.backbone = torch.nn.SyncBatchNorm.convert_sync_batchnorm(self.backbone)
+
+        self.projection_heads = ProjectionHead(args, feature_dim=self.feature_dim, clusters=10)
+
+
+
+
+    def forward(self, x):
+        """
+            Codes about multi-crop is borrowed from the codes of Dino
+            https://github.com/facebookresearch/dino
+        """
+        if not isinstance(x, list):
+            x = [x]
+        # the first indices of aug with changing resolution
+        idx_crops = torch.cumsum(torch.unique_consecutive(
+            torch.tensor([inp.shape[-1] for inp in x]),
+            return_counts=True,
+        )[1], 0)
+
+        start_idx = 0
+        for end_idx in idx_crops:
+            _out = self.backbone(torch.cat(x[start_idx: end_idx])).flatten(start_dim=1)
+            if start_idx == 0:
+                output = _out
+            else:
+                output = torch.cat((output, _out))
+            start_idx = end_idx
+
+        out = self.projection_heads(output)
+        return out
+
+
+    def backbone_weights(self):
+        return self.backbone.state_dict()
+
+
+class ProjectionHead(nn.Module):
+    def __init__(self, args ,feature_dim ,clusters):
+        super(ProjectionHead, self).__init__()
+        dim = args['dim']
+        hid_dim = args['hid_dim']
+        norm = nn.BatchNorm1d(clusters,affine=False)
+        batchnorm = nn.BatchNorm1d
+
+        self.projection_head = nn.Sequential(
+            nn.Linear(feature_dim, hid_dim, bias=True),
+            batchnorm(hid_dim),
+            nn.ReLU(),
+            #nn.Dropout(p=args['drop']),
+
+            nn.Linear(hid_dim, hid_dim, bias=True),
+            batchnorm(hid_dim),
+            nn.ReLU(),
+        )
+
+        last_linear = nn.Linear(hid_dim, clusters, bias=True)
+        self.last_linear = last_linear
+        self.norm = norm
+        self.num_layer = 3
+
+    def reg_gnf(self, grad):
+        self.gn_f = grad.abs().mean().item()
+
+    def reg_gnft(self, grad):
+        self.gn_ft = grad.abs().mean().item()
+
+
+    def forward(self, x):
+        x = self.projection_head(x)
+        f = self.last_linear(x)
+        ft = self.norm(f)
+        if self.train and x.requires_grad:
+            f.register_hook(self.reg_gnf)
+            ft.register_hook(self.reg_gnft)
+        self.f_column_std = f.std(dim=0, unbiased=False).mean()
+        self.f_row_std    = f.std(dim=1, unbiased=False).mean()
+        self.ft_column_std = ft.std(dim=0, unbiased=False).mean()
+        self.ft_row_std    = ft.std(dim=1, unbiased=False).mean()
+
+        return ft
+
 
 
 def topk_consistency(features,predictions,num_neighbors):
@@ -33,14 +237,7 @@ def cluster_size_entropy(costmatrix):
     entropy = - sum(relative*np.log(relative))
     
     return entropy
-    #class_sum = costmatrix.sum(axis=0)
-    #sizes = costmatrix.shape
-    #class_relatives = [ costmatrix[:,i]/class_sum[i] for i in range(sizes[1]) ]
-    #clas
-    #for :
-    #[ costmatrix[:class_id] ]
-    #costmatrix.sum(axis=0)
-
+ 
 def confidence_statistic(softmatrix):
     max_confidences, _ = torch.max(softmatrix,dim=1)
     num_confident_samples = len(torch.where(max_confidences > 0.95)[0])
@@ -102,261 +299,6 @@ def accuracy_from_assignment(C, row_ind, col_ind, set_size=None):
     # (that caused the decision)
     return cnt / set_size # If all clusters would have only instaces of one unique class, this value becomes = 1
 
-def get_best_clusters(C, k=3, formatation=False):
-    Cpart = C / (C.sum(axis=1, keepdims=True) + 1e-5) # relative Häufigkeit für jedes Cluster label
-    Cpart[C.sum(axis=1) < 10, :] = 0 # Schwellwert für die Mindestanzahl Instanzen mit ground-truth_class
-    # setzt bestimmte relative Häufigkeiten auf 0 (aus der Bewertung entfernt)
-    # print('as', np.argsort(Cpart, axis=None)[::-1])
-    
-    # np.argsort(Cpart, axis=None)[::-1] # flattened indices in umgekehrt_absteigender Abfolge (sonst aufsteigender Reihenfolge)
-    # Cpart.shape = (1000,1000)
-    ind = np.unravel_index(np.argsort(Cpart, axis=None)[::-1], Cpart.shape)[0]  # first-dimension indices in C of good clusters (highest single frequency correlation)
-    _, idx = np.unique(ind, return_index=True) # index of the first occurence of the unique element in $[ind]
-    # idx = 1000 aus einer Million indices (höchst-erst-bestes aus jeder ground-truth), keine Duplikate
-    cluster_idx = ind[np.sort(idx)]  # unique indices of good clusters (von groß nach klein)
-    # nimmt den ersten Wert eines auftauchenden classIndex value von [ind] und notiert sich nur die Indexposition in [ind] dabei
-    # die Werte werden von Beginn bis Ende in der Reihenfolge von [ind] ausgewählt; somit ist der kleinste Wert von idx auch 
-    # der erste Wert von [ind], weitere Werte mit dem gleichen classIndex werden übersprungen und der zweite Werte ist somit der
-    # nächsthöchste classIndex von [ind], somit hat man die besten classID's in absteigender Reihenfolge    
-    accs = Cpart.max(axis=1)[cluster_idx] # die accuracies (höchste Wahrscheinlichkeit von Cpart) der besten classes/cluster (als ID)
-    good_clusters = cluster_idx[:k] # selects the k best clusters
-    best_acc = Cpart[good_clusters].max(axis=1)
-    best_class = Cpart[good_clusters].argmax(axis=1)
-    #print('Best clusters accuracy: {}'.format(best_acc))
-    #print('Best clusters classes: {}'.format(best_class))
-    """
-    if formatation:
-        outstring = ''
-        for i in range(k):
-            outstring += str(i)
-            outstring += ' ,'
-            outstring += str(good_clusters[i])
-            outstring += ','
-            outstring += str(best_class[i])
-            outstring += ','
-            outstring += str(best_acc[i])        
-            outstring += '\n'
-            
-        print(outstring)
-    """
-  
-    return {'best_clusters': good_clusters, 'classes': best_class, 'accuracies': best_acc}
-
-
-def train_pca(X_train,n_comp):
-    bs = max(4096, X_train.shape[1] * 2)
-    transformer = IncrementalPCA(batch_size=bs,n_components=n_comp)  #
-    for i, batch in enumerate(tqdm(batches(X_train, bs), total=len(X_train) // bs + 1)):
-        transformer = transformer.partial_fit(batch)
-        # break
-    print(transformer.explained_variance_ratio_.cumsum())
-    return transformer
-
-def transform_pca(X, transformer):
-    n = max(4096, X.shape[1] * 2)
-    n_comp = transformer.components_.shape[0]
-    X_ = np.zeros((X.shape[0],n_comp))
-    for i in trange(0, len(X), n):
-        X_[i:i + n] = transformer.transform(X[i:i + n])
-        # break
-    return X_
-
-
-@torch.no_grad()
-def evaluate_singleHead(device,model,dataloader,forwarding='head',formatation=False):
-
-    model.eval()
-    predictions = []
-    labels = []
-    features = []
-    soft_labels = []
-
-    model.to(device)
-    #type_test = next(iter(dataloader))
-    #isinstance
-
-    with torch.no_grad():      
-        for batch in dataloader:
-            if isinstance(batch,dict):
-                image = batch['image']
-                label = batch['target']
-            else:
-                image = batch[0]
-                label = batch[1]
-
-            image = image.to(device,non_blocking=True)
-            fea = model(image,forward_pass='features')
-            features.append(fea)
-            predic = model(fea,forward_pass=forwarding)
-            soft_labels.append(predic)
-            predictions.append(torch.argmax(predic, dim=1))
-            labels.append(label)
-
-    feature_tensor = torch.cat(features)
-    softlabel_tensor = torch.cat(soft_labels)
-    prediction_tensor = torch.cat(predictions)
-    label_tensor = torch.cat(labels)
-
-    consistency_values = topk_consistency(feature_tensor,prediction_tensor,100)
-    consistency_ratio = len(torch.where(consistency_values > 0.5)[0])/len(consistency_values)
-    print('consistency_ratio = ',consistency_ratio)
-    #c_std, c_mean =  torch.std_mean(consistency_values, unbiased=False)
-    
-    y_train = label_tensor.detach().cpu().numpy()
-    pred = prediction_tensor.detach().cpu().numpy()
-    max_label = max(y_train)
-    assert(max_label==9)
-
-    C_train = get_cost_matrix(pred, y_train, max_label+1)
-
-    cluster_entropy = cluster_size_entropy(C_train)
-    conf_mean, conf_std, conf_rate = confidence_statistic(softlabel_tensor)
-    print('confidence_rate = ',conf_rate)
-
-    result_dict = {'cluster_size_entropy': cluster_entropy, 'confidence_ratio': conf_rate , 'mean_confidence': conf_mean.item(), 'std_confidence': conf_std.item(), 'consistency_ratio': consistency_ratio}
-
-    message = 'val'
-    y_pred = pred
-    y_true = y_train
-    train_lin_assignment = assign_classes_hungarian(C_train)
-    #train_maj_assignment = assign_classes_majority(C_train)
-
-    acc_tr_lin = accuracy_from_assignment(C_train, *train_lin_assignment)
-    #get_best_clusters(C_train,k=10,formatation=formatation)--------------------
-
-    #acc_tr_maj = accuracy_from_assignment(C_train, *train_maj_assignment)
-
-    #result_dict = get_best_clusters(C_train,k=10,formatation=formatation)
-
-
-    ari = sklearn.metrics.adjusted_rand_score(y_true, y_pred)
-    v_measure = sklearn.metrics.v_measure_score(y_true, y_pred)
-    ami = sklearn.metrics.adjusted_mutual_info_score(y_true, y_pred)
-    fm = sklearn.metrics.fowlkes_mallows_score(y_true, y_pred)
-
-    #headline = 'method,ACC,ARI,AMI,FowlkesMallow,'
-    #print('\ncluster performance:\n')
-    #print(eval_name+'  ,'+str(acc_tr_lin)+', '+str(ari)+', '+str(v_measure)+', '+str(ami)+', '+str(fm))
-
-    result_dict['Accuracy'] = acc_tr_lin
-    result_dict['Adjusted_Random_Index'] = ari
-    result_dict['V_measure'] = v_measure
-    result_dict['fowlkes_mallows'] = fm
-    result_dict['Adjusted_Mutual_Information'] = ami
-
-    print("\n{}: ARI {:.5e}\tV {:.5e}\tAMI {:.5e}\tFM {:.5e}\tACC {:.5e}".format(message, ari, v_measure, ami, fm, acc_tr_lin))
-
-    return result_dict
-
-
-def evaluate_prediction(y_true,y_pred,formatation=False):
-
-    max_label = max(y_true)
-    assert(max_label==9)
-    #print(y_true)
-    C_train = get_cost_matrix(y_pred, y_true, max_label+1)
-
-    #message = 'val'
-    #y_pred = pred
-    #y_true = y_train
-    train_lin_assignment = assign_classes_hungarian(C_train)
-    train_maj_assignment = assign_classes_majority(C_train)
-
-    acc_tr_lin = accuracy_from_assignment(C_train, *train_lin_assignment)
-    #acc_tr_maj = accuracy_from_assignment(C_train, *train_maj_assignment)
-
-    result_dict = get_best_clusters(C_train,k=10,formatation=formatation)
-
-
-    ari = sklearn.metrics.adjusted_rand_score(y_true, y_pred)
-    v_measure = sklearn.metrics.v_measure_score(y_true, y_pred)
-    ami = sklearn.metrics.adjusted_mutual_info_score(y_true, y_pred)
-    fm = sklearn.metrics.fowlkes_mallows_score(y_true, y_pred)
-
-    #headline = 'method,ACC,ARI,AMI,FowlkesMallow,'
-    #print('\ncluster performance:\n')
-    #print(eval_name+'  ,'+str(acc_tr_lin)+', '+str(ari)+', '+str(v_measure)+', '+str(ami)+', '+str(fm))
-
-    result_dict['ACC'] = acc_tr_lin
-    result_dict['ARI'] = ari
-    result_dict['V_measure'] = v_measure
-    result_dict['fowlkes_mallows'] = fm
-    result_dict['AMI'] = ami
-
-    #print("\n{}: ARI {:.5e}\tV {:.5e}\tAMI {:.5e}\tFM {:.5e}\tACC {:.5e}".format(message, ari, v_measure, ami, fm, acc_tr_lin))
-
-    return result_dict
-
-
-def evaluate_headlist(device,model,dataloader,formatation=False):
-
-    predictions = [ [] for _ in range(model.nheads) ]
-    label_list = []
-    #labels = [ [] for _ in range(model.nheads)]
-    model.to(device)
-    model.eval()
-
-    with torch.no_grad(): 
-        for batch in dataloader:
-            if isinstance(batch,dict):
-                image = batch['image']
-                labels = batch['target']
-            else:
-                image = batch[0]
-                labels = batch[1]
-
-            label_list.append(labels)
-            image = image.to(device,non_blocking=True)
-            predlist = model(image,forward_pass='eval')
-            for k in range(len(predlist)):
-                predictions[k].append(predlist[k])
-
-    targets = torch.cat(label_list)
-    targets = targets.detach().cpu().numpy()
-    #print('targets.shape: ', targets.shape)
-    headlist = [torch.cat(pred) for pred in predictions]
-    head_labels = [torch.argmax(softlabel,dim=1) for softlabel in headlist]
-    #print('len = ',len(headlist))
-    #print('predictions.shape: ',headlist[0].shape)
-
-    accuracies = []
-    dicts = []
-    for h in head_labels:
-        rdict = evaluate_prediction(targets,h.detach().cpu().numpy())
-        accuracies.append(rdict['ACC'])
-        #print(rdict['ACC'])
-        dicts.append(rdict)
-
-    best_head = np.argmax(np.array(accuracies))
-    best_accuracy = max(accuracies)
-
-    #result_dict = dicts[best_head]
-    #result_dict['head_id'] = best_head
-
-    #acc_tr_lin = result_dict['ACC'] 
-    #ari = result_dict['ARI'] 
-    #v_measure = result_dict['V_measure']
-    #fm = result_dict['fowlkes_mallows']
-    #ami = result_dict['AMI']
-
-    #message = 'validation'
-
-    print('best accuracy: ', best_accuracy,'  on head ',best_head)
-    #print('best head is ',best_head)
-    #print("\n{}: ARI {:.5e}\tV {:.5e}\tAMI {:.5e}\tFM {:.5e}\tACC {:.5e}".format(message, ari, v_measure, ami, fm, acc_tr_lin))
-
-    return dicts
-
-
-#def negate(boolean):
-#    return not boolean
-
-def to_value(v):
-    if isinstance(v,torch.Tensor):
-        v = v.item()        
-    return v
-        
-
 class Analysator():
     def __init__(self,device,model,dataloader,forwarding='head',class_names=['airplane','bird','car','cat','deer','dog','horse','monkey','ship','truck']):
          
@@ -381,9 +323,9 @@ class Analysator():
                     label = batch[1]
 
                 image = image.to(device,non_blocking=True)
-                fea = model(image,forward_pass='features')
+                fea = model.backbone(image).flatten(start_dim=1)
                 features.append(fea)
-                preds = model(fea,forward_pass=forwarding)
+                preds = model(image)
                 soft_labels.append(preds)
                 max_confidence, prediction = torch.max(preds,dim=1) 
                 predictions.append(prediction)
@@ -972,3 +914,5 @@ class Analysator():
 
 
 
+if __name__ == "__main__":
+    main()
