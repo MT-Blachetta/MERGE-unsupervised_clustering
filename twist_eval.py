@@ -299,6 +299,14 @@ def accuracy_from_assignment(C, row_ind, col_ind, set_size=None):
     # (that caused the decision)
     return cnt / set_size # If all clusters would have only instaces of one unique class, this value becomes = 1
 
+
+def to_value(v):
+    if isinstance(v,torch.Tensor):
+        v = v.item()        
+    return v
+
+
+
 class Analysator():
     def __init__(self,device,model,dataloader,forwarding='head',class_names=['airplane','bird','car','cat','deer','dog','horse','monkey','ship','truck']):
          
