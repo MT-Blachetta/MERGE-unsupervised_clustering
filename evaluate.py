@@ -621,6 +621,7 @@ class Analysator():
         else:
             return to_value(sum(indicators))
 
+
     def mean_std_from_selection(self,selection_mask,value_tensor):
 
         sub_features = value_tensor[selection_mask]
@@ -703,8 +704,7 @@ class Analysator():
         if subset_size == 0: return 0
 
         return sum(subset_values)/len(subset_values)
-
-        
+      
 
     def scalar_statistics_from_selection(self,selection_mask,scalar_tensor,parameters):
 
@@ -797,7 +797,6 @@ class Analysator():
             return names, values 
 
 
-
     def two_scalarSet_statistics_from_selection(self,scalar_features,second_feature,parameters,dataset_mask=None):
 
         result_frame = pd.DataFrame()
@@ -809,7 +808,7 @@ class Analysator():
 
         else:
             selected_features = scalar_features[dataset_mask]
-            subfeature_values = second_feature[dataset_mask]
+            subfeature_values = self.select_mask(second_feature,dataset_mask)
             subset_size = len(subfeature_values)
 
         val_range = parameters['range']
@@ -864,8 +863,8 @@ class Analysator():
             subset_size = len(self.dataset_size)
 
         else:
-            selected_features = category_features[dataset_mask]
-            subfeature_values = second_feature[dataset_mask]
+            selected_features = self.select_mask(category_features,dataset_mask)
+            subfeature_values = self.select_mask(second_feature,dataset_mask)
             subset_size = len(subfeature_values)
 
         
@@ -875,7 +874,10 @@ class Analysator():
             selected_features = torch.Tensor([0])
             subfeature_values = torch.Tensor([0])
 
-        bins = torch.unique(category_features)
+        if isinstance(category_features,torch.Tensor):
+            bins = torch.unique(category_features)
+        else: bins = set(category_features)
+        
 
         second_type = parameters['secondary_type']
 
@@ -889,11 +891,11 @@ class Analysator():
                 valuesToCount = parameters['count_measure']
 
                 # values_to_count is in DATASET-SIZE, so it must be adapted
-                if dataset_mask is not None: vtc = valuesToCount[dataset_mask]
+                if dataset_mask is not None: vtc = self.select_mask(valuesToCount,dataset_mask)
                 else: vtc = valuesToCount
 
             for v in bins:
-                subcategory_mask = selected_features == v
+                subcategory_mask = self.match_value(selected_features,v)
                 rowSeries = self.categorical_from_selection(subfeature_values,subcategory_mask,values_to_count=vtc,mode=mode,return_type=rtype)
                 result_frame = pd.concat([result_frame,rowSeries])
 
@@ -901,10 +903,10 @@ class Analysator():
             #valuesToCount = parameters['']
             if 'count_measure' in parameters.keys(): 
                 values_to_count = parameters['count_measure']
-                if dataset_mask is not None: parameters['count_measure'] = values_to_count[dataset_mask]
+                if dataset_mask is not None: parameters['count_measure'] = self.select_mask(values_to_count,dataset_mask)
             
             for v in bins:
-                subcategory_mask = selected_features == v
+                subcategory_mask = self.match_value(selected_features,v)
                 rowSeries = self.scalar_statistics_from_selection(subcategory_mask,subfeature_values,parameters)
                 result_frame = pd.concat([result_frame,rowSeries])
 
