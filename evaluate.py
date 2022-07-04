@@ -805,7 +805,7 @@ class Analysator():
         if dataset_mask is None:
             selected_features = scalar_features
             subfeature_values = second_feature
-            subset_size = len(self.dataset_size)
+            subset_size = self.dataset_size
 
         else:
             selected_features = scalar_features[dataset_mask]
@@ -861,7 +861,7 @@ class Analysator():
         if dataset_mask is None:
             selected_features = category_features
             subfeature_values = second_feature
-            subset_size = len(self.dataset_size)
+            subset_size = self.dataset_size
 
         else:
             selected_features = self.select_mask(category_features,dataset_mask)
@@ -884,16 +884,16 @@ class Analysator():
 
         if second_type == 'categorical':
         
-            vtc = None
+            
             mode = parameters['mode'] 
             rtype = parameters['return_type']
             
             if 'count_measure' in parameters.keys():
                 valuesToCount = parameters['count_measure']
-
                 # values_to_count is in DATASET-SIZE, so it must be adapted
-                if dataset_mask is not None: vtc = self.select_mask(valuesToCount,dataset_mask)
-                else: vtc = valuesToCount
+                vtc = self.select_mask(valuesToCount,dataset_mask) if dataset_mask is not None else valuesToCount
+            else: vtc = None
+                
 
             for v in bins:
                 subcategory_mask = self.match_value(selected_features,v)
