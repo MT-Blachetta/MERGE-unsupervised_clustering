@@ -395,6 +395,7 @@ class Analysator():
         self.prediction_tensor = torch.cat(predictions)
         self.label_tensor = torch.cat(labels)
         self.confidence_tensor = torch.cat(confidences)
+        self.confidences = self.confidence_tensor
 
         self.classes = [ class_names[l.item()] for l in self.label_tensor  ]
 
@@ -725,7 +726,7 @@ class Analysator():
         
         if 'count_measure' in parameters.keys(): 
             values_to_count = parameters['count_measure']
-            count_mode = parameters['count_mode']
+            #count_mode = parameters['count_mode']
             measurements = values_to_count[selection_mask]
         else: measurements = None
 
@@ -738,7 +739,7 @@ class Analysator():
         iv = val_range[0]
 
         while iv <= val_range[1]:            
-            names.append(str(iv))
+            names.append( ":4.2f".format(iv) )
             iv += interval
 
         # zero case ---------------------------------
@@ -766,7 +767,7 @@ class Analysator():
             
             #names.append(str(iv+interval))
             cmask = self.double_condition_mask(iv,iv+interval,subset_values)
-            counted_value = self.count_set(cmask,measurements,count_mode)
+            counted_value = self.count_set(cmask,measurements,'ratio') # count_mode
             values.append(counted_value)
             numbers.append(self.count_double_condition(iv,iv+interval,subset_values))
             iv += interval
@@ -829,7 +830,7 @@ class Analysator():
         iv = val_range[0]
         
         while iv <= val_range[1]:            
-            names.append(str(iv))
+            names.append(":4.2f".format(iv))
             iv += interval
 
         iv = val_range[0] - interval
@@ -941,13 +942,13 @@ class Analysator():
         if sum(set_mask) == 0: return 0
 
         if measurements is None:
-            if 'ratio' in count_mode:
+            if ('ratio' in count_mode) or ('mean' in count_mode):
                 return to_value(sum(set_mask)/len(set_mask))
             else: return to_value(sum(set_mask))
 
         else: 
 
-            if 'mean' in count_mode:
+            if ('ratio' in count_mode) or ('mean' in count_mode):
                 feature_values = measurements[set_mask]
                 return to_value(sum(feature_values)/len(feature_values))
             else: return to_value(sum(feature_values))
