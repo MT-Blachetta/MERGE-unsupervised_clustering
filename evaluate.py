@@ -898,7 +898,9 @@ class Analysator():
             for v in bins:
                 subcategory_mask = self.match_value(selected_features,v)
                 rowSeries = self.categorical_from_selection(subfeature_values,subcategory_mask,values_to_count=vtc,mode=mode,return_type=rtype)
-                result_frame = pd.concat([result_frame,rowSeries])
+                added = pd.DataFrame(dict(rowSeries),columns=rowSeries.index,index=[str(v)])
+                result_frame = pd.concat([result_frame,added])
+                #result_frame = pd.concat([result_frame,rowSeries])
 
         else:
             #valuesToCount = parameters['']
@@ -909,7 +911,8 @@ class Analysator():
             for v in bins:
                 subcategory_mask = self.match_value(selected_features,v)
                 rowSeries = self.scalar_statistics_from_selection(subcategory_mask,subfeature_values,parameters)
-                result_frame = pd.concat([result_frame,rowSeries])
+                added = pd.DataFrame(dict(rowSeries),columns=rowSeries.index,index=[str(v)])
+                result_frame = pd.concat([result_frame,added])
 
         return result_frame
 
