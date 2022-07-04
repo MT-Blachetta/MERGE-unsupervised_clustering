@@ -398,6 +398,7 @@ class Analysator():
         self.confidences = self.confidence_tensor
 
         self.classes = [ class_names[l.item()] for l in self.label_tensor  ]
+        self.class_names = class_names
 
         self.dataset_size = self.label_tensor.shape[0]
 
@@ -508,7 +509,7 @@ class Analysator():
         return to_value(sum(self.correct_samples)/len(self.correct_samples))
         
 
-    def get_meanConfidence_of_consistents(self):
+    def meanConfidence_of_consistent_kNN(self):
         
         means = []
         for i in range(self.dataset_size):
@@ -519,7 +520,7 @@ class Analysator():
         return torch.Tensor(means)
         
 
-    def get_meanConsistency_of_confidents(self,criterion):
+    def meanConsistency_of_confidents(self,criterion):
 
         #means = []
         conf_mask = self.confidence_tensor > criterion
@@ -602,10 +603,9 @@ class Analysator():
             consistent_mask = upmask*lowmask
 
         return consistent_mask.type(torch.bool) # in dataset size        
-                
-       
+                      
         
-    def get_accuracy_from_selection(self,selection_mask):
+    def accuracy_from_selection(self,selection_mask):
 
         correct_subset = self.correct_samples[selection_mask]
 
