@@ -817,7 +817,7 @@ class Analysator():
         #returntype = parameters['return_type'] # pandas or dictionary
 
         
-        if len(subset_size) == 0: 
+        if subset_size == 0: 
             selected_features = torch.Tensor([0])
             subfeature_values = torch.Tensor([0])
 
@@ -871,7 +871,7 @@ class Analysator():
         
         #returntype = parameters['return_type'] # pandas or dictionary
        
-        if len(subset_size) == 0: 
+        if subset_size == 0: 
             selected_features = torch.Tensor([0])
             subfeature_values = torch.Tensor([0])
 
