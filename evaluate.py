@@ -739,7 +739,7 @@ class Analysator():
         iv = val_range[0]
 
         while iv <= val_range[1]:            
-            names.append( ":4.2f".format(iv) )
+            names.append( "{:4.2f}".format(iv) )
             iv += interval
 
         # zero case ---------------------------------
@@ -830,7 +830,7 @@ class Analysator():
         iv = val_range[0]
         
         while iv <= val_range[1]:            
-            names.append(":4.2f".format(iv))
+            names.append("{:4.2f}".format(iv))
             iv += interval
 
         iv = val_range[0] - interval
