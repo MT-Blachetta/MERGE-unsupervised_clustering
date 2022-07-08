@@ -641,3 +641,7 @@ class statisics_register():
         next_row = pd.concat({'settings':info_part,'results': data_part},axis=1,names=['part:','values:'])
             
         return pd.concat([self.session_table,next_row])
+
+
+if __name__ == "__main__":
+    main()
