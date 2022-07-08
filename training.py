@@ -37,7 +37,7 @@ def simclr_train(train_loader, model, criterion, optimizer, epoch, train_args, s
         if i % 25 == 0:
             progress.display(i)
 
-    return loss.item(), 0
+    return losses.avg, 0
 
 
 def scan_train(train_loader, model, criterion, optimizer, epoch, train_args, second_criterion=None):
@@ -107,7 +107,7 @@ def scan_train(train_loader, model, criterion, optimizer, epoch, train_args, sec
         if i % 25 == 0:
             progress.display(i)
 
-    return total_loss.item(), best_head
+    return total_losses.avg, best_head
 
 
 def selflabel_train(train_loader, model, criterion, optimizer, epoch, train_args, second_criterion=None):
@@ -146,12 +146,13 @@ def selflabel_train(train_loader, model, criterion, optimizer, epoch, train_args
         if i % 25 == 0:
             progress.display(i)
 
-    return loss.item(), 0
+    return losses.avg, 0
 
 def twist_training(train_loader, model, criterion, optimizer, epoch, train_args, second_criterion=None):
 
     device = train_args['device']+':'+str(train_args['gpu_id'])
     model.to(device)
+    losses = AverageMeter('Loss', ':.4e')
 
     for i, return_object in enumerate(train_loader):
         if isinstance(return_object,dict):
@@ -178,10 +179,12 @@ def twist_training(train_loader, model, criterion, optimizer, epoch, train_args,
                 all_loss.append(criterion(all_feats[i1], all_feats[i2]))
         loss = sum([single_loss/len(all_loss) for single_loss in all_loss])
 
+        losses.update(loss.item())
+
         loss.backward()
         optimizer.step()
 
-    return loss.item(), 0
+    return losses.avg, 0
 
 def double_training(train_loader, model, criterion, optimizer, epoch, train_args, second_criterion=None):
 
@@ -190,6 +193,7 @@ def double_training(train_loader, model, criterion, optimizer, epoch, train_args
     else:
         model.train() # Update BN
 
+    losses = AverageMeter('Loss', ':.4e')
     device = train_args['device']+':'+str(train_args['gpu_id'])
     model.to(device)
 
@@ -242,13 +246,14 @@ def double_training(train_loader, model, criterion, optimizer, epoch, train_args
         #total_loss = torch.sum(torch.stack(total_loss, dim=0))
         final_loss = 0.5*(twist_loss + scan_loss)
         print('LOSS\ntwist: ',twist_loss.item(),' scan: ',scan_loss.item(),' total: ',final_loss.item())
-        current_loss = final_loss.item()
+        #current_loss = final_loss.item()
+        losses.update(final_loss.item())
 
         optimizer.zero_grad()
         final_loss.backward()
         optimizer.step()
 
-    return current_loss.item(), 0
+    return losses.avg, 0
 
 
 def multidouble_training(train_loader, model, criterion, optimizer, epoch, train_args, second_criterion=None):
@@ -258,6 +263,7 @@ def multidouble_training(train_loader, model, criterion, optimizer, epoch, train
     else:
         model.train() # Update BN
 
+    losses = AverageMeter('Loss', ':.4e')
     device = train_args['device']+':'+str(train_args['gpu_id'])
     model.to(device)
 
@@ -323,17 +329,18 @@ def multidouble_training(train_loader, model, criterion, optimizer, epoch, train
 
         #total_loss = torch.sum(torch.stack(total_loss, dim=0))
         final_loss = 0.5*(twist_all + scan_all)
-        current_loss = final_loss
+        
+        losses.update(final_loss.item())
 
         optimizer.zero_grad()
         final_loss.backward()
         optimizer.step()
 
-    return current_loss.item(), best_head
+    return losses.avg, best_head
 
 def multihead_twist_train(train_loader, model, criterion, optimizer, epoch, train_args, second_criterion=None):
 
-
+    losses = AverageMeter('Loss', ':.4e')
     device = 'cuda:'+str(train_args['gpu_id'])
     model.to(device)
     if train_args['update_cluster_head_only']:
@@ -383,11 +390,12 @@ def multihead_twist_train(train_loader, model, criterion, optimizer, epoch, trai
         ttemp = torch.stack(twist_heads, dim=0)
         best_head = ttemp.argmin(dim=0)
         twist_all  = torch.sum(ttemp)
+        losses.update(twist_all.item())
 
         twist_all.backward()
         optimizer.step()
 
-    return twist_all.item(), best_head
+    return losses.avg, best_head
 
 
 def pseudolabel_train(train_loader, model, criterion, optimizer, epoch, train_args, use_softmax=False):
@@ -395,8 +403,7 @@ def pseudolabel_train(train_loader, model, criterion, optimizer, epoch, train_ar
     device = 'cuda:'+str(train_args['gpu_id'])
 
     #softmax_fn = torch.nn.Softmax(dim = 1)
-
-
+    losses = AverageMeter('Loss', ':.4e')
 
     model.train()
     model = model.to(device) # OK(%-cexp_00)
@@ -430,6 +437,7 @@ def pseudolabel_train(train_loader, model, criterion, optimizer, epoch, train_ar
         #print('targets[0]: ',str(targets[0]))
 
         loss = F.cross_entropy(inputs,targets,weight=None,reduction='mean')
+        losses.update(loss.item())
         
         #print('epoch: ',epoch,' / batch: ',i)
         optimizer.zero_grad()
