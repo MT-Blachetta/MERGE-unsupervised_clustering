@@ -251,7 +251,7 @@ stl_split = args.split
 prefix = 'scatnet_'+str(stl_split)
 
 model = ScatSimCLR(J=2, L=16, input_size=(96, 96, 3), res_blocks=30, out_dim=128)
-mpath = 'scatnet.pth'
+mpath = '/home/blachm86/backbone_models/scatnet.pth'
 mdict = torch.load(mpath,map_location='cpu')
 model.load_state_dict(mdict,strict=True) 
 
@@ -283,6 +283,11 @@ datasize = len(base_dataset)
 base_dataloader = torch.utils.data.DataLoader(base_dataset, num_workers=8,
                 batch_size=128, pin_memory=True, drop_last=False, shuffle=False)
 
+
+val_dataset = datasets.STL10('/space/blachetta/data', split='test',download=False, transform=val_transform)
+val_datasize = len(val_dataset)
+
+val_dataloader = torch.utils.data.DataLoader(val_dataset, num_workers=8, batch_size=128, pin_memory=True, drop_last=False, shuffle=False)
 
 
 #-----------------------------------------------------------------------------------------------------------------------------------------
@@ -394,7 +399,7 @@ num_classes = 10
 outdim = 128
  
 memory_bank_base = MemoryBank(datasize,outdim,num_classes,temperature)
-memory_bank_val = MemoryBank(datasize,outdim,num_classes,temperature)
+memory_bank_val = MemoryBank(val_datasize,outdim,num_classes,temperature)
 
 print('Fill memory bank for mining the nearest neighbors (train) ...')
 fill_memory_bank(base_dataloader, model, memory_bank_base)
@@ -406,7 +411,7 @@ np.save('/home/blachm86/unsupervisedClustering/RESULTS/stl-10/topk/'+prefix+"_to
 
    
 print('Fill memory bank for mining the nearest neighbors (val) ...', 'blue')
-fill_memory_bank(base_dataloader, model, memory_bank_val)
+fill_memory_bank(val_dataloader, model, memory_bank_val)
 topk = 5
 print('Mine the nearest neighbors (Top-%d)' %(topk)) 
 indices, acc = memory_bank_val.mine_nearest_neighbors(topk)
