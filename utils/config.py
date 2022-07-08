@@ -9,7 +9,7 @@ from utils.utils import mkdir_if_missing
 
 def create_config(rID, root_dir, config_file_exp, prefix):
     # Config for environment path
-
+    mkdir_if_missing('EVALUATION/'+rID)
     with open(config_file_exp, 'r') as stream:
         config = yaml.safe_load(stream)
 
