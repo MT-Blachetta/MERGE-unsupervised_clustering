@@ -658,11 +658,13 @@ class statisics_register():
         results = pd.Series()
         delta = pd.Series()
 
+        idx = para['prefix']+'_'+str(id)
+
         self.performance_track.append(end_series)
         self.start_track.append(start_series)
         self.output_table = pd.concat([self.output_table,pd.DataFrame(dict(end_series),columns=end_series.index,index=[idx])])
 
-        idx = para['prefix']+'_'+str(id)
+        
 
         hyperparams['augmentation_strategy'] = para['augmentation_strategy']
         hyperparams['backbone'] = para['backbone']
