@@ -47,7 +47,8 @@ def main():
             trial_list = eval(parsing_text.strip(' \n'))
 
         p = create_config(args.rID ,args.root_dir, config_file, session)
-        prefix = session #p['prefix']
+        prefix = session #
+        p['prefix'] = session
         gpu_id = args.gpu
         num_cluster = p['num_classes']
         fea_dim = p['feature_dim']
