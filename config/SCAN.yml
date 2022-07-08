@@ -19,7 +19,7 @@ val_db_name: stl-10
 
 ## nearest neighbors scan loss related
 # for model training
-neighbor_prefix: scatnet_both
+neighbor_prefix: scatnet_unlabeled
 # for validation phase
 neighbor_prefix_val: scatnet_both
 
