@@ -403,7 +403,6 @@ class Analysator():
         self.dataset_size = self.label_tensor.shape[0]
 
         self.feature_tensor = torch.nn.functional.normalize(self.feature_tensor, dim = 1)
-        self.similarity_matrix = torch.einsum('nd,cd->nc', [self.feature_tensor.cpu(), self.feature_tensor.cpu()])
 
         y_train = self.label_tensor.detach().cpu().numpy()
         pred = self.prediction_tensor.detach().cpu().numpy()
@@ -436,6 +435,7 @@ class Analysator():
 
     def compute_kNN_statistics(self,knn):
         self.knn = knn
+        self.similarity_matrix = torch.einsum('nd,cd->nc', [self.feature_tensor.cpu(), self.feature_tensor.cpu()])
         scores_k, idx_k = self.similarity_matrix.topk(k=knn, dim=1)
         self.proximity = torch.mean(scores_k,dim=1)
         self.kNN_indices = idx_k
