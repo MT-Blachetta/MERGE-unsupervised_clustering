@@ -1,0 +1,120 @@
+setup: SCAN
+prefix: SCAN
+
+### Technical Parameters (unimportant) FIXED
+num_workers: 8
+
+### Universal Parameters
+epochs: 150
+batch_size: 256
+
+update_cluster_head_only: False
+
+
+## !!!fixed!!! dataset related Parameters
+dataset_type: scan # Omni-compatible
+num_classes: 10
+train_db_name: stl-10
+val_db_name: stl-10
+
+## nearest neighbors scan loss related
+# for model training
+neighbor_prefix: scatnet_both
+# for validation phase
+neighbor_prefix_val: scatnet_both
+
+num_neighbors: 20
+to_augmented_dataset: False # mode variable
+to_neighbors_dataset: True
+
+## for stl10 dataset
+# split of stl10 for training
+train_split: both
+# split of stl10 for validation
+val_split: both
+
+### AUGMENTATION related
+
+# <dependent>
+augmentation_type: scan 
+augmentation_strategy: ours
+
+augmentation_kwargs:
+   local_crops_number: 0 
+   crop_size: 96
+   normalize:
+      mean: [0.485, 0.456, 0.406]
+      std: [0.229, 0.224, 0.225]
+   num_strong_augs: 4
+   cutout_kwargs:
+     n_holes: 1
+     length: 32
+     random: True
+# <dependent>
+
+# !!! FIXED !!! for stl10 validation 
+transformation_kwargs: 
+   crop_size: 96
+   normalize:
+      mean: [0.485, 0.456, 0.406]
+      std: [0.229, 0.224, 0.225]
+
+
+### MODEL related
+
+## backbone
+
+# <dependent>
+backbone: scatnet
+pretrain_path: scatnet.pth # file to load from the backbone directory
+feature_dim: 128
+scatnet_args: 
+    J: 2
+    L: 16
+    input_size: [96, 96, 3] 
+    res_blocks: 30
+    out_dim: 128
+
+#hidden_dim: 4096 # parameter for [backbone]:twist
+# <dependent>
+
+
+## head
+
+# <dependent>
+num_heads: 10
+model_type: clusterHeads
+# <dependent>
+
+model_args: # softmax is performed over loss function
+    head_type: linear
+    aug_type: default
+    batch_norm: False
+    last_batchnorm: False
+    last_activation: softmax
+    drop_out: -1
+
+
+### Training Algorithm with loss function
+
+train_method: scan
+loss_type: scan_loss
+entropy_weight: 5.0 # scan_loss parameter
+
+### Training Process Parameter
+
+
+## optimizer
+
+# VERSION
+optimizer: adam
+optimizer_kwargs:
+   lr: 0.0001
+   weight_decay: 0.0001
+
+
+
+## Scheduler
+scheduler: constant
+scheduler_kwargs:
+   lr_decay_rate: 0.1

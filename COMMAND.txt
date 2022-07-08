@@ -12,6 +12,8 @@ python selflabel_TEST.py -gpu 3 -config config/selflabel_full_spice.yml -prefix 
 
 python evaluation_main.py -gpu 0 -rID 3M --root_dir RESULTS --model_path /home/blachm86/backbone_models
 
+python main.py -gpu 0 -config config/SCAN.yml -p SCAN --model_path /home/blachm86/backbone_models
+
 
 
 
