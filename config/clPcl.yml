@@ -7,7 +7,7 @@ num_workers: 8
 
 ### Universal Parameters
 
-epochs: 100
+epochs: 2
 batch_size: 256
 
 update_cluster_head_only: False
@@ -58,11 +58,10 @@ augmentation_kwargs:
    cutout_kwargs:
      n_holes: 1
      length: 32
-     random: True
-     
-    color_jitter: 0.4 
-    img_size: 96
-    global_crops_scale: [0.4, 1.0]
+     random: True    
+   color_jitter: 0.4 
+   img_size: 96
+   global_crops_scale: [0.4, 1.0]
 
 # <dependent>
 

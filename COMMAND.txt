@@ -2,13 +2,15 @@ python merge_training.py -p multiHeadTwist01 --config_env env.yml --config_exp C
 
 python evaluation_run.py -p scan_research -gpu 0 --root_dir RESULTS --config_exp CONFIG_FILES/scan_research.yml --pretrain_path /home/blachm86/backbone_models
 
-python evaluation_run.py -gpu 0 -rID 3M --root_dir RESULTS --model_path /home/blachm86/backbone_models
+python evaluation_main.py -list config/clpcl_list.py -gpu 0 -rID 3M --root_dir RESULTS --model_path /home/blachm86/backbone_models
 
 selflabel commands:
 
 python selflabel_main.py -config config/selflabel.yml -prefix scatnetMLP_selflabel -root SELFLABEL
 python selflabel_main.py -gpu 2 -config config/selflabel_spice.yml -prefix SPICE_full_pseudolabel -root SELFLABEL
 python selflabel_TEST.py -gpu 3 -config config/selflabel_full_spice.yml -prefix SPICE_r18_fullTraining -root SELFLABEL
+
+python evaluation_main.py -gpu 0 -rID 3M --root_dir RESULTS --model_path /home/blachm86/backbone_models
 
 
 
