@@ -25,6 +25,7 @@ from functionality import initialize_training
 FLAGS = argparse.ArgumentParser(description='loss training')
 FLAGS.add_argument('-gpu',help='number as gpu identifier')
 FLAGS.add_argument('-list',help='path to the trial list')
+FLAGS.add_argument('-rID',help='runtime ID')
 FLAGS.add_argument('--root_dir', help='root directory for saves', default='RESULTS')
 #FLAGS.add_argument('--config_exp', help='Location of experiments config file')
 FLAGS.add_argument('--model_path', help='path to the model files')
@@ -45,7 +46,7 @@ def main():
             parsing_text = f.read()
             trial_list = eval(parsing_text.strip(' \n'))
 
-        p = create_config(args.root_dir, config_file, session)
+        p = create_config(args.rID ,args.root_dir, config_file, session)
         prefix = p['prefix']
         gpu_id = args.gpu
         num_cluster = p['num_classes']
@@ -66,10 +67,10 @@ def main():
             p = map_parameters(p,trial,args.model_path) # session needs to override p['scan_model'] OK
             params = initialize_training(p)
             if trial['save_data']:
-                start_info, end_info, new_optimum = loss_track_session(params,p,run_id,last_loss,gpu_id)
+                start_info, end_info, new_optimum = loss_track_session(args.rID,params,p,run_id,last_loss,gpu_id)
                 if new_optimum: last_loss = end_info['loss']
             else:
-                start_info, end_info, new_optimum = general_session(params,p,run_id,last_loss,gpu_id)
+                start_info, end_info, new_optimum = general_session(args.rID,params,p,run_id,last_loss,gpu_id)
                 if new_optimum: 
                     last_loss = end_info['loss']
                 else: # delete files
@@ -83,14 +84,14 @@ def main():
             i += 1
 
 
-        torch.save(session_stats,'EVALUATION/'+prefix+'.session')
+        torch.save(session_stats,'EVALUATION/'+args.rID+'/'+prefix+'.session')
         
 
     #configname = args.p
 
 
 
-def loss_track_session(components,p,prefix,last_loss,gpu_id=0):
+def loss_track_session(rID,components,p,prefix,last_loss,gpu_id=0):
 
     end_epoch = p['epochs']
 
@@ -210,7 +211,7 @@ def loss_track_session(components,p,prefix,last_loss,gpu_id=0):
  
     print('-------------------SESSION COMPLETED--------------------------')
 
-    loss_track.to_csv('EVALUATION/'+prefix+'_loss_statistics.csv')
+    loss_track.to_csv('EVALUATION/'+rID+'/'+prefix+'_loss_statistics.csv')
     print('best_epoch: ',best_epoch)
 
     if p['num_heads'] > 1: 
@@ -230,7 +231,7 @@ def loss_track_session(components,p,prefix,last_loss,gpu_id=0):
                                     compute_confusion_matrix=True,
                                     confusion_matrix_file=os.path.join(p['scan_dir'],prefix+'_confusion_matrix.png'))
 
-            torch.save({'analysator': metric_data,'parameter':p},'EVALUATION/'+prefix+'_ANALYSATOR')
+            torch.save({'analysator': metric_data,'parameter':p},'EVALUATION/'+rID+'/'+prefix+'_ANALYSATOR')
 
             if best_loss > last_loss:
                 return start_stats ,session_stats, True
@@ -247,7 +248,7 @@ def loss_track_session(components,p,prefix,last_loss,gpu_id=0):
             metric_data.compute_kNN_statistics(100)
             metric_data.compute_real_consistency(0.5)
             session_stats = metric_data.return_statistic_summary(best_loss)
-            torch.save({'analysator': metric_data,'parameter':p},'EVALUATION/'+prefix+'_ANALYSATOR')
+            torch.save({'analysator': metric_data,'parameter':p},'EVALUATION/'+rID+'/'+prefix+'_ANALYSATOR')
 
             if best_loss > last_loss:
                 return start_stats ,session_stats, True
@@ -262,7 +263,7 @@ def loss_track_session(components,p,prefix,last_loss,gpu_id=0):
         metric_data.compute_kNN_statistics(100)
         metric_data.compute_real_consistency(0.5)
         session_stats = metric_data.return_statistic_summary(best_loss)
-        torch.save({'analysator': metric_data,'parameter':p},'EVALUATION/'+prefix+'_ANALYSATOR')
+        torch.save({'analysator': metric_data,'parameter':p},'EVALUATION/'+rID+'/'+prefix+'_ANALYSATOR')
 
         if best_loss > last_loss:
             return start_stats ,session_stats, True
@@ -271,7 +272,7 @@ def loss_track_session(components,p,prefix,last_loss,gpu_id=0):
 
 
 
-def general_session(components,p,prefix,last_loss,gpu_id=0): #------------------------------------------------------
+def general_session(rID,components,p,prefix,last_loss,gpu_id=0): #------------------------------------------------------
 
     end_epoch = p['epochs']
     #prefix = p['prefix']
@@ -354,7 +355,7 @@ def general_session(components,p,prefix,last_loss,gpu_id=0): #------------------
             #recent_entropy = run_statistics['entropy']  difficult to find model with best loss and entropy
 
             if best_loss > last_loss:
-                torch.save({'analysator': metric_data,'parameter':p},'EVALUATION/'+prefix+'_ANALYSATOR')
+                torch.save({'analysator': metric_data,'parameter':p},'EVALUATION/'+rID+'/'+prefix+'_ANALYSATOR')
                 print('next_loss: ',best_loss,';  ',prefix)
                 return start_stats,run_statistics, True
             
@@ -374,7 +375,7 @@ def general_session(components,p,prefix,last_loss,gpu_id=0): #------------------
             metric_data.compute_real_consistency(0.5)
 
             if best_loss > last_loss:
-                torch.save({'analysator': metric_data,'parameter':p},'EVALUATION/'+prefix+'_ANALYSATOR')
+                torch.save({'analysator': metric_data,'parameter':p},'EVALUATION/'+rID+'/'+prefix+'_ANALYSATOR')
                 print('next_loss: ',best_loss,';  ',prefix)
                 return start_stats ,metric_data.return_statistic_summary(best_loss), True
 
@@ -389,7 +390,7 @@ def general_session(components,p,prefix,last_loss,gpu_id=0): #------------------
         metric_data.compute_real_consistency(0.5)
 
         if best_loss > last_loss:
-            torch.save({'analysator': metric_data,'parameter':p},'EVALUATION/'+prefix+'_ANALYSATOR')
+            torch.save({'analysator': metric_data,'parameter':p},'EVALUATION/'+rID+'/'+prefix+'_ANALYSATOR')
             print('next_loss: ',best_loss,';  ',prefix)
             return start_stats ,metric_data.return_statistic_summary(best_loss), True
 

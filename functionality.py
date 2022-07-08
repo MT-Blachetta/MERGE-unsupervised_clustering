@@ -347,7 +347,7 @@ def get_head_model(p,backbone):
     elif model_type == 'clusterHeads':
         from models import ClusteringModel
         model = ClusteringModel(backbone = {'backbone': backbone ,'dim': backbone_outdim } , nclusters = num_cluster , m = model_args)
-        print('clusterHeads selected')
+       
 
     elif model_type == 'mlpHead':
         from models import MlpHeadModel
@@ -378,7 +378,7 @@ def get_optimizer(p,model):
         params = list(filter(lambda p: p.requires_grad, model.parameters()))
         #assert(len(params) == 2 * p['num_heads'])
     else:
-        print('optimizer gets full model parameters')
+        
         params = model.parameters()
 
 
@@ -417,7 +417,7 @@ def get_criterion(p):
 
     elif loss_ID == 'pseudolabel':
         first_criterion = torch.nn.CrossEntropyLoss()
-        print('@ref[criterion_retrieval]: selected criterion: ',first_criterion)
+        #print('@ref[criterion_retrieval]: selected criterion: ',first_criterion)
 
     elif loss_ID == 'scan_selflabel':
         from loss import ConfidenceBasedCE
@@ -449,7 +449,7 @@ def get_train_function(train_method):
     elif train_method == 'pseudolabel':
         from training import pseudolabel_train
         train_one_epoch = pseudolabel_train
-        print('train function is pseudolabel_train')
+        #print('train function is pseudolabel_train')
 
     elif train_method == 'double':
         from training import double_training
