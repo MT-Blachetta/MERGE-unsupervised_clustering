@@ -68,6 +68,7 @@ transformation_kwargs:
 backbone: scatnet
 pretrain_path: scatnet.pth # file to load from the backbone directory
 feature_dim: 128
+hidden_dim: 128
 scatnet_args: 
     J: 2
     L: 16
