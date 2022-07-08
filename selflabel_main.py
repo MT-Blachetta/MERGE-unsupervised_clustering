@@ -28,7 +28,7 @@ print('arguments.root = ',args.root)
 
 #!@ref
 
-p = create_config(args.root, args.config, args.prefix)
+p = create_config(args.prefix,args.root, args.config, args.prefix)
 
 p['train_args'] = {}
 p['train_args']['device'] = 'cuda'

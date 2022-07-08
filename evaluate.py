@@ -435,8 +435,8 @@ class Analysator():
 
     def compute_kNN_statistics(self,knn):
         self.knn = knn
-        self.similarity_matrix = torch.einsum('nd,cd->nc', [self.feature_tensor.cpu(), self.feature_tensor.cpu()])
-        scores_k, idx_k = self.similarity_matrix.topk(k=knn, dim=1)
+        similarity_matrix = torch.einsum('nd,cd->nc', [self.feature_tensor.cpu(), self.feature_tensor.cpu()])
+        scores_k, idx_k = similarity_matrix.topk(k=knn, dim=1)
         self.proximity = torch.mean(scores_k,dim=1)
         self.kNN_indices = idx_k
         labels_topk = torch.zeros_like(idx_k)
