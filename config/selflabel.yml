@@ -1,15 +1,15 @@
 
 setup: pseudolabel
-prefix: scatnetMLP_selflabel
+prefix: SCAN_pseudolabel
 
-pretrain_path: "RESULTS/stl-10/scan_scatnet/scan_scatnet_model.pth.tar"
+pretrain_path: "SCAN_model.pth.tar"
 pretrain_type: scan
 
 ### Technical Parameters (unimportant) FIXED
 num_workers: 8
 
 ### Universal Parameters
-epochs: 10
+epochs: 100
 batch_size: 256
 
 update_cluster_head_only: False
@@ -32,7 +32,7 @@ to_neighbors_dataset: False
 
 ## for stl10 dataset
 # split of stl10 for training
-train_split: both
+train_split: unlabeled
 # split of stl10 for validation
 val_split: both
 
