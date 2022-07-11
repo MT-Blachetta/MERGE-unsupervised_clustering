@@ -98,7 +98,7 @@ model_type: clusterHeads
 # <dependent>
 
 model_args: # softmax is performed over loss function
-    head_type: mlp
+    head_type: linear
     aug_type: default
     batch_norm: False
     last_batchnorm: False
