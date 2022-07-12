@@ -1,5 +1,5 @@
 setup: SCAN
-prefix: SCAN
+prefix: SCAN_mlpHead
 
 ### Technical Parameters (unimportant) FIXED
 num_workers: 8
@@ -88,7 +88,7 @@ model_type: clusterHeads
 # <dependent>
 
 model_args: # softmax is performed over loss function
-    head_type: linear
+    head_type: mlp
     aug_type: default
     batch_norm: False
     last_batchnorm: False

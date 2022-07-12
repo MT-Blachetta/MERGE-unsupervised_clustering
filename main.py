@@ -311,6 +311,12 @@ def general_session(rID,components,p,prefix,last_loss,gpu_id=0): #--------------
             print(colored('Evaluate best model based on SCAN metric at the end', 'blue'))
             model_checkpoint = torch.load(p['scan_model'], map_location='cpu')
             model.load_state_dict(model_checkpoint['model']) # Ab hier ist model optimal
+            predictions = get_predictions(device_id, p, val_loader, model)
+            #class_names=['airplane','bird','car','cat','deer','dog','horse','monkey','ship','truck']
+            clustering_stats = hungarian_evaluate(device_id, model_checkpoint['head'], predictions, 
+                                                    class_names=val_loader.dataset.classes,
+                                                    compute_confusion_matrix=True,
+                                                    confusion_matrix_file=os.path.join(p['scan_dir'],prefix+'_confusionMatrix.png'))
             metric_data = Analysator(device_id,model,val_loader,forwarding='singleHead_eval')
             metric_data.compute_kNN_statistics(100)
             metric_data.compute_real_consistency(0.5)
