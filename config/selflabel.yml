@@ -2,7 +2,7 @@
 setup: pseudolabel
 prefix: SCAN_pseudolabel
 
-pretrain_path: "SCAN_model.pth.tar"
+pretrain_path: "RESULTS/stl-10/SCAN_mlpHead/SCAN_mlpHead/SCAN/SCAN_mlpHead_model.pth.tar"
 pretrain_type: scan
 
 ### Technical Parameters (unimportant) FIXED
