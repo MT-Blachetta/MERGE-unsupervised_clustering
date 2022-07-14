@@ -573,8 +573,7 @@ class Analysator():
         mask = confidence_mask*consistent_mask
 
         return mask.type(torch.bool)        
-        
-     
+             
 
     def select_confident(self,upper,lower=1.0):
 
@@ -916,6 +915,40 @@ class Analysator():
 
         return result_frame
 
+
+    def metric_of_categorical_from_selection(self,category_values,dataset_mask=None,func="accuracy",return_type='pandas'):
+
+        if dataset_mask is None:
+            selected_features = category_values
+            subset_size = self.dataset_size
+        else:
+            selected_features = self.select_mask(category_values,dataset_mask)
+            subset_size = len(selected_features)
+
+        if isinstance(category_values,torch.Tensor):
+            bins = torch.unique(category_values)
+        else: bins = set(category_values)
+
+        category_names = []
+        amounts = []
+
+        for v in bins:
+            if isinstance(v,torch.Tensor):
+                category_names.append(str(v.item()))
+            else: category_names.append(str(v))
+
+            subcategory_mask = self.match_value(selected_features,v)
+            if func == 'accuracy':
+                amounts.append( self.accuracy_from_selection(subcategory_mask) )
+            else: raise ValueError('not yet implemented')
+
+        if return_type == 'list': 
+            return category_names, amounts
+
+        elif return_type == 'pandas':
+            result = pd.Series(amounts,index=category_names)
+            return result
+            
 
     def entropy_from_ratios(self,fractions):
         fractions += 0.00001

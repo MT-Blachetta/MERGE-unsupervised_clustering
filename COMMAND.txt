@@ -14,7 +14,7 @@ python evaluation_main.py -gpu 0 -rID 3M --root_dir RESULTS --model_path /home/b
 
 python main.py -gpu 0 -config config/SCAN.yml -p SCAN_mlpHead --model_path /home/blachm86/backbone_models
 
-python selflabel_main.py -config config/selflabel.yml -prefix SCAN_pseudolabel -root SELFLABEL
+python selflabel_main.py -config config/selflabel.yml -prefix SCAN_pseudolabel_mlpHead -root SELFLABEL
 
 
 
