@@ -5,7 +5,7 @@ from datasets import ReliableSamplesSet
 import torchvision.transforms as transforms
 from functionality import collate_custom
 from utils.common_config import adjust_learning_rate
-from evaluate import Analysator
+from evaluate import Analysator, logger
 #from testmodule import TEST_initial_model
 import torch
 import copy
@@ -20,6 +20,7 @@ FLAGS.add_argument('-root',help='root directory')
 FLAGS.add_argument('-config', help='path to the model files')
 
 args = FLAGS.parse_args()
+
 
 print('arguments.gpu = ',args.gpu)
 print('arguments.prefix = ',args.prefix)
@@ -44,6 +45,13 @@ p['model_args']['num_neurons'] = [fea_dim, fea_dim, num_cluster]
 #    f.write(str(p))
 
 params = initialize_training(p)
+
+logging = logger({'args.prefix':str(args.prefix),'args.root':str(args.root),'args.config':str(args.config)},'SELFLABEL_Method')
+rlog = logger(value=p,unit_name=str(args.p),unit_type='<Session>')
+param_types = {k: str(type(params[k])) for k in params.keys() }
+rlog2 = logger(value=param_types,unit_name='programm_components',unit_type='datatypes:')
+rlog.add_element(rlog2)
+logging.add_element(rlog)
 
 dataset = params['dataset']
 model = params['model']
@@ -93,6 +101,8 @@ def compute_accuracy(device,model,loader):
     accuracy = accuracy_from_assignment(C,ri,ci)
     print('PERFORMANCE: ',accuracy)
 
+    return accuracy
+
 
 val_transformations = transforms.Compose([
                             transforms.CenterCrop(p['transformation_kwargs']['crop_size']),
@@ -128,6 +138,7 @@ for epoch in range(0, p['epochs']):
     #metric_data = Analysator(p['device'],model,val_loader)
     #print('Accuracy: ',metric_data.get_accuracy())
     compute_accuracy(p['device'],model,val_loader)
+
     #!@
 
     # TO DO:
@@ -142,6 +153,12 @@ for epoch in range(0, p['epochs']):
 #metric_data = Analysator(p['device'],model,val_loader)
 #torch.save({'analysator': metric_data,'parameter':p},'SELFLABEL/'+args.prefix+'_ANALYSATOR')
 #!@
+
+final_accuracy = compute_accuracy(p['device'],model,val_loader)
+
+with open('SELFLABEL/'+args.prefix+'_log.txt','w') as f:
+    f.write(str(logging))
+    f.write('\nAccuracy = '+str(final_accuracy))
 
 torch.save(model.state_dict(),'SELFLABEL/'+args.prefix+'_model.pth')
 

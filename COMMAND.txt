@@ -16,6 +16,8 @@ python main.py -gpu 0 -config config/SCAN.yml -p SCAN_mlpHead --model_path /home
 
 python selflabel_main.py -config config/selflabel.yml -prefix SCAN_pseudolabel_mlpHead -root SELFLABEL
 
+python main.py -gpu 0 -config config/SCAN.yml -p SCAN_test_split
+
 
 
 

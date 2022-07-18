@@ -426,12 +426,6 @@ class Analysator():
         self.summary = None
         self.knn = 0
 
-        #class_names = ['airplane','bird','car','cat','deer','dog','horse','monkey','ship','truck']
-
-
-    #def compute_correct_samples_mask(self):
-        
-    #    self.correct_samples = self.cluster_to_class[self.prediction_tensor] == self.label_tensor
 
     def compute_kNN_statistics(self,knn):
         self.knn = knn
@@ -449,9 +443,7 @@ class Analysator():
         self.local_consistency = self.kNN_consistent.sum(dim=1)/knn
         self.kNN_labels = labels_topk
         self.kNN_confidences = confidence_topk
-        # condition = self.kNN_confidences > 0.5
-        
-        
+             
     def compute_real_consistency(self, criterion):
 
         self.criterion_consistent = []
@@ -501,9 +493,7 @@ class Analysator():
         self.summary = statistic
 
         return statistic
-
-        
-        
+    
     def get_accuracy(self):
 
         return to_value(sum(self.correct_samples)/len(self.correct_samples))
