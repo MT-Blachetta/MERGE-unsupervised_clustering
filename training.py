@@ -340,6 +340,10 @@ def multidouble_training(train_loader, model, criterion, optimizer, epoch, train
 
 def multihead_twist_train(train_loader, model, criterion, optimizer, epoch, train_args, second_criterion=None):
 
+    #[dataset]: {<return_type>=list}
+    #[augmentation_type] = 'twist'
+    #[model]: clusteringModel
+
     losses = AverageMeter('Loss', ':.4e')
     device = 'cuda:'+str(train_args['gpu_id'])
     model.to(device)

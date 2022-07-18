@@ -127,7 +127,6 @@ class ClusteringModel(nn.Module): # id = ScanClusteringModel
         self.backbone = backbone['backbone']
         self.backbone_dim = backbone['dim']
         self.nheads = m['nheads']
-        self.aug_type = m['aug_type']
         self.best_head_id = 0
         assert(isinstance(self.nheads, int))
 
@@ -137,22 +136,15 @@ class ClusteringModel(nn.Module): # id = ScanClusteringModel
             self.cluster_head = nn.ModuleList([MLP(num_neurons=m['num_neurons'], drop_out=m['drop_out'], last_activation=m['last_activation'], return_extra_index=[], batch_norm=m['batch_norm'], last_batchnorm=m['last_batchnorm']) for _ in range(self.nheads)])
 
 
-    def forward(self, x, forward_pass = 'default', aug_type = None ):
+    def forward(self, x, forward_pass = 'default'):
 
-        #forward_pass = f_args['forward_pass']
-        if not aug_type:
-            aug_type = self.aug_type
 
         if forward_pass == 'default':
-            features = self.forward_backbone(x,aug_type)
+            features = self.forward_backbone(x)
             out = [cluster_head(features) for cluster_head in self.cluster_head]
 
         elif forward_pass in ['backbone','features']:
-            out = self.forward_backbone(x,aug_type)
-
-        elif forward_pass == 'eval':
-            features = self.forward_backbone(x,aug_type='eval')
-            out = [cluster_head(features) for cluster_head in self.cluster_head]
+            out = self.forward_backbone(x)
 
         elif forward_pass == 'singleHead_eval':
             #features = self.forward_backbone(x,aug_type='eval')
@@ -162,7 +154,7 @@ class ClusteringModel(nn.Module): # id = ScanClusteringModel
             out = [cluster_head(x) for cluster_head in self.cluster_head]
 
         elif forward_pass == 'return_all':
-            features = self.forward_backbone(x,aug_type)
+            features = self.forward_backbone(x)
             out = {'features': features, 'output': [cluster_head(features) for cluster_head in self.cluster_head]}
 
         else:
@@ -170,34 +162,25 @@ class ClusteringModel(nn.Module): # id = ScanClusteringModel
 
         return out
 
-    def forward_backbone(self,x,aug_type):
+    def forward_backbone(self,x):
 
-        if aug_type == 'multicrop':
-            """
-                Codes about multi-crop is borrowed from the codes of Dino
-                https://github.com/facebookresearch/dino
-            """
-            if not isinstance(x, list):
-                x = [x]
-            # the first indices of aug with changing resolution
-            idx_crops = torch.cumsum(torch.unique_consecutive(
-                torch.tensor([inp.shape[-1] for inp in x]),
-                return_counts=True,
-            )[1], 0)
+        if not isinstance(x, list):
+            x = [x]
+        # the first indices of aug with changing resolution
+        idx_crops = torch.cumsum(torch.unique_consecutive(
+            torch.tensor([inp.shape[-1] for inp in x]),
+            return_counts=True,)[1], 0)
 
-            start_idx = 0
-            for end_idx in idx_crops:
-                _out = self.backbone(torch.cat(x[start_idx: end_idx]))
-                if start_idx == 0:
-                    output = _out
-                else:
-                    output = torch.cat((output, _out))
-                start_idx = end_idx
-        
-        else: output = self.backbone(x)
+        start_idx = 0
+        for end_idx in idx_crops:
+            _out = self.backbone(torch.cat(x[start_idx: end_idx]))
+            if start_idx == 0:
+                output = _out
+            else:
+                output = torch.cat((output, _out))
+            start_idx = end_idx
 
         return output
-
 
 
 class TWIST(nn.Module):
@@ -216,41 +199,32 @@ class TWIST(nn.Module):
 
 
 
-    def forward(self, x, aug_type='multicrop',forward_pass='default'):
+    def forward(self, x,forward_pass='default'):
 
-        features = self.forward_backbone(x,aug_type)
+        features = self.forward_backbone(x)
         out = self.head(features)
         return out
 
     def backbone_weights(self):
         return self.backbone.state_dict()
 
-    def forward_backbone(self,x,aug_type='multicrop'):
+    def forward_backbone(self,x):
 
-        if aug_type == 'multicrop':
-            """
-                Codes about multi-crop is borrowed from the codes of Dino
-                https://github.com/facebookresearch/dino
-            """
-            if not isinstance(x, list):
-                x = [x]
-            # the first indices of aug with changing resolution
-            idx_crops = torch.cumsum(torch.unique_consecutive(
-                torch.tensor([inp.shape[-1] for inp in x]),
-                return_counts=True,
-            )[1], 0)
+        if not isinstance(x, list):
+            x = [x]
+        # the first indices of aug with changing resolution
+        idx_crops = torch.cumsum(torch.unique_consecutive(
+            torch.tensor([inp.shape[-1] for inp in x]),
+            return_counts=True,)[1], 0)
 
-            start_idx = 0
-            for end_idx in idx_crops:
-                _out = self.backbone(torch.cat(x[start_idx: end_idx]))
-                if start_idx == 0:
-                    output = _out
-                else:
-                    output = torch.cat((output, _out))
-                start_idx = end_idx
-        
-        else: output = self.backbone(x)
-
+        start_idx = 0
+        for end_idx in idx_crops:
+            _out = self.backbone(torch.cat(x[start_idx: end_idx]))
+            if start_idx == 0:
+                output = _out
+            else:
+                output = torch.cat((output, _out))
+            start_idx = end_idx
 
         return output
 
@@ -299,6 +273,7 @@ class ProjectionHead_twist(nn.Module):
 
         return ft
 
+
 class MlpHeadModel(nn.Module):
     def __init__(self, backbone, backbone_dim, args):
         super(MlpHeadModel, self).__init__()
@@ -306,56 +281,46 @@ class MlpHeadModel(nn.Module):
         self.backbone_dim = backbone_dim
         args['num_neurons'][0] = backbone_dim
         self.nheads = 1
-        self.aug_type = args['aug_type']
         #assert(isinstance(self.nheads, int))
         #assert(self.nheads > 0)
         #self.cluster_head = nn.ModuleList([nn.Linear(self.backbone_dim, nclusters) for _ in range(self.nheads)])
         self.head = MLP(num_neurons=args['num_neurons'], drop_out=args['drop_out'], last_activation=args['last_activation'], return_extra_index=[], batch_norm=args['batch_norm'],last_batchnorm=args['last_batchnorm'])
 
-    def forward(self,x,forward_pass='default',aug_type=None):
-
-        if not aug_type:
-            aug_type = self.aug_type
+    def forward(self,x,forward_pass='default'):
 
         if forward_pass == 'default':
-            features = self.forward_backbone(x,aug_type)
+            features = self.forward_backbone(x)
             return self.head(features)
 
         elif forward_pass in ['backbone','features']:
-            return self.forward_backbone(x,aug_type)
+            return self.forward_backbone(x)
 
         elif forward_pass == 'head':
             return self.head(x)
 
         elif forward_pass == 'eval':
-            features = self.forward_backbone(x,aug_type='eval')
+            features = self.forward_backbone(x)
             return self.head(features)
 
         else: raise ValueError
 
-    def forward_backbone(self,x,aug_type='multicrop'):
+    def forward_backbone(self,x):
 
-        if aug_type == 'multicrop':
+        if not isinstance(x, list):
+            x = [x]
+        # the first indices of aug with changing resolution
+        idx_crops = torch.cumsum(torch.unique_consecutive(
+            torch.tensor([inp.shape[-1] for inp in x]),
+            return_counts=True,)[1], 0)
 
-            if not isinstance(x, list):
-                x = [x]
-            # the first indices of aug with changing resolution
-            idx_crops = torch.cumsum(torch.unique_consecutive(
-                torch.tensor([inp.shape[-1] for inp in x]),
-                return_counts=True,
-            )[1], 0)
-
-            start_idx = 0
-            for end_idx in idx_crops:
-                _out = self.backbone(torch.cat(x[start_idx: end_idx]))
-                if start_idx == 0:
-                    output = _out
-                else:
-                    output = torch.cat((output, _out))
-                start_idx = end_idx
-
-        else: output = self.backbone(x)
-
+        start_idx = 0
+        for end_idx in idx_crops:
+            _out = self.backbone(torch.cat(x[start_idx: end_idx]))
+            if start_idx == 0:
+                output = _out
+            else:
+                output = torch.cat((output, _out))
+            start_idx = end_idx
 
         return output
 
@@ -486,7 +451,6 @@ class universalModel(nn.Module): # id = ScanClusteringModel
         self.backbone = backbone['backbone']
         self.backbone_dim = backbone['dim']
         self.nheads = m['nheads']
-        self.aug_type = m['aug_type']
         assert(isinstance(self.nheads, int))
 
         if self.nheads < 2:
@@ -501,53 +465,63 @@ class universalModel(nn.Module): # id = ScanClusteringModel
                 self.cluster_head = nn.ModuleList([MLP(num_neurons=m['num_neurons'], drop_out=m['drop_out'], last_activation=m['last_activation'], return_extra_index=[], batch_norm=m['batch_norm'], last_batchnorm=m['last_batchnorm']) for _ in range(self.nheads)])
 
 
-    def forward(self, x, forward_pass = 'default', aug_type = None ):
+    def forward(self, x, forward_pass = 'default'):
 
         #forward_pass = f_args['forward_pass']
-        if not aug_type:
-            aug_type = self.aug_type
 
         if self.nheads > 1:
 
             if forward_pass == 'default':
-                features = self.forward_backbone(x,aug_type)
+                features = self.forward_backbone(x)
                 out = [cluster_head(features) for cluster_head in self.cluster_head]
 
             elif forward_pass == 'backbone':
-                out = self.forward_backbone(x,aug_type)
-
-            elif forward_pass == 'eval':
-                features = self.forward_backbone(x,aug_type='eval')
-                out = [cluster_head(features) for cluster_head in self.cluster_head]
+                out = self.forward_backbone(x)
 
             elif forward_pass == 'head':
                 out = [cluster_head(x) for cluster_head in self.cluster_head]
 
             elif forward_pass == 'return_all':
-                features = self.forward_backbone(x,aug_type)
+                features = self.forward_backbone(x)
                 out = {'features': features, 'output': [cluster_head(features) for cluster_head in self.cluster_head]}
 
             else: raise ValueError('Invalid forward pass {}'.format(forward_pass))
                  
         else:
             if forward_pass == 'default':
-                features = self.forward_backbone(x,aug_type)
+                features = self.forward_backbone(x)
                 out = self.head(features)
 
             elif forward_pass == 'backbone':
-                out = self.forward_backbone(x,aug_type)
+                out = self.forward_backbone(x)
 
             elif forward_pass == 'head':
                 #features = self.forward_backbone(x,aug_type)
                 out = self.head(features)
 
-            elif forward_pass == 'eval':
-                features = self.forward_backbone(x,aug_type='eval')
-                out = self.head(features)
-
             else: raise ValueError('Invalid forward pass {}'.format(forward_pass)) 
 
         return out
+
+    def forward_backbone(self,x):
+
+        if not isinstance(x, list):
+            x = [x]
+        # the first indices of aug with changing resolution
+        idx_crops = torch.cumsum(torch.unique_consecutive(
+            torch.tensor([inp.shape[-1] for inp in x]),
+            return_counts=True,)[1], 0)
+
+        start_idx = 0
+        for end_idx in idx_crops:
+            _out = self.backbone(torch.cat(x[start_idx: end_idx]))
+            if start_idx == 0:
+                output = _out
+            else:
+                output = torch.cat((output, _out))
+            start_idx = end_idx
+
+        return output
 
 
 def load_backbone_model(model,path,backbone_type):

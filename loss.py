@@ -3,6 +3,7 @@ import random
 import torch
 import torch.nn as nn
 import torch.distributed as dist
+import torch.nn.functional as F
 #EPS = 1e-6
 
 class EntLoss(nn.Module):

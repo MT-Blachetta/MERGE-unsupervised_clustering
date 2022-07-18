@@ -152,73 +152,63 @@ def get_train_dataloader(p,train_transformation):
     from datasets import STL10_trainNtest
     #
     train_split = p['train_split']
-    dataset_type = p['dataset_type']
 
-    if dataset_type == 'scan': # <return_type> dict{'image': torch.Tensor,'target': int}
+# <return_type> dict{'image': torch.Tensor,'target': int}
 
-        if p['train_db_name'] == 'cifar-10':
-            from datasets import CIFAR10
-            dataset = CIFAR10(train=True, transform=train_transformation, download=True)
+    if p['train_db_name'] == 'cifar-10':
+        from datasets import CIFAR10
+        dataset = CIFAR10(train=True, transform=train_transformation, download=True)
             #eval_dataset = CIFAR10(train=False, transform=val_transformations, download=True)
 
-        elif p['train_db_name'] == 'cifar-20':
-            from datasets import CIFAR20
-            dataset = CIFAR20(train=True, transform=train_transformation, download=True)
-            #eval_dataset = CIFAR20(train=False, transform=val_transformations, download=True)
+    elif p['train_db_name'] == 'cifar-20':
+        from datasets import CIFAR20
+        dataset = CIFAR20(train=True, transform=train_transformation, download=True)
+        #eval_dataset = CIFAR20(train=False, transform=val_transformations, download=True)
 
-        elif p['train_db_name'] == 'stl-10':
-            from datasets import STL10
+    elif p['train_db_name'] == 'stl-10':
+        from datasets import STL10
 
-            if train_split == 'train':
-                dataset = STL10(split='train', transform=train_transformation, download=False)
-            elif train_split == 'test':
-                dataset = STL10(split='test', transform=train_transformation, download=False)
-            elif train_split == 'both':
-                from datasets import STL10_eval
-                dataset = STL10_eval(path='/space/blachetta/data',aug=train_transformation)
-            elif train_split == 'unlabeled':
-                dataset = STL10(split='train+unlabeled',transform=train_transformation, download=False)
-            else: raise ValueError('Invalid stl10 split')
+        if train_split == 'train':
+            dataset = STL10(split='train', transform=train_transformation, download=False)
+        elif train_split == 'test':
+            dataset = STL10(split='test', transform=train_transformation, download=False)
+        elif train_split == 'both':
+            from datasets import STL10_eval
+            dataset = STL10_eval(path='/space/blachetta/data',aug=train_transformation)
+        elif train_split == 'unlabeled':
+            dataset = STL10(split='train+unlabeled',transform=train_transformation, download=False)
+        else: raise ValueError('Invalid stl10 split')
 
-        elif p['train_db_name'] == 'imagenet':
-            from datasets import ImageNet
-            dataset = ImageNet(split='train', transform=train_transformation)
+    elif p['train_db_name'] == 'imagenet':
+        from datasets import ImageNet
+        dataset = ImageNet(split='train', transform=train_transformation)
 
-        elif p['train_db_name'] in ['imagenet_50', 'imagenet_100', 'imagenet_200']:
-            from datasets import ImageNetSubset
-            subset_file = './data/imagenet_subsets/%s.txt' %(p['train_db_name'])
+    elif p['train_db_name'] in ['imagenet_50', 'imagenet_100', 'imagenet_200']:
+        from datasets import ImageNetSubset
+        subset_file = './data/imagenet_subsets/%s.txt' %(p['train_db_name'])
             #dataset = ImageNetSubset(subset_file=subset_file, split='train', transform=val_transformations)
 
-        else:
-            raise ValueError('Invalid train dataset {}'.format(p['train_db_name']))
+    else:           
+        raise ValueError('Invalid train dataset {}'.format(p['train_db_name']))
         
         # Wrap into other dataset (__getitem__ changes)
-        if p['to_augmented_dataset']: # Dataset returns an image and an augmentation of that image.
-            from datasets import AugmentedDataset
-            dataset = AugmentedDataset(dataset)
+    if p['to_augmented_dataset']: # Dataset returns an image and an augmentation of that image.
+        from datasets import AugmentedDataset
+        dataset = AugmentedDataset(dataset)
 
-        if p['to_neighbors_dataset']: # Dataset returns an image and one of its nearest neighbors.
-            from datasets import NeighborsDataset
-            indices = np.load(p['topk_neighbors_train_path'])
-            dataset = NeighborsDataset(dataset, indices, p['num_neighbors'])
-            
-
-    else: # <return_type> (PIL.Image , label)
-        dataset = torchvision.datasets.STL10('/space/blachetta/data', split=train_split,transform=train_transformation, download=True)
+    if p['to_neighbors_dataset']: # Dataset returns an image and one of its nearest neighbors.
+        from datasets import NeighborsDataset
+        indices = np.load(p['topk_neighbors_train_path'])
+        dataset = NeighborsDataset(dataset, indices, p['num_neighbors'])
+        
 
 
     ### data_loader:
+ # returns single elements stacked at the lowest level to a torch.Tensor
 
-
-    if dataset_type == 'scan': # returns single elements stacked at the lowest level to a torch.Tensor
-
-        batch_loader = torch.utils.data.DataLoader(dataset, num_workers=p['num_workers'], 
+    batch_loader = torch.utils.data.DataLoader(dataset, num_workers=p['num_workers'], 
                 batch_size=p['batch_size'], pin_memory=True, collate_fn=collate_custom,
                 drop_last=True, shuffle=True)
-
-    else:
-        batch_loader = torch.utils.data.DataLoader(dataset,num_workers=p['num_workers'],batch_size=p['batch_size'],pin_memory=True,drop_last=True,shuffle=True)
-
 
     return batch_loader
 
@@ -235,64 +225,48 @@ def get_val_dataloader(p):
                                 transforms.Normalize(**p['transformation_kwargs']['normalize'])])
     
     val_split = p['val_split']
-    dataset_type = p['dataset_type']
 
-    if dataset_type == 'scan':
 
-        if p['val_db_name'] == 'cifar-10':
-            from datasets import CIFAR10
-            #dataset = CIFAR10(train=True, transform=train_transformation, download=True)
-            eval_dataset = CIFAR10(train=False, transform=val_transformations, download=True)
 
-        elif p['val_db_name'] == 'cifar-20':
-            from datasets import CIFAR20
-            #dataset = CIFAR20(train=True, transform=train_transformation, download=True)
-            eval_dataset = CIFAR20(train=False, transform=val_transformations, download=True)
+    if p['val_db_name'] == 'cifar-10':
+        from datasets import CIFAR10
+        #dataset = CIFAR10(train=True, transform=train_transformation, download=True)
+        eval_dataset = CIFAR10(train=False, transform=val_transformations, download=True)
 
-        elif p['val_db_name'] == 'stl-10':
-            if val_split == 'train':
-                from datasets import STL10
-                eval_dataset = STL10(split='train', transform=val_transformations, download=False)
-            elif val_split == 'test':
-                eval_dataset = STL10(split='test', transform=val_transformations, download=False)
-            elif val_split == 'both':
-                eval_dataset = STL10_eval(path='/space/blachetta/data',aug=val_transformations)
-            else: raise ValueError('Invalid stl10 split')
+    elif p['val_db_name'] == 'cifar-20':
+        from datasets import CIFAR20
+        #dataset = CIFAR20(train=True, transform=train_transformation, download=True)
+        eval_dataset = CIFAR20(train=False, transform=val_transformations, download=True)
+
+    elif p['val_db_name'] == 'stl-10':
+        if val_split == 'train':
+            from datasets import STL10
+            eval_dataset = STL10(split='train', transform=val_transformations, download=False)
+        elif val_split == 'test':
+            eval_dataset = STL10(split='test', transform=val_transformations, download=False)
+        elif val_split == 'both':
+            eval_dataset = STL10_eval(path='/space/blachetta/data',aug=val_transformations)
+        else: raise ValueError('Invalid stl10 split')
 
             #print('eval_dataset:len: ',len(eval_dataset))
             #eval_dataset = STL10(split='train',transform=val_transformations,download=False)
 
-        else:
-            raise ValueError('Invalid train dataset {}'.format(p['train_db_name']))
+    else:
+        raise ValueError('Invalid train dataset {}'.format(p['train_db_name']))
         
 
-        if p['to_neighbors_dataset']: # Dataset returns an image and one of its nearest neighbors.
-            from datasets import NeighborsDataset
-            #print(p['topk_neighbors_train_path'])
-            indices = np.load(p['topk_neighbors_val_path'])
-            #print(indices.shape)
-            eval_dataset = NeighborsDataset(eval_dataset, indices) # , p['num_neighbors'])
-            
-            
-
-    else:
-        #dataset = torchvision.datasets.STL10('/space/blachetta/data', split=split,transform=train_transformation, download=True)
-        eval_dataset = STL10_trainNtest(path='/space/blachetta/data',aug=val_transformations)
+    if p['to_neighbors_dataset']: # Dataset returns an image and one of its nearest neighbors.
+        from datasets import NeighborsDataset
+        #print(p['topk_neighbors_train_path'])
+        indices = np.load(p['topk_neighbors_val_path'])
+        #print(indices.shape)
+        eval_dataset = NeighborsDataset(eval_dataset, indices) # , p['num_neighbors'])
 
 
     ### data_loader:
 
-
-    if dataset_type == 'scan':
-
-        val_dataloader = torch.utils.data.DataLoader(eval_dataset, num_workers=p['num_workers'],
+    val_dataloader = torch.utils.data.DataLoader(eval_dataset, num_workers=p['num_workers'],
                 batch_size=p['batch_size'], pin_memory=True, collate_fn=collate_custom,
-                drop_last=False, shuffle=False)
-
-    else:
-    
-        val_dataloader = torch.utils.data.DataLoader(eval_dataset, num_workers=p['num_workers'],
-                batch_size=p['batch_size'], pin_memory=True,
                 drop_last=False, shuffle=False)
 
     return val_dataloader
@@ -474,48 +448,43 @@ def get_dataset(p,train_transformation,train=True):
     else:
         _split = 'both'
 
-    dataset_type = p['dataset_type']
+    # <return_type> dict{'image': torch.Tensor,'target': int}
 
-    if dataset_type == 'scan': # <return_type> dict{'image': torch.Tensor,'target': int}
+    if p['train_db_name'] == 'cifar-10':
+        from datasets import CIFAR10
+        dataset = CIFAR10(train=True, transform=train_transformation, download=True)
+        #eval_dataset = CIFAR10(train=False, transform=val_transformations, download=True)
 
-        if p['train_db_name'] == 'cifar-10':
-            from datasets import CIFAR10
-            dataset = CIFAR10(train=True, transform=train_transformation, download=True)
-            #eval_dataset = CIFAR10(train=False, transform=val_transformations, download=True)
+    elif p['train_db_name'] == 'cifar-20':
+        from datasets import CIFAR20
+        dataset = CIFAR20(train=True, transform=train_transformation, download=True)
+        #eval_dataset = CIFAR20(train=False, transform=val_transformations, download=True)
 
-        elif p['train_db_name'] == 'cifar-20':
-            from datasets import CIFAR20
-            dataset = CIFAR20(train=True, transform=train_transformation, download=True)
-            #eval_dataset = CIFAR20(train=False, transform=val_transformations, download=True)
+    elif p['train_db_name'] == 'stl-10':
+        from datasets import STL10
 
-        elif p['train_db_name'] == 'stl-10':
-            from datasets import STL10
+        if _split == 'train':
+            dataset = STL10(split='train', transform=train_transformation, download=False)
+        elif _split == 'test':
+            dataset = STL10(split='test', transform=train_transformation, download=False)
+        elif _split == 'both':
+            from datasets import STL10_eval
+            dataset = STL10_eval(path='/space/blachetta/data',aug=train_transformation)
+        elif _split == 'unlabeled':
+            dataset = STL10(split='train+unlabeled',transform=train_transformation, download=False)
+        else: raise ValueError('Invalid stl10 split')
 
-            if _split == 'train':
-                dataset = STL10(split='train', transform=train_transformation, download=False)
-            elif _split == 'test':
-                dataset = STL10(split='test', transform=train_transformation, download=False)
-            elif _split == 'both':
-                from datasets import STL10_eval
-                dataset = STL10_eval(path='/space/blachetta/data',aug=train_transformation)
-            elif _split == 'unlabeled':
-                dataset = STL10(split='train+unlabeled',transform=train_transformation, download=False)
-            else: raise ValueError('Invalid stl10 split')
+    elif p['train_db_name'] == 'imagenet':
+        from datasets import ImageNet
+        dataset = ImageNet(split='train', transform=train_transformation)
 
-        elif p['train_db_name'] == 'imagenet':
-            from datasets import ImageNet
-            dataset = ImageNet(split='train', transform=train_transformation)
-
-        elif p['train_db_name'] in ['imagenet_50', 'imagenet_100', 'imagenet_200']:
-            from datasets import ImageNetSubset
-            subset_file = './data/imagenet_subsets/%s.txt' %(p['train_db_name'])
-            #dataset = ImageNetSubset(subset_file=subset_file, split='train', transform=val_transformations)
-
-        else:
-            raise ValueError('Invalid train dataset {}'.format(p['train_db_name']))
+    elif p['train_db_name'] in ['imagenet_50', 'imagenet_100', 'imagenet_200']:
+        from datasets import ImageNetSubset
+        subset_file = './data/imagenet_subsets/%s.txt' %(p['train_db_name'])
+        #dataset = ImageNetSubset(subset_file=subset_file, split='train', transform=val_transformations)
 
     else:
-        raise ValueError('not implemented error')
+        raise ValueError('Invalid train dataset {}'.format(p['train_db_name']))
 
     print('dataset: ',type(dataset))
     return dataset
