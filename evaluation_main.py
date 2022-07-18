@@ -28,20 +28,27 @@ FLAGS.add_argument('-list',help='path to the trial list')
 FLAGS.add_argument('-rID',help='runtime ID')
 FLAGS.add_argument('--root_dir', help='root directory for saves', default='RESULTS')
 #FLAGS.add_argument('--config_exp', help='Location of experiments config file')
-FLAGS.add_argument('--model_path', help='path to the model files')
+#FLAGS.add_argument('--model_path', help='path to the model files') # USE THE FULL PATH IN THE CONFIG FILE !
 
 
 def main():
 
     #session_list = ['scan_scatnet','scan_clPcl'] # ,'twist',...]
+    #os.path.join
+
     args = FLAGS.parse_args()
+    logging = logger({'args.list':str(args.list),'args.riD':str(args.rID)})
+    
     with open(args.list,'r') as lf:
         pstr = lf.read()
         session_list = eval(pstr.strip(' \n'))
 
+    logging.properties['list_file'] = str(session_list)
+
     for session in session_list:
         config_file = 'config/'+session+'.yml'
         trials_file = 'config/'+session+'.py'
+
         with open(trials_file, 'r') as f:
             parsing_text = f.read()
             trial_list = eval(parsing_text.strip(' \n'))
@@ -53,11 +60,17 @@ def main():
         num_cluster = p['num_classes']
         fea_dim = p['feature_dim']
         p['model_args']['num_neurons'] = [fea_dim, fea_dim, num_cluster]
-        backbone_file = p['pretrain_path']
-        p['pretrain_path'] = os.path.join(args.model_path,backbone_file)
+        p['config_file'] = config_file
+        p['trial_list_file'] = trials_file
+        #backbone_file = p['pretrain_path']
+        #p['pretrain_path'] = os.path.join(args.model_path,backbone_file)
 
         i = 0
         run_id = prefix
+
+        s_log = logger(value=p,unit_name=session,unit_type='<Session>')
+        s_log.add_head_text(logging.head_str(len(s_log))) # not needed
+
         last_loss = 1000
 
         session_stats = statisics_register()
@@ -65,17 +78,34 @@ def main():
         for trial in trial_list:
             # code per trial:
             run_id = prefix+str(i)
-            p = map_parameters(p,trial,args.model_path) # session needs to override p['scan_model'] OK
+            p = map_parameters(p,trial) # session needs to override p['scan_model'] OK
             params = initialize_training(p)
+            vls = {'trial_configuration': str(trial),'train_parameter': params_to_typestring(params) }
+
+            t_log = logger(value=vls,unit_name=run_id,unit_type='<training_process>')
+            t_log.add_value('run_id',run_id)
+            s_log.add_element(t_log)
+
+            t_log.add_head_text(logging.head_str(len(t_log)))
+            t_log.add_head_text(s_log.head_str(t_log))
+            
+
             if trial['save_data']:
                 start_info, end_info, new_optimum = loss_track_session(args.rID,params,p,run_id,last_loss,gpu_id)
                 if new_optimum: last_loss = end_info['loss']
+                if p['train_method'] == 'scan':
+                    t_log.to_file(p['scan_dir']+'/'+run_id+'_log.txt','unit_str')
+                else:
+                    t_log.to_file('PRODUCTS/'+run_id+'_log.txt','unit_str')
+                
             else:
                 start_info, end_info, new_optimum = general_session(args.rID,params,p,run_id,last_loss,gpu_id)
                 if new_optimum: 
                     last_loss = end_info['loss']
+                    if p['train_method'] == 'scan':  t_log.to_file(p['scan_dir']+'/'+run_id+'_log.txt','unit_str')
+                    else: t_log.to_file('PRODUCTS/'+run_id+'_log.txt','unit_str')
                 else: # delete files
-                    if p['train_method'] == 'scan':
+                    if p['train_method'] == 'scan':  
                         if os.path.exists(p['scan_model']): os.remove(p['scan_model'])
                     else:
                         if os.path.exists('PRODUCTS/'+run_id+'_best_model.pth'): os.remove('PRODUCTS/'+run_id+'_best_model.pth')
@@ -84,8 +114,17 @@ def main():
             #added = pd.DataFrame(dict(next_row),columns=next_row.index,index=[])
             i += 1
 
+        logging.add_element(s_log)
+
+
+        with open('EVALUATION/'+args.rID+'/'+session+'_log.txt','w') as f:
+            f.write(s_log.full_str()+'--------------------RESULTS--------------------\n')
+            f.write(str(session_stats.output_table))
 
         torch.save(session_stats,'EVALUATION/'+args.rID+'/'+prefix+'.session')
+
+    with open('EVALUATION/'+args.rID+'/settings.txt','w') as f:
+        f.write(str(logging))
         
 
     #configname = args.p
@@ -621,7 +660,7 @@ def store_statistic_analysis(p,model,val_loader,prefix,best_loss): # needs to cr
     torch.save({'analysator': data ,'parameter':p},'ANALYSIS/'+prefix+'_ANALYSE')
 
 
-def map_parameters(p,params,model_path):
+def map_parameters(p,params):
     
     for attribute in params.keys():
         if '.' in attribute:
@@ -633,8 +672,8 @@ def map_parameters(p,params,model_path):
         num_cluster = p['num_classes']
         fea_dim = p['feature_dim']
         p['model_args']['num_neurons'] = [fea_dim, fea_dim, num_cluster]
-        backbone_file = p['pretrain_path']
-        p['pretrain_path'] = os.path.join(model_path,backbone_file)
+        #backbone_file = p['pretrain_path']
+        #p['pretrain_path'] = os.path.join(model_path,backbone_file)
 
         return p
 
@@ -699,7 +738,124 @@ class statisics_register():
 
         next_row = pd.concat({'settings':info_part,'results': data_part},axis=1,names=['part:','values:'])
             
-        return pd.concat([self.session_table,next_row])
+        self.session_table = pd.concat([self.session_table,next_row])
+        
+        return self.session_table 
+
+
+class logger():
+    def __init__(self,value={},unit_name='MERGE_unsupervisedClustering',unit_type='<APPLICATION>'):
+
+        self.type = unit_type
+        self.name = unit_name
+        self.properties = value
+        self.elements = []
+
+        self.head_text = []
+
+    def add_element(self, element):
+        self.elements.append(element)
+
+    def set_values(self,value):
+        self.properties = value
+
+    def add_value(self,key,value):
+        self.properties[key] = value
+
+    def __str__(self):
+        out = self.type+' '+self.name+':\n'
+        for k in self.properties.keys():
+            out += k+' = '+str(self.properties[k])+'\n'
+
+        out += '\n'
+        for element in self.elements:
+            out += element.outstr('  ')
+
+    def outstr(self,indent=''):
+        
+        out = indent+self.type+' '+self.name+':\n'
+        for k in self.properties.keys():
+            out += indent+k+' = '+str(self.properties[k])+'\n'
+
+        out += '\n'
+        for element in self.elements:
+            out += element.outstr(indent+'  ')
+
+        return out
+
+    def unit_str(self):
+        
+        out = ''
+        d = ''
+        for t in self.head_text:
+            out += t
+            d += '  '
+
+        out = d+self.type+' '+self.name+':\n'
+        for k in self.properties.keys():
+            out += d+k+' = '+str(self.properties[k])+'\n'
+
+        return out
+
+    def full_str(self):
+        
+        out = ''
+        d = ''
+        for t in self.head_text:
+            out += t
+            d += '  '
+
+        out = d+self.type+' '+self.name+':\n'
+        for k in self.properties.keys():
+            out += d+k+' = '+str(self.properties[k])+'\n'
+
+        out += '\n'
+        for element in self.elements:
+            out += element.outstr(d+'  ')
+
+        return out
+
+    def head_str(self,len_hlist=0):
+
+        d = ' '*len_hlist
+        out = d+self.type+' '+self.name+':\n'
+        for k in self.properties.keys():
+            out += d+k+' = '+str(self.properties[k])+'\n'
+
+        return out
+
+    def add_head_text(self,text):
+        self.head_text.append(text)
+
+    def __len__(self):
+        return len(self.head_text)
+
+    def to_file(self,path,method='full_str'):
+        report = ''
+
+        if method == 'full_str':
+            report = self.full_str()
+        elif method == 'unit_str':
+            report = self.unit_str()
+        elif method == 'outstr':
+            report = self.outstr()
+        else: raise ValueError('invalid log method')
+
+        with open(path,'w') as f:
+            f.write(report)
+
+
+def params_to_typestring(para_dict):
+
+    out = ''
+    for k in para_dict.keys():
+        out += k+'='+str(type(para_dict[k]))+'; '
+
+    return out
+
+
+
+
 
 
 

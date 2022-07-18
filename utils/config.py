@@ -22,8 +22,8 @@ def create_config(rID, root_dir, config_file_exp, prefix):
     # Set paths for pretext task (These directories are needed in every stage)
     if cfg['setup'] == 'pseudolabel':
 
-        base_dir = os.path.join(root_dir, cfg['train_db_name'])
-        base_dir = os.path.join(base_dir, rID)
+        base_dir = os.path.join(root_dir,rID)
+        base_dir = os.path.join(base_dir,cfg['train_db_name'])
         pretext_dir = os.path.join(base_dir, 'pretext')
         mkdir_if_missing(base_dir)
         mkdir_if_missing(pretext_dir)
@@ -32,11 +32,11 @@ def create_config(rID, root_dir, config_file_exp, prefix):
         cfg['pretext_model'] = os.path.join(pretext_dir,prefix+'_model.pth.tar')
         #os.path.join('topk',prefix+'_topk-train-neighbors.npy')
 
-        base_dir = os.path.join(root_dir, cfg['train_db_name'])
-        scan_dir = os.path.join(base_dir, cfg['setup'])
+        
+        scan_dir = base_dir
         selflabel_dir = os.path.join(base_dir, 'selflabel')
-        mkdir_if_missing(base_dir)
-        mkdir_if_missing(scan_dir)
+        #mkdir_if_missing(base_dir)
+        #mkdir_if_missing(scan_dir)
         mkdir_if_missing(selflabel_dir)
         cfg['scan_dir'] = scan_dir
         cfg['scan_checkpoint'] = os.path.join(scan_dir,prefix+'_checkpoint.pth.tar')
@@ -63,13 +63,12 @@ def create_config(rID, root_dir, config_file_exp, prefix):
         # If we perform clustering or self-labeling step we need additional paths.
         # We also include a run identifier to support multiple runs w/ same hyperparams.
         #if cfg['setup'] in ['scan', 'selflabel','multidouble','multitwist']:
-        base_dir = os.path.join(root_dir, cfg['train_db_name'])
-        base_dir = os.path.join(base_dir, rID)
-        scan_dir = os.path.join(base_dir, rID)
-        scan_dir = os.path.join(scan_dir, cfg['setup'])
+        base_dir = os.path.join(root_dir,rID)
+        base_dir = os.path.join(base_dir,cfg['train_db_name'] )
+        scan_dir = base_dir
         selflabel_dir = os.path.join(base_dir, 'selflabel')
         mkdir_if_missing(base_dir)
-        mkdir_if_missing(scan_dir)
+        #mkdir_if_missing(scan_dir)
         mkdir_if_missing(selflabel_dir)
         cfg['scan_dir'] = scan_dir
         cfg['scan_checkpoint'] = os.path.join(scan_dir,prefix+'_checkpoint.pth.tar')
