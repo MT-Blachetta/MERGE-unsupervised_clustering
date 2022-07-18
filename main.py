@@ -15,7 +15,7 @@ from transformation import Augment, Cutout
 from utils.config import create_config
 from utils.common_config import adjust_learning_rate
 from models import load_backbone_model
-from evaluate import evaluate_singleHead, Analysator
+from evaluate import evaluate_singleHead, Analysator, logger
 from utils.evaluate_utils import get_predictions, scan_evaluate, hungarian_evaluate
 import pandas as pd
 
@@ -27,11 +27,14 @@ FLAGS.add_argument('-gpu',help='number as gpu identifier')
 FLAGS.add_argument('-config',help='path to the trial list')
 FLAGS.add_argument('-p',help='prefix')
 FLAGS.add_argument('--root_dir', help='root directory for saves', default='RESULTS')
-FLAGS.add_argument('--model_path', help='path to the model files')
+#FLAGS.add_argument('--model_path', help='path to the model files')
 FLAGS.add_argument('-loss_track',help='wether to track loss value',default='no')
 
 def main():
     args = FLAGS.parse_args()
+
+    logging = logger({'args.p':str(args.p),'args.root_dir':str(args.root_dir),'args.config':str(args.config),'args.loss_track':str(args.loss_track)})
+
     p = create_config(args.p ,args.root_dir, args.config, args.p)
     prefix = args.p
     p['prefix'] = args.p
@@ -39,15 +42,24 @@ def main():
     num_cluster = p['num_classes']
     fea_dim = p['feature_dim']
     p['model_args']['num_neurons'] = [fea_dim, fea_dim, num_cluster]
-    backbone_file = p['pretrain_path']
-    p['pretrain_path'] = os.path.join(args.model_path,backbone_file)
     params = initialize_training(p)
+
+    rlog = logger(value=p,unit_name=str(args.p),unit_type='<Session>')
+    rlog2 = logger(value={'objects': params_to_typestring(params)},unit_name='programm_components',unit_type='datatypes:')
+    rlog.add_element(rlog2)
+    logging.add_element(rlog)
+    
     last_loss = 1000
 
     if args.loss_track in ['y','yes']:
         start_info, end_info, new_optimum = loss_track_session(prefix,params,p,prefix,last_loss,gpu_id)
     else:
         start_info, end_info, new_optimum = general_session(prefix,params,p,prefix,last_loss,gpu_id)
+
+    with open('EVALUATION/'+prefix+'/'+prefix+'_log.txt','w') as f:
+        f.write(str(logging))
+        f.write('\n--------------RESULTS--------------\n')
+        f.write(str(end_info))
 
     session_stats = statisics_register()
     session_stats.add_session_statistic(0,p,start_info,end_info)
@@ -648,6 +660,14 @@ class statisics_register():
             
         return pd.concat([self.session_table,next_row])
 
+
+def params_to_typestring(para_dict,separator='; '):
+
+    out = ''
+    for k in para_dict.keys():
+        out += k+'='+str(type(para_dict[k]))+separator
+
+    return out
 
 if __name__ == "__main__":
     main()

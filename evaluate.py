@@ -1010,4 +1010,104 @@ class Analysator():
             return values == query
 
 
+class logger():
+    def __init__(self,value={},unit_name='MERGE_unsupervisedClustering',unit_type='<APPLICATION>'):
+
+        self.type = unit_type
+        self.name = unit_name
+        self.properties = value
+        self.elements = []
+
+        self.head_text = []
+
+    def add_element(self, element):
+        self.elements.append(element)
+
+    def set_values(self,value):
+        self.properties = value
+
+    def add_value(self,key,value):
+        self.properties[key] = value
+
+    def __str__(self):
+        out = self.type+' '+self.name+':\n'
+        for k in self.properties.keys():
+            out += k+' = '+str(self.properties[k])+'\n'
+
+        out += '\n'
+        for element in self.elements:
+            out += element.outstr('  ')
+
+    def outstr(self,indent=''):
+        
+        out = indent+self.type+' '+self.name+':\n'
+        for k in self.properties.keys():
+            out += indent+k+' = '+str(self.properties[k])+'\n'
+
+        out += '\n'
+        for element in self.elements:
+            out += element.outstr(indent+'  ')
+
+        return out
+
+    def unit_str(self):
+        
+        out = ''
+        d = ''
+        for t in self.head_text:
+            out += t
+            d += '  '
+
+        out = d+self.type+' '+self.name+':\n'
+        for k in self.properties.keys():
+            out += d+k+' = '+str(self.properties[k])+'\n'
+
+        return out
+
+    def full_str(self):
+        
+        out = ''
+        d = ''
+        for t in self.head_text:
+            out += t
+            d += '  '
+
+        out = d+self.type+' '+self.name+':\n'
+        for k in self.properties.keys():
+            out += d+k+' = '+str(self.properties[k])+'\n'
+
+        out += '\n'
+        for element in self.elements:
+            out += element.outstr(d+'  ')
+
+        return out
+
+    def head_str(self,len_hlist=0):
+
+        d = ' '*len_hlist
+        out = d+self.type+' '+self.name+':\n'
+        for k in self.properties.keys():
+            out += d+k+' = '+str(self.properties[k])+'\n'
+
+        return out
+
+    def add_head_text(self,text):
+        self.head_text.append(text)
+
+    def __len__(self):
+        return len(self.head_text)
+
+    def to_file(self,path,method='full_str'):
+        report = ''
+
+        if method == 'full_str':
+            report = self.full_str()
+        elif method == 'unit_str':
+            report = self.unit_str()
+        elif method == 'outstr':
+            report = self.outstr()
+        else: raise ValueError('invalid log method')
+
+        with open(path,'w') as f:
+            f.write(report)
 

@@ -1,5 +1,5 @@
 setup: SCAN
-prefix: SCAN_mlpHead
+prefix: SCAN_test_mlpHead
 
 ### Technical Parameters (unimportant) FIXED
 num_workers: 8
@@ -19,7 +19,7 @@ val_db_name: stl-10
 
 ## nearest neighbors scan loss related
 # for model training
-neighbor_prefix: scatnet_unlabeled
+neighbor_prefix: scatnet_test
 # for validation phase
 neighbor_prefix_val: scatnet_both
 
@@ -29,9 +29,9 @@ to_neighbors_dataset: True
 
 ## for stl10 dataset
 # split of stl10 for training
-train_split: unlabeled
+train_split: test
 # split of stl10 for validation
-val_split: both
+val_split: train
 
 ### AUGMENTATION related
 
@@ -66,7 +66,7 @@ transformation_kwargs:
 
 # <dependent>
 backbone: scatnet
-pretrain_path: scatnet.pth # file to load from the backbone directory
+pretrain_path: /home/blachm86/backbone_models/scatnet.pth # file to load from the backbone directory
 feature_dim: 128
 hidden_dim: 128
 scatnet_args: 
