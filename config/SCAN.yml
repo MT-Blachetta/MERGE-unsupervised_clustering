@@ -21,7 +21,7 @@ val_db_name: stl-10
 # for model training
 neighbor_prefix: scatnet_test
 # for validation phase
-neighbor_prefix_val: scatnet_both
+neighbor_prefix_val: scatnet
 
 num_neighbors: 20
 to_augmented_dataset: False # mode variable
