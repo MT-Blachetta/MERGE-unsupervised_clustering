@@ -357,6 +357,7 @@ def to_value(v):
     return v
         
 
+
 class Analysator():
     def __init__(self,device,model,dataloader,forwarding='head',class_names=['airplane','bird','car','cat','deer','dog','horse','monkey','ship','truck']):
          
@@ -598,6 +599,8 @@ class Analysator():
 
         correct_subset = self.correct_samples[selection_mask]
 
+        if len(correct_subset) < 1: return nan 
+
         return to_value(sum(correct_subset)/len(correct_subset))
         
         
@@ -696,26 +699,14 @@ class Analysator():
         return sum(subset_values)/len(subset_values)
       
 
-    def scalar_statistics_from_selection(self,selection_mask,scalar_tensor,parameters):
+    def scalar_statistics_from_selection(self,selection_mask,scalar_tensor,scalar_name='',val_range=[0,1.0],interval=0.1,returntype='pandas',values_to_count=None):
 
         # init ------------------------------------
 
         if selection_mask is None:
             selection_mask = torch.full([self.dataset_size],True)
-
-        if parameters['secondary']:
-            val_range = parameters['range_2']
-            interval = parameters['interval_2']
-        else:
-            val_range = parameters['range']
-            interval = parameters['interval']
-
-
-        returntype = parameters['return_type']
         
-        if 'count_measure' in parameters.keys(): 
-            values_to_count = parameters['count_measure']
-            #count_mode = parameters['count_mode']
+        if values_to_count: 
             measurements = values_to_count[selection_mask]
         else: measurements = None
 
@@ -726,9 +717,11 @@ class Analysator():
         names = []
         values = []
         iv = val_range[0]
+        names.append(scalar_name+"|{:4.2f}-{:4.2f}".format(iv,iv))
+        iv += interval
 
         while iv <= val_range[1]:            
-            names.append( "{:4.2f}".format(iv) )
+            names.append( "{:4.2f}-{:4.2f}".format(iv,iv+interval) )
             iv += interval
 
         # zero case ---------------------------------
@@ -817,23 +810,35 @@ class Analysator():
 
         #high = max(scalar_tensor)
         iv = val_range[0]
+
+        names.append(parameters['row_name']+"|{:4.2f}-{:4.2f}".format(iv,iv))
+        iv += interval
         
         while iv <= val_range[1]:            
-            names.append("{:4.2f}".format(iv))
+            names.append("{:4.2f}-{:4.2f}".format(iv,iv+interval))
             iv += interval
 
-        iv = val_range[0] - interval
-        parameters['secondary'] = True
+        
+        #parameters['secondary'] = True
 
-        #first_set = selected_features == iv
-        #first_row = self.scalar_statistics_from_selection(first_set,subfeature_values,parameters)
-        #result_frame = pd.DataFrame(dict(first_row),columns=first_row.index,index=[names[0]])
+        if 'count_measure' in parameters.keys():
+            valuesToCount = parameters['count_measure']
+            # values_to_count is in DATASET-SIZE, so it must be adapted
+            vtc = self.select_mask(valuesToCount,dataset_mask) if dataset_mask is not None else valuesToCount
+        else: vtc = None
+
+        iv = val_range[0] - interval
         ni = 0
 
         while iv+interval <= val_range[1]:
 
             next_set = self.double_condition_mask(iv,iv+interval,selected_features)
-            next_row = self.scalar_statistics_from_selection(next_set,subfeature_values,parameters)
+
+            if parameters['secondary_type'] == 'categorical':
+                next_row = self.categorical_from_selection(subfeature_values,next_set,values_to_count=vtc,mode=parameters['mode'],return_type=parameters['return_type'])
+            else:
+                next_row = self.scalar_statistics_from_selection(next_set,subfeature_values,scalar_name=parameters['col_name'],val_range=parameters['range_2'],interval=parameters['interval_2'],returntype='pandas',values_to_count=vtc)
+            
             added = pd.DataFrame(dict(next_row),columns=next_row.index,index=[names[ni]])
             result_frame = pd.concat([result_frame,added])
             iv += interval
@@ -899,7 +904,7 @@ class Analysator():
             
             for v in bins:
                 subcategory_mask = self.match_value(selected_features,v)
-                rowSeries = self.scalar_statistics_from_selection(subcategory_mask,subfeature_values,parameters)
+                rowSeries = self.scalar_statistics_from_selection(subcategory_mask,subfeature_values,scalar_name=parameters['col_name'],val_range=parameters['range_2'],interval=parameters['interval_2'],returntype='pandas',values_to_count=parameters['count_measure'])
                 added = pd.DataFrame(dict(rowSeries),columns=rowSeries.index,index=[str(v)])
                 result_frame = pd.concat([result_frame,added])
 
@@ -1002,6 +1007,91 @@ class Analysator():
             return result
         else:
             return values == query
+
+    def scalar_cumulative_from_selection(self,selection_mask,scalar_tensor,func='accuracy',scalar_name='',val_range=[0,1.0],interval=0.1,returntype='pandas',values_to_count=None):
+
+        # init -----------------------------------
+
+        if selection_mask is None:
+            selection_mask = torch.full([self.dataset_size],True)
+        
+        if values_to_count: 
+            measurements = values_to_count[selection_mask]
+        else: measurements = None
+
+        subset_values = scalar_tensor[selection_mask]
+        subset_size = len(subset_values)
+
+        # initialize index or column names
+        names = []
+        values = []
+        iv = val_range[0]
+        names.append(scalar_name+"|>{:4.2f}".format(iv))
+        iv += interval
+
+        while iv <= val_range[1]:            
+            names.append( ">{:4.2f}".format(iv) )
+            iv += interval
+
+        # zero case ---------------------------------
+        if subset_size == 0: 
+            #subset_values = torch.Tensor([0])
+            values = [0 for _ in names]
+            #numbers = [0 for _ in names]
+            frequencies = pd.Series(values,index=names)
+            columnlist = ['count' ,'sum', 'mean', 'std', 'min', '25%', '50%', '75%', 'max']
+            for n in columnlist: frequencies[n] = nan
+            return frequencies
+                
+        
+        #return_info = {}
+        #names = [str(range[0])]
+        #values = [0]
+        numbers = []
+        
+        #high = max(scalar_tensor)
+        iv = val_range[0]-interval
+        
+
+        while (iv+interval) <= val_range[1]:
+            
+            #names.append(str(iv+interval))
+            cmask =  subset_values >= iv+interval
+            if func == 'accuracy':
+                values.append( self.accuracy_from_selection(cmask) )
+            elif func == 'ratio':
+                values.append( self.ratio_from_selection(cmask,values_to_count) )
+            else:
+                counted_value = self.count_set(cmask,measurements,'ratio') # count_mode
+                values.append(counted_value)
+            numbers.append(to_value(sum(cmask)))
+            iv += interval
+
+        if returntype == 'dict':
+            ps = pd.Series(subset_values.detach().cpu().numpy())
+            description = ps.describe()
+            resultdict = {'real_values': subset_values, 'intervals':names, 'ratios':values, 'numbers':numbers}
+            resultdict.update(description)
+            
+            return resultdict
+
+        #g = nan is set is zero
+            
+        elif returntype == 'pandas':
+            ps = pd.Series(subset_values.detach().cpu().numpy())
+            description = ps.describe()
+            frequencies = pd.Series(values,index=names)
+            columnlist = ['count' ,'sum', 'mean', 'std', 'min', '25%', '50%', '75%', 'max']
+            #names.extend(columnlist)  # CAN BE USED LATER !
+            description['sum'] = ps.sum()
+            for n in columnlist:
+                frequencies[n] = description[n]
+
+            return frequencies
+
+        else:
+            return names, values 
+
 
 
 class logger():
