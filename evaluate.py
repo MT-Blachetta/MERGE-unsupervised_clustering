@@ -906,7 +906,7 @@ class Analysator():
         return result_frame
 
 
-    def metric_of_categorical_from_selection(self,category_values,dataset_mask=None,func="accuracy",return_type='pandas'):
+    def metric_of_categorical_from_selection(self,category_values,dataset_mask=None,func="accuracy",value_base=None,return_type='pandas'):
 
         if dataset_mask is None:
             selected_features = category_values
@@ -930,6 +930,10 @@ class Analysator():
             subcategory_mask = self.match_value(selected_features,v)
             if func == 'accuracy':
                 amounts.append( self.accuracy_from_selection(subcategory_mask) )
+            elif func == 'mean':
+                amounts.append( self.mean_from_selection(subcategory_mask,value_base) )
+            elif func == 'ratio':
+                amounts.append( self.ratio_from_selection(subcategory_mask,value_base) )
             else: raise ValueError('not yet implemented')
 
         if return_type == 'list': 
@@ -1027,6 +1031,8 @@ class logger():
         out += '\n'
         for element in self.elements:
             out += element.outstr('  ')
+
+        return out
 
     def outstr(self,indent=''):
         
