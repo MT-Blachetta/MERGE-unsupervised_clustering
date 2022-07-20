@@ -255,12 +255,12 @@ def get_val_dataloader(p):
         raise ValueError('Invalid train dataset {}'.format(p['train_db_name']))
         
 
-    if p['to_neighbors_dataset']: # Dataset returns an image and one of its nearest neighbors.
-        from datasets import NeighborsDataset
+    #if p['to_neighbors_dataset']: # Dataset returns an image and one of its nearest neighbors.
+    #    from datasets import NeighborsDataset
         #print(p['topk_neighbors_train_path'])
-        indices = np.load(p['topk_neighbors_val_path'])
+    #    indices = np.load(p['topk_neighbors_val_path'])
         #print(indices.shape)
-        eval_dataset = NeighborsDataset(eval_dataset, indices) # , p['num_neighbors'])
+    #    eval_dataset = NeighborsDataset(eval_dataset, indices) # , p['num_neighbors'])
 
 
     ### data_loader:

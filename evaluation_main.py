@@ -38,6 +38,9 @@ def main():
 
     args = FLAGS.parse_args()
     logging = logger({'args.list':str(args.list),'args.riD':str(args.rID)})
+
+    with open('/home/blachm86/'+args.rID+'_files.txt','w') as f:
+        f.write('[')
     
     with open(args.list,'r') as lf:
         pstr = lf.read()
@@ -95,15 +98,21 @@ def main():
                 if new_optimum: last_loss = end_info['loss']
                 if p['train_method'] == 'scan':
                     t_log.to_file(p['scan_dir']+'/'+run_id+'_log.txt','unit_str')
+                    add_file_path('/home/blachm86/'+args.rID+'_files.txt',p['scan_dir']+'/'+run_id+'_log.txt')
                 else:
                     t_log.to_file('PRODUCTS/'+run_id+'_log.txt','unit_str')
+                    add_file_path('/home/blachm86/'+args.rID+'_files.txt','PRODUCTS/'+run_id+'_log.txt')
                 
             else:
                 start_info, end_info, new_optimum = general_session(args.rID,params,p,run_id,last_loss,gpu_id)
                 if new_optimum: 
                     last_loss = end_info['loss']
-                    if p['train_method'] == 'scan':  t_log.to_file(p['scan_dir']+'/'+run_id+'_log.txt','unit_str')
-                    else: t_log.to_file('PRODUCTS/'+run_id+'_log.txt','unit_str')
+                    if p['train_method'] == 'scan':  
+                        t_log.to_file(p['scan_dir']+'/'+run_id+'_log.txt','unit_str')
+                        add_file_path('/home/blachm86/'+args.rID+'_files.txt',p['scan_dir']+'/'+run_id+'_log.txt')
+                    else: 
+                        t_log.to_file('PRODUCTS/'+run_id+'_log.txt','unit_str' )
+                        add_file_path('/home/blachm86/'+args.rID+'_files.txt','PRODUCTS/'+run_id+'_log.txt' )
                 else: # delete files
                     if p['train_method'] == 'scan':  
                         if os.path.exists(p['scan_model']): os.remove(p['scan_model'])
@@ -120,14 +129,15 @@ def main():
         with open('EVALUATION/'+args.rID+'/'+session+'_log.txt','w') as f:
             f.write(s_log.full_str()+'--------------------RESULTS--------------------\n')
             f.write(str(session_stats.output_table))
+            add_file_path('/home/blachm86/'+args.rID+'_files.txt','EVALUATION/'+args.rID+'/'+session+'_log.txt')
 
         torch.save(session_stats,'EVALUATION/'+args.rID+'/'+prefix+'.session')
+        add_file_path('/home/blachm86/'+args.rID+'_files.txt','EVALUATION/'+args.rID+'/'+prefix+'.session')
 
     with open('EVALUATION/'+args.rID+'/settings.txt','w') as f:
         f.write(str(logging))
+        add_file_path('/home/blachm86/'+args.rID+'_files.txt','EVALUATION/'+args.rID+'/settings.txt]')
         
-
-    #configname = args.p
 
 
 
@@ -241,7 +251,7 @@ def loss_track_session(rID,components,p,prefix,last_loss,gpu_id=0):
         c_loss, best_head = train_one_epoch(train_loader=batch_loader, model=model, criterion=first_criterion, optimizer=optimizer, epoch=epoch, train_args=p['train_args'], second_criterion=second_criterion)
 
         # evaluate
-        pdict = {'device_id': device_id, 'val_loader': val_loader, 'model': model, 'loss_track': loss_track, 'best_loss': best_loss, 'best_head': best_head, 'c_loss': c_loss, 'best_loss_head': best_loss_head, 'best_epoch': best_epoch,  'epoch': epoch, 'prefix': prefix  }
+        pdict = {'device_id': device_id, 'val_loader': val_loader, 'model': model, 'loss_track': loss_track, 'best_loss': best_loss, 'best_head': best_head, 'c_loss': c_loss, 'best_loss_head': best_loss_head, 'best_epoch': best_epoch,  'epoch': epoch, 'prefix': prefix, 'rID': rID }
         parameter = evaluate_loss_track(p,pdict)
         best_loss  = parameter['best_loss']
         best_loss_head = parameter['best_loss_head']
@@ -270,10 +280,12 @@ def loss_track_session(rID,components,p,prefix,last_loss,gpu_id=0):
                                     class_names=val_loader.dataset.classes,
                                     compute_confusion_matrix=True,
                                     confusion_matrix_file=os.path.join(p['scan_dir'],prefix+'_confusion_matrix.png'))
+            add_file_path('/home/blachm86/'+rID+'_files.txt',str(os.path.join(p['scan_dir'],prefix+'_confusion_matrix.png')))
 
             torch.save({'analysator': metric_data,'parameter':p},'EVALUATION/'+rID+'/'+prefix+'_ANALYSATOR')
+            add_file_path('/home/blachm86/'+rID+'_files.txt','EVALUATION/'+rID+'/'+prefix+'_ANALYSATOR')
 
-            if best_loss > last_loss:
+            if best_loss < last_loss:
                 return start_stats ,session_stats, True
             else:
                 return start_stats ,session_stats, False
@@ -289,8 +301,10 @@ def loss_track_session(rID,components,p,prefix,last_loss,gpu_id=0):
             metric_data.compute_real_consistency(0.5)
             session_stats = metric_data.return_statistic_summary(best_loss)
             torch.save({'analysator': metric_data,'parameter':p},'EVALUATION/'+rID+'/'+prefix+'_ANALYSATOR')
+            add_file_path('/home/blachm86/'+rID+'_files.txt','EVALUATION/'+rID+'/'+prefix+'_ANALYSATOR')
+            
 
-            if best_loss > last_loss:
+            if best_loss < last_loss:
                 return start_stats ,session_stats, True
             else:
                 return start_stats ,session_stats, False
@@ -304,12 +318,12 @@ def loss_track_session(rID,components,p,prefix,last_loss,gpu_id=0):
         metric_data.compute_real_consistency(0.5)
         session_stats = metric_data.return_statistic_summary(best_loss)
         torch.save({'analysator': metric_data,'parameter':p},'EVALUATION/'+rID+'/'+prefix+'_ANALYSATOR')
+        add_file_path('/home/blachm86/'+rID+'_files.txt','EVALUATION/'+rID+'/'+prefix+'_ANALYSATOR')
 
-        if best_loss > last_loss:
+        if best_loss < last_loss:
             return start_stats ,session_stats, True
         else:
             return start_stats ,session_stats, False
-
 
 
 def general_session(rID,components,p,prefix,last_loss,gpu_id=0): #------------------------------------------------------
@@ -372,7 +386,7 @@ def general_session(rID,components,p,prefix,last_loss,gpu_id=0): #--------------
         print('Train ...')
         c_loss, best_head = train_one_epoch(train_loader=batch_loader, model=model, criterion=first_criterion, optimizer=optimizer, epoch=epoch, train_args=p['train_args'], second_criterion=second_criterion)
         # evaluate
-        pdict = {'model': model, 'best_head': best_head, 'c_loss': c_loss, 'best_loss': best_loss,'best_loss_head': best_loss_head, 'best_epoch': best_epoch, 'epoch': epoch, 'prefix': prefix }
+        pdict = {'model': model, 'best_head': best_head, 'c_loss': c_loss, 'best_loss': best_loss,'best_loss_head': best_loss_head, 'best_epoch': best_epoch, 'epoch': epoch, 'prefix': prefix, 'rID': rID }
         parameter = evaluate_standard(p,pdict)
         best_loss  = parameter['best_loss']
         best_loss_head = parameter['best_loss_head']
@@ -388,14 +402,23 @@ def general_session(rID,components,p,prefix,last_loss,gpu_id=0): #--------------
             print(colored('Evaluate best model based on SCAN metric at the end', 'blue'))
             model_checkpoint = torch.load(p['scan_model'], map_location='cpu')
             model.load_state_dict(model_checkpoint['model']) # Ab hier ist model optimal
+            predictions = get_predictions(device_id, p, val_loader, model)
+            clustering_stats = hungarian_evaluate(device_id, model_checkpoint['head'], predictions,
+                                    class_names=val_loader.dataset.classes,
+                                    compute_confusion_matrix=True,
+                                    confusion_matrix_file=os.path.join(p['scan_dir'],prefix+'_confusion_matrix.png'))
+            add_file_path('/home/blachm86/'+rID+'_files.txt',str(os.path.join(p['scan_dir'],prefix+'_confusion_matrix.png')))
+
             metric_data = Analysator(device_id,model,val_loader,forwarding='singleHead_eval')
             metric_data.compute_kNN_statistics(100)
             metric_data.compute_real_consistency(0.5)
             run_statistics = metric_data.return_statistic_summary(best_loss)
             #recent_entropy = run_statistics['entropy']  difficult to find model with best loss and entropy
 
-            if best_loss > last_loss:
+            if best_loss < last_loss:
                 torch.save({'analysator': metric_data,'parameter':p},'EVALUATION/'+rID+'/'+prefix+'_ANALYSATOR')
+                add_file_path('/home/blachm86/'+rID+'_files.txt','EVALUATION/'+rID+'/'+prefix+'_ANALYSATOR')
+                
                 print('next_loss: ',best_loss,';  ',prefix)
                 return start_stats,run_statistics, True
             
@@ -414,8 +437,9 @@ def general_session(rID,components,p,prefix,last_loss,gpu_id=0): #--------------
             metric_data.compute_kNN_statistics(100)
             metric_data.compute_real_consistency(0.5)
 
-            if best_loss > last_loss:
+            if best_loss < last_loss:
                 torch.save({'analysator': metric_data,'parameter':p},'EVALUATION/'+rID+'/'+prefix+'_ANALYSATOR')
+                add_file_path('/home/blachm86/'+rID+'_files.txt','EVALUATION/'+rID+'/'+prefix+'_ANALYSATOR')
                 print('next_loss: ',best_loss,';  ',prefix)
                 return start_stats ,metric_data.return_statistic_summary(best_loss), True
 
@@ -429,8 +453,9 @@ def general_session(rID,components,p,prefix,last_loss,gpu_id=0): #--------------
         metric_data.compute_kNN_statistics(100)
         metric_data.compute_real_consistency(0.5)
 
-        if best_loss > last_loss:
+        if best_loss < last_loss:
             torch.save({'analysator': metric_data,'parameter':p},'EVALUATION/'+rID+'/'+prefix+'_ANALYSATOR')
+            add_file_path('/home/blachm86/'+rID+'_files.txt','EVALUATION/'+rID+'/'+prefix+'_ANALYSATOR')
             print('next_loss: ',best_loss,';  ',prefix)
             return start_stats ,metric_data.return_statistic_summary(best_loss), True
 
@@ -451,6 +476,7 @@ def evaluate_loss_track(p,parameters):
     best_epoch     = parameters['best_epoch']
     epoch = parameters['epoch']
     prefix = parameters['prefix']
+    rID = parameters['rID']
 
     if p['num_heads'] > 1: 
         if train_method == 'scan':
@@ -508,8 +534,10 @@ def evaluate_loss_track(p,parameters):
 
             if train_method == 'scan':
                 torch.save({'model': model.state_dict(), 'head': best_loss_head}, p['scan_model'])
+                add_file_path('/home/blachm86/'+rID+'_files.txt',p['scan_model'])
             else:
                 torch.save(model.state_dict(),'PRODUCTS/'+prefix+'_best_model.pth')
+                add_file_path('/home/blachm86/'+rID+'_files.txt','PRODUCTS/'+prefix+'_best_model.pth')
                 print('\nLOSS accuracy: ', best_accuracy,'  on head ',best_loss_head)
             
 
@@ -547,6 +575,7 @@ def evaluate_loss_track(p,parameters):
             #    torch.save(model.head.state_dict(),'PRODUCTS/'+prefix+'_best_mlpHead.pth')                
             #else:
             torch.save(model.state_dict(),'PRODUCTS/'+prefix+'_best_model.pth')
+            add_file_path('/home/blachm86/'+rID+'_files.txt','PRODUCTS/'+prefix+'_best_model.pth')
  
 
         # Checkpoint
@@ -561,8 +590,6 @@ def evaluate_loss_track(p,parameters):
     pdict['best_epoch'] = best_epoch
     
     return pdict 
-
-
     
     
 def evaluate_standard(p,parameters):
@@ -575,6 +602,7 @@ def evaluate_standard(p,parameters):
     best_epoch = parameters['best_epoch']
     epoch = parameters['epoch']
     prefix = parameters['prefix']
+    rID = parameters['rID']
     
 
     train_method = p['train_method']
@@ -591,8 +619,10 @@ def evaluate_standard(p,parameters):
 
             if train_method == 'scan':
                 torch.save({'model': model.state_dict(), 'head': best_loss_head}, p['scan_model'])
+                add_file_path('/home/blachm86/'+rID+'_files.txt',p['scan_model'])
             else:
                 torch.save(model.state_dict(),'PRODUCTS/'+prefix+'_best_model.pth')
+                add_file_path('/home/blachm86/'+rID+'_files.txt','PRODUCTS/'+prefix+'_best_model.pth')
                 #print('\nLOSS accuracy: ', best_accuracy,'  on head ',best_loss_head)
            
             #if p['update_cluster_head_only']:
@@ -612,6 +642,7 @@ def evaluate_standard(p,parameters):
             #    torch.save(model.head.state_dict(),'PRODUCTS/'+prefix+'_best_mlpHead.pth')                
             #else:
             torch.save(model.state_dict(),'PRODUCTS/'+prefix+'_best_model.pth')
+            add_file_path('/home/blachm86/'+rID+'_files.txt','PRODUCTS/'+prefix+'_best_model.pth')
             
     pdict = {}
     pdict['best_loss'] = best_loss
@@ -678,7 +709,9 @@ def map_parameters(p,params):
         return p
 
 
-#def load_trial_list(trial_file):
+def add_file_path(filepath,pathstring):
+    with open(filepath,'a') as f:
+        f.write(',"'+pathstring+'"')
 
 
 class statisics_register():
