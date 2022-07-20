@@ -18,6 +18,7 @@ from typing import Tuple
 from kymatio.torch import Scattering2D
 
 FLAGS = argparse.ArgumentParser(description='stl10 split')
+FLAGS.add_argument('-gpu',help='gpu identifier for the device selection')
 FLAGS.add_argument('-split',help='prefix file selection')
 
 
@@ -258,7 +259,7 @@ model.load_state_dict(mdict,strict=True)
 #-----------------
 # phase03: nearest neighbors -----------------------------------------------------------------------
 
-device = "cuda" if torch.cuda.is_available() else "cpu"
+device = "cuda:"+str(args.gpu) if torch.cuda.is_available() else "cpu"
 
 model.to(device)
 
@@ -293,13 +294,13 @@ val_dataloader = torch.utils.data.DataLoader(val_dataset, num_workers=8, batch_s
 #-----------------------------------------------------------------------------------------------------------------------------------------
 
 class MemoryBank(object):
-    def __init__(self, n, dim, num_classes, temperature):
+    def __init__(self, n, dim, num_classes, temperature, device = 'cpu'):
         self.n = n
         self.dim = dim 
         self.features = torch.FloatTensor(self.n, self.dim)
         self.targets = torch.LongTensor(self.n)
         self.ptr = 0
-        self.device = 'cpu'
+        self.device = device
         self.K = 100
         self.temperature = temperature
         self.C = num_classes
@@ -377,13 +378,13 @@ class MemoryBank(object):
 
 
 @torch.no_grad()
-def fill_memory_bank(loader, model, memory_bank):
+def fill_memory_bank(loader, model, memory_bank, device='cuda:0'):
     model.eval()
     memory_bank.reset()
 
     for i, batch in enumerate(loader):
-        images = batch[0].cuda(non_blocking=True)
-        targets = batch[1].cuda(non_blocking=True)
+        images = batch[0].to(device,non_blocking=True)
+        targets = batch[1].to(device,non_blocking=True)
         output = model(images)
         memory_bank.update(output, targets)
         if i % 100 == 0:
@@ -398,11 +399,11 @@ temperature = 0.5
 num_classes = 10
 outdim = 128
  
-memory_bank_base = MemoryBank(datasize,outdim,num_classes,temperature)
-memory_bank_val = MemoryBank(val_datasize,outdim,num_classes,temperature)
+memory_bank_base = MemoryBank(datasize,outdim,num_classes,temperature,device)
+memory_bank_val = MemoryBank(val_datasize,outdim,num_classes,temperature,device)
 
 print('Fill memory bank for mining the nearest neighbors (train) ...')
-fill_memory_bank(base_dataloader, model, memory_bank_base)
+fill_memory_bank(base_dataloader, model, memory_bank_base,device)
 topk = 20
 print('Mine the nearest neighbors (Top-%d)' %(topk)) 
 indices, acc = memory_bank_base.mine_nearest_neighbors(topk)
@@ -411,7 +412,7 @@ np.save('/home/blachm86/unsupervisedClustering/RESULTS/stl-10/topk/'+prefix+"_to
 
    
 print('Fill memory bank for mining the nearest neighbors (val) ...', 'blue')
-fill_memory_bank(val_dataloader, model, memory_bank_val)
+fill_memory_bank(val_dataloader, model, memory_bank_val,device)
 topk = 5
 print('Mine the nearest neighbors (Top-%d)' %(topk)) 
 indices, acc = memory_bank_val.mine_nearest_neighbors(topk)
