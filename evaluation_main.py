@@ -136,7 +136,7 @@ def main():
 
     with open('EVALUATION/'+args.rID+'/settings.txt','w') as f:
         f.write(str(logging))
-        add_file_path('/home/blachm86/'+args.rID+'_files.txt','EVALUATION/'+args.rID+'/settings.txt]')
+        add_file_path('/home/blachm86/'+args.rID+'_files.txt','EVALUATION/'+args.rID+'/settings.txt')
         
 
 
