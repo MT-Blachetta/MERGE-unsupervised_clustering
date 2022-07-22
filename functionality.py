@@ -224,7 +224,8 @@ def get_val_dataloader(p):
                                 transforms.ToTensor(),
                                 transforms.Normalize(**p['transformation_kwargs']['normalize'])])
     
-    val_split = p['val_split']
+    train_split = p['train_split']
+    validation_loaders = {}
 
 
 
@@ -232,24 +233,44 @@ def get_val_dataloader(p):
         from datasets import CIFAR10
         #dataset = CIFAR10(train=True, transform=train_transformation, download=True)
         eval_dataset = CIFAR10(train=False, transform=val_transformations, download=True)
+        val_dataloader = torch.utils.data.DataLoader(eval_dataset, num_workers=p['num_workers'],
+                            batch_size=p['batch_size'], pin_memory=True, collate_fn=collate_custom,
+                            drop_last=False, shuffle=False)
+        validation_loaders['val_loader'] = val_dataloader
 
     elif p['val_db_name'] == 'cifar-20':
         from datasets import CIFAR20
         #dataset = CIFAR20(train=True, transform=train_transformation, download=True)
         eval_dataset = CIFAR20(train=False, transform=val_transformations, download=True)
+        val_dataloader = torch.utils.data.DataLoader(eval_dataset, num_workers=p['num_workers'],
+                            batch_size=p['batch_size'], pin_memory=True, collate_fn=collate_custom,
+                            drop_last=False, shuffle=False)
+        validation_loaders['val_loader'] = val_dataloader
 
     elif p['val_db_name'] == 'stl-10':
-        if val_split == 'train':
+        if train_split in ['train','test']:
             from datasets import STL10
-            eval_dataset = STL10(split='train', transform=val_transformations, download=False)
-        elif val_split == 'test':
-            eval_dataset = STL10(split='test', transform=val_transformations, download=False)
-        elif val_split == 'both':
-            eval_dataset = STL10_eval(path='/space/blachetta/data',aug=val_transformations)
-        else: raise ValueError('Invalid stl10 split')
+            train_dataset = STL10(split='train', transform=val_transformations, download=False)
+            test_dataset = STL10(split='test', transform=val_transformations, download=False)
+            train_loader = torch.utils.data.DataLoader(train_dataset, num_workers=p['num_workers'],
+                                batch_size=p['batch_size'], pin_memory=True, collate_fn=collate_custom,
+                                drop_last=False, shuffle=False)
+            test_loader = torch.utils.data.DataLoader(test_dataset, num_workers=p['num_workers'],
+                                batch_size=p['batch_size'], pin_memory=True, collate_fn=collate_custom,
+                                drop_last=False, shuffle=False)
+            validation_loaders['train_split'] = train_loader
+            validation_loaders['test_split'] = test_loader
 
-            #print('eval_dataset:len: ',len(eval_dataset))
-            #eval_dataset = STL10(split='train',transform=val_transformations,download=False)
+        elif train_split in ['both','unlabeled','train+unlabeled']:
+            labeled_dataset = STL10_eval(path='/space/blachetta/data',aug=val_transformations)
+            val_dataloader = torch.utils.data.DataLoader(labeled_dataset, num_workers=p['num_workers'],
+                            batch_size=p['batch_size'], pin_memory=True, collate_fn=collate_custom,
+                            drop_last=False, shuffle=False)
+            validation_loaders['val_loader'] = val_dataloader
+
+        else: 
+            raise ValueError('Invalid stl10 split')
+
 
     else:
         raise ValueError('Invalid train dataset {}'.format(p['train_db_name']))
@@ -265,11 +286,7 @@ def get_val_dataloader(p):
 
     ### data_loader:
 
-    val_dataloader = torch.utils.data.DataLoader(eval_dataset, num_workers=p['num_workers'],
-                batch_size=p['batch_size'], pin_memory=True, collate_fn=collate_custom,
-                drop_last=False, shuffle=False)
-
-    return val_dataloader
+    return validation_loaders
 
 """ ------------- Build MODEL ------------------"""
 

@@ -1,11 +1,11 @@
-setup: SCAN
-prefix: SCAN_test_mlpHead
+setup: scan
+#prefix: SCAN_test_mlpHead
 
 ### Technical Parameters (unimportant) FIXED
 num_workers: 8
 
 ### Universal Parameters
-epochs: 150
+epochs: 100
 batch_size: 256
 
 update_cluster_head_only: False
@@ -19,9 +19,9 @@ val_db_name: stl-10
 
 ## nearest neighbors scan loss related
 # for model training
-neighbor_prefix: scatnet_test
+neighbor_prefix: scatnet_train
 # for validation phase
-neighbor_prefix_val: scatnet
+neighbor_prefix_val: scatnet_train
 
 num_neighbors: 20
 to_augmented_dataset: False # mode variable
@@ -29,7 +29,7 @@ to_neighbors_dataset: True
 
 ## for stl10 dataset
 # split of stl10 for training
-train_split: test
+train_split: train
 # split of stl10 for validation
 val_split: train
 
@@ -92,7 +92,7 @@ model_args: # softmax is performed over loss function
     aug_type: default
     batch_norm: False
     last_batchnorm: False
-    last_activation: softmax
+    last_activation: None
     drop_out: -1
 
 
