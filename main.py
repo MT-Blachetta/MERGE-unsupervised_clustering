@@ -56,27 +56,27 @@ def main():
     ##add_file_path('/home/blachm86/'+args.rID+'_files.txt','EVALUATION/'+prefix+'/'+prefix+'.session')
 
     with open('/home/blachm86/'+args.p+'_files.txt','w') as f:
-        f.write('['+'EVALUATION/'+prefix+'/'+prefix+'_log.txt,')
-        f.write('EVALUATION/'+prefix+'/'+prefix+'.session,')
+        f.write('['+'"EVALUATION/'+prefix+'/'+prefix+'_log.txt",')
+        f.write('"EVALUATION/'+prefix+'/'+prefix+'.session",')
         
-        if args.loss_track in ['y','yes']: f.write('EVALUATION/'+prefix+'/'+prefix+'_loss_statistics.csv,')
+        if args.loss_track in ['y','yes']: f.write('"EVALUATION/'+prefix+'/'+prefix+'_loss_statistics.csv",')
 
         if p['train_split'] in ['train','test']:
-            f.write('EVALUATION/'+prefix+'/'+prefix+'TrainSplit_ANALYSATOR,')
-            f.write('EVALUATION/'+prefix+'/'+prefix+'TestSplit_ANALYSATOR,')
+            f.write('"EVALUATION/'+prefix+'/'+prefix+'TrainSplit_ANALYSATOR",')
+            f.write('"EVALUATION/'+prefix+'/'+prefix+'TestSplit_ANALYSATOR",')
 
             if p['train_method'] == "scan":           
-                f.write(os.path.join(p['scan_dir'],prefix+'TestSplit_confusion_matrix.png')+',')
-                f.write(os.path.join(p['scan_dir'],prefix+'TrainSplit_confusion_matrix.png')+',')
-                f.write(p['scan_model'])
-            else: f.write('PRODUCTS/'+prefix+'_best_model.pth')
+                f.write('"'+os.path.join(p['scan_dir'],prefix+'TestSplit_confusion_matrix.png')+'",')
+                f.write('"'+os.path.join(p['scan_dir'],prefix+'TrainSplit_confusion_matrix.png')+'",')
+                f.write('"'+p['scan_model']+'"')
+            else: f.write('"PRODUCTS/'+prefix+'_best_model.pth"')
 
         else:
-            f.write('EVALUATION/'+prefix+'/'+prefix+'_ANALYSATOR,')
+            f.write('"EVALUATION/'+prefix+'/'+prefix+'_ANALYSATOR",')
             if p['train_method'] == "scan":
-                f.write(str(os.path.join(p['scan_dir'],prefix+'_confusion_matrix.png'))+',')
-                f.write(p['scan_model'])
-            else: f.write('PRODUCTS/'+prefix+'_best_model.pth')
+                f.write('"'+str(os.path.join(p['scan_dir'],prefix+'_confusion_matrix.png'))+'",')
+                f.write('"'+p['scan_model']+'"')
+            else: f.write('"PRODUCTS/'+prefix+'_best_model.pth"')
         f.write(']')
         
 

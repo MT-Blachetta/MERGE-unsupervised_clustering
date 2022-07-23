@@ -5,7 +5,7 @@ setup: scan
 num_workers: 8
 
 ### Universal Parameters
-epochs: 100
+epochs: 200
 batch_size: 256
 
 update_cluster_head_only: False
@@ -19,9 +19,9 @@ val_db_name: stl-10
 
 ## nearest neighbors scan loss related
 # for model training
-neighbor_prefix: scatnet_train
+neighbor_prefix: scatnet_test
 # for validation phase
-neighbor_prefix_val: scatnet_train
+neighbor_prefix_val: scatnet_test
 
 num_neighbors: 20
 to_augmented_dataset: False # mode variable
@@ -29,9 +29,9 @@ to_neighbors_dataset: True
 
 ## for stl10 dataset
 # split of stl10 for training
-train_split: train
+train_split: test
 # split of stl10 for validation
-val_split: train
+val_split: test
 
 ### AUGMENTATION related
 
