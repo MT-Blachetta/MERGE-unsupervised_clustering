@@ -100,17 +100,21 @@ def loss_track_session(rID,components,p,prefix,last_loss,gpu_id=0):
 
     c_loss, best_head = train_one_epoch(train_loader=batch_loader, model=model, criterion=first_criterion, optimizer=optimizer, epoch=0, train_args=p['train_args'], second_criterion=second_criterion)
     
+    if p['train_split'] in ['train','test']:
+        Vdataloader = val_loader['train_split'] if p['train_split'] == 'test' else val_loader['test_split']
+    else: Vdataloader = p['val_loader']
+
     if p['num_heads'] > 1:
         best_loss = c_loss
         best_loss_head = best_head
-        starting_data = Analysator(device_id,model,val_loader,forwarding='singleHead_eval')
+        starting_data = Analysator(device_id,model,Vdataloader,forwarding='singleHead_eval')
         starting_data.compute_kNN_statistics(100)
         starting_data.compute_real_consistency(0.5)
         start_stats = starting_data.return_statistic_summary(c_loss)
     else:
         best_loss = c_loss
         best_loss_head = best_head
-        starting_data = Analysator(device_id,model,val_loader)
+        starting_data = Analysator(device_id,model,Vdataloader)
         starting_data.compute_kNN_statistics(100)
         starting_data.compute_real_consistency(0.5)
         start_stats = starting_data.return_statistic_summary(c_loss)
@@ -133,7 +137,7 @@ def loss_track_session(rID,components,p,prefix,last_loss,gpu_id=0):
         c_loss, best_head = train_one_epoch(train_loader=batch_loader, model=model, criterion=first_criterion, optimizer=optimizer, epoch=epoch, train_args=p['train_args'], second_criterion=second_criterion)
 
         # evaluate
-        pdict = {'device_id': device_id, 'val_loader': val_loader, 'model': model, 'loss_track': loss_track, 'best_loss': best_loss, 'best_head': best_head, 'c_loss': c_loss, 'best_loss_head': best_loss_head, 'best_epoch': best_epoch,  'epoch': epoch, 'prefix': prefix, 'rID': rID }
+        pdict = {'device_id': device_id, 'val_loader': Vdataloader, 'model': model, 'loss_track': loss_track, 'best_loss': best_loss, 'best_head': best_head, 'c_loss': c_loss, 'best_loss_head': best_loss_head, 'best_epoch': best_epoch,  'epoch': epoch, 'prefix': prefix, 'rID': rID }
         parameter = evaluate_loss_track(p,pdict)
         best_loss  = parameter['best_loss']
         best_loss_head = parameter['best_loss_head']
