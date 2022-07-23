@@ -116,11 +116,11 @@ def main():
             session_stats.add_session_statistic(i,p,start_info,end_info)
             #outfiles.add('EVALUATION/'+args.rID+'/'+run_id+'_ANALYSATOR')
             if p['train_split'] in ['train','test']:
-                outfiles.add('EVALUATION/'+args.rID+'/'+run_id+'trainSplit_ANALYSATOR,')
-                outfiles.add('EVALUATION/'+args.rID+'/'+run_id+'testSplit_ANALYSATOR,')            
+                outfiles.add('EVALUATION/'+args.rID+'/'+run_id+'TrainSplit_ANALYSATOR,')
+                outfiles.add('EVALUATION/'+args.rID+'/'+run_id+'TestSplit_ANALYSATOR,')            
                 if p['train_method'] == 'scan':
-                    outfiles.add(os.path.join(p['scan_dir'],run_id+'testSplit_confusion_matrix.png'))
-                    outfiles.add(os.path.join(p['scan_dir'],run_id+'trainSplit_confusion_matrix.png'))
+                    outfiles.add(os.path.join(p['scan_dir'],run_id+'TestSplit_confusion_matrix.png'))
+                    outfiles.add(os.path.join(p['scan_dir'],run_id+'TrainSplit_confusion_matrix.png'))
                     outfiles.add(p['scan_model'])
                 else: outfiles.add('PRODUCTS/'+run_id+'_best_model.pth')
             else:

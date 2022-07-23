@@ -443,14 +443,14 @@ def evaluation(device_id,p,model,loaders,start_stats,best_loss,last_loss):
                 clustering_stats = hungarian_evaluate(device_id, model_checkpoint['head'], predictions,
                                                             class_names=train_split_loader.dataset.classes,
                                                             compute_confusion_matrix=True,
-                                                            confusion_matrix_file=os.path.join(p['scan_dir'],prefix+'trainSplit_confusion_matrix.png'))
+                                                            confusion_matrix_file=os.path.join(p['scan_dir'],prefix+'TrainSplit_confusion_matrix.png'))
                 predictions = get_predictions(device_id, p, test_split_loader, model)
                 clustering_stats = hungarian_evaluate(device_id, model_checkpoint['head'], predictions,
                                                             class_names=test_split_loader.dataset.classes,
                                                             compute_confusion_matrix=True,
-                                                            confusion_matrix_file=os.path.join(p['scan_dir'],prefix+'testSplit_confusion_matrix.png'))
-                torch.save({'analysator': train_split_data,'parameter':p},'EVALUATION/'+rID+'/'+prefix+'trainSplit_ANALYSATOR')
-                torch.save({'analysator': test_split_data,'parameter':p},'EVALUATION/'+rID+'/'+prefix+'testSplit_ANALYSATOR')
+                                                            confusion_matrix_file=os.path.join(p['scan_dir'],prefix+'TestSplit_confusion_matrix.png'))
+                torch.save({'analysator': train_split_data,'parameter':p},'EVALUATION/'+rID+'/'+prefix+'TrainSplit_ANALYSATOR')
+                torch.save({'analysator': test_split_data,'parameter':p},'EVALUATION/'+rID+'/'+prefix+'TestSplit_ANALYSATOR')
 
             else:
                 val_loader = loaders['val_loader']
@@ -489,8 +489,8 @@ def evaluation(device_id,p,model,loaders,start_stats,best_loss,last_loss):
                 test_split_data.compute_kNN_statistics(100)
                 test_split_data.compute_real_consistency(0.5)
                 session_stats = test_split_data.return_statistic_summary(best_loss) if p['train_split'] == 'train' else train_split_data.return_statistic_summary(best_loss)
-                torch.save({'analysator': train_split_data,'parameter':p},'EVALUATION/'+rID+'/'+prefix+'trainSplit_ANALYSATOR')
-                torch.save({'analysator': test_split_data,'parameter':p},'EVALUATION/'+rID+'/'+prefix+'testSplit_ANALYSATOR')
+                torch.save({'analysator': train_split_data,'parameter':p},'EVALUATION/'+rID+'/'+prefix+'TrainSplit_ANALYSATOR')
+                torch.save({'analysator': test_split_data,'parameter':p},'EVALUATION/'+rID+'/'+prefix+'TestSplit_ANALYSATOR')
             
             else:
 
