@@ -151,7 +151,7 @@ def loss_track_session(rID,components,p,prefix,last_loss,gpu_id=0):
     return evaluation(device_id,p,model,val_loader,start_stats,best_loss,last_loss)
 
 
-def general_session(rID,components,p,prefix,last_loss,gpu_id=0): #------------------------------------------------------
+def general_session(rID,components,p,prefix,last_loss,gpu_id=0): 
 
     end_epoch = p['epochs']
     #prefix = p['prefix']
@@ -185,17 +185,22 @@ def general_session(rID,components,p,prefix,last_loss,gpu_id=0): #--------------
     # start_epoch, best_loss, best_loss_head = resume_from_checkpoint(model,optimizer,p['scan_checkpoint'])
 
     c_loss, best_head = train_one_epoch(train_loader=batch_loader, model=model, criterion=first_criterion, optimizer=optimizer, epoch=0, train_args=p['train_args'], second_criterion=second_criterion)
+
+    if p['train_split'] in ['train','test']:
+        Vdataloader = val_loader['train_split'] if p['train_split'] == 'test' else val_loader['test_split']
+    else: Vdataloader = p['val_loader']
+
     if p['num_heads'] > 1:
         best_loss = c_loss
         best_loss_head = best_head
-        starting_data = Analysator(device_id,model,val_loader,forwarding='singleHead_eval')
+        starting_data = Analysator(device_id,model,Vdataloader,forwarding='singleHead_eval')
         starting_data.compute_kNN_statistics(100)
         starting_data.compute_real_consistency(0.5)
         start_stats = starting_data.return_statistic_summary(c_loss)
     else:
         best_loss = c_loss
         best_loss_head = best_head
-        starting_data = Analysator(device_id,model,val_loader)
+        starting_data = Analysator(device_id,model,Vdataloader)
         starting_data.compute_kNN_statistics(100)
         starting_data.compute_real_consistency(0.5)
         start_stats = starting_data.return_statistic_summary(c_loss)
@@ -602,6 +607,7 @@ def store_statistic_analysis(p,model,val_loader,prefix,best_loss): # needs to cr
         data.return_statistic_summary(best_loss)
 
     torch.save({'analysator': data ,'parameter':p},'ANALYSIS/'+prefix+'_ANALYSE')
+
 
 def compute_runlist(combinations,prefixes,init_dict,keylist,key_names,session_list):
         
