@@ -102,7 +102,7 @@ def loss_track_session(rID,components,p,prefix,last_loss,gpu_id=0):
     
     if p['train_split'] in ['train','test']:
         Vdataloader = val_loader['train_split'] if p['train_split'] == 'test' else val_loader['test_split']
-    else: Vdataloader = p['val_loader']
+    else: Vdataloader = val_loader['val_loader']
 
     if p['num_heads'] > 1:
         best_loss = c_loss
@@ -188,7 +188,7 @@ def general_session(rID,components,p,prefix,last_loss,gpu_id=0):
 
     if p['train_split'] in ['train','test']:
         Vdataloader = val_loader['train_split'] if p['train_split'] == 'test' else val_loader['test_split']
-    else: Vdataloader = p['val_loader']
+    else: Vdataloader = val_loader['val_loader']
 
     if p['num_heads'] > 1:
         best_loss = c_loss
