@@ -5,7 +5,7 @@ setup: scan
 num_workers: 8
 
 ### Universal Parameters
-epochs: 300
+epochs: 500
 batch_size: 300
 
 update_cluster_head_only: False
