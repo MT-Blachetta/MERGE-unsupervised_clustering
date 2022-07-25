@@ -387,14 +387,119 @@ class ReliableSamplesSet(Dataset): # §: ReliableSamplesSet_Initialisation
         accuracy = accuracy_from_assignment(C,ri,ci)
         print('top_samples accuracy: ',accuracy)
 
+class consistencyDataset(Dataset):
+
+    def __init__(self,dataset,weak_aug,strong_aug):
+        self.dataset = dataset
+        self.weak_transform = weak_aug
+        self.strong_transform = strong_aug
+        self.local_consistency = torch.rand([len(dataset),])
+
+    def __len__(self):
+        return len(self.dataset)
+
+    def compute_consistency(self,p,model,forwarding='head',val_transform=None,kNN=100,extended_consistency=-1):
         
+        device = p['device']
+        if val_transform:
+            eval_transform = val_transform
+        else:
+            eval_transform = self.weak_transform
+
+        self.dataset.transform = eval_transform
+
+
+        val_dataloader = torch.utils.data.DataLoader(self.dataset, num_workers=p['num_workers'],
+                                                    batch_size=p['batch_size'], pin_memory=True, collate_fn=collate_custom,
+                                                    drop_last=False, shuffle=False)
+
+        model.eval()
+        predictions = []
+        features = []
+        soft_labels = []
+        confidences = []
+
+        model = model.to(device) # OK(%-cexp_00)
+        #print('MODEL first critical expresssion: ',type(model))
+
+
+        with torch.no_grad():      
+            for batch in val_dataloader:
+                if isinstance(batch,dict):
+                    image = batch['image']
+                    label = batch['target']
+                else:
+                    image = batch[0]
+                    label = batch[1]
+
+                image = image.to(device,non_blocking=True) # OK(%-cexp_00)
+                fea = model(image,forward_pass='features')
+                features.append(fea)
+                preds = model(fea,forward_pass=forwarding)
+                soft_labels.append(preds)
+                max_confidence, prediction = torch.max(preds,dim=1) 
+                predictions.append(prediction)
+                confidences.append(max_confidence)
+
+            feature_tensor = torch.cat(features)
+                #self.softlabel_tensor = torch.cat(soft_labels)
+            self.predictions = torch.cat(predictions)
+                #print('max_prediction A: ',self.predictions.max())
+            self.predictions = self.predictions.type(torch.LongTensor)
+                #print('max_prediction B: ',self.predictions.max())
+                #print('len(self.predictions) B: ',len(self.predictions))
+            self.num_clusters = self.predictions.max()+1 # !issue: by test config assert(self.num_clusters == 10) get 9
+                #print('num_clusters: ',self.num_clusters)
+            self.confidence = torch.cat(confidences)
+            dataset_size = len(self.dataset)
+
+            feature_tensor = torch.nn.functional.normalize(feature_tensor, dim = 1)
+
+            idx_list = []
+            for i in range(len(feature_tensor)):
+                feature = torch.unsqueeze(feature_tensor[i],dim=0)
+                similarities = torch.mm(feature,feature_tensor.t())
+                scores, idx_ = similarities.topk(k=kNN, dim=1)
+                idx_list.append(idx_)
+            idx_k = torch.cat(idx_list)
+
+            labels_topk = torch.zeros_like(idx_k)
+            confidence_topk = torch.zeros_like(idx_k,dtype=torch.float)
+            for s in range(kNN):
+                labels_topk[:, s] = self.predictions[idx_k[:, s]]
+                confidence_topk[:, s] = self.confidence[idx_k[:, s]]
+            
+            kNN_consistent = labels_topk[:, 0:1] == labels_topk # <boolean mask>
+            #kNN_labels = labels_topk
+            if extended_consistency > 0:
+                kNN_confidences = confidence_topk
+                criterion_consistent = []
+                for i in range(dataset_size):
+                    confids = kNN_confidences[i][kNN_consistent[i]] # +logical_index > +true for index of consistent label; +size=knn > +indexes topk instances
+                    real = confids > 0.5
+                    criterion_consistent.append(sum(real)/kNN)
+                self.local_consistency = torch.Tensor(criterion_consistent)
+            else: self.local_consistency = kNN_consistent.sum(dim=1)/kNN
+
+            self.dataset.transform = None
+
+    def __getitem__(self, index):
+
+        datadict = self.dataset[index]
+        image = datadict['image']
+
+        weak_img = self.weak_transform(image)
+        strong_img = self.strong_transform(image)
+        consistency = self.local_consistency[index]
+
+        return weak_img, strong_img, consistency
 
 
 
-def to_value(v):
-    if isinstance(v,torch.Tensor):
-        v = v.item()        
-    return v
+
+            
+            
+            
 
 
 class CIFAR10(Dataset):
@@ -992,3 +1097,8 @@ class STL10_eval(torchvision.datasets.VisionDataset):
         return out
 
         #return imgs, target
+
+def to_value(v):
+    if isinstance(v,torch.Tensor):
+        v = v.item()        
+    return v

@@ -411,6 +411,7 @@ def pseudolabel_train(train_loader, model, criterion, optimizer, epoch, train_ar
 
     model.train()
     model = model.to(device) # OK(%-cexp_00)
+    #model.zero_grad()
     #criterion = criterion.to(device)
     
     #print('MODEL AFTER CRITICAL EXPRESSION 2: ',type(model))
@@ -449,3 +450,65 @@ def pseudolabel_train(train_loader, model, criterion, optimizer, epoch, train_ar
         optimizer.step()
 
     #criterion.to(device)
+
+def fixmatch_train(device,model,labeled_loader,unlabeled_loader,optimizer,train_steps,threshold=0.99,temperature=0.5,lambda_u=0.5,augmented=False):
+    
+
+    model.train()
+    #model.zero_grad()
+    optimizer.zero_grad()
+
+    losses = AverageMeter()
+    #losses_x = AverageMeter()
+    #losses_u = AverageMeter()
+
+    labeled_iter = iter(labeled_loader)
+    unlabeled_iter = iter(unlabeled_loader)
+
+    for _ in range(train_steps):
+
+        l_batch = next(labeled_iter)
+
+        if augmented: input_imgs = l_batch['image_augment']
+        else: input_imgs = l_batch['image']
+
+        input_imgs = input_imgs.to(device)
+        targets = l_batch['target']
+        inputs = model(input_imgs)
+        targets = targets.to(device)
+
+        Lx = F.cross_entropy(inputs,targets,weight=None,reduction='mean')
+
+
+        weak_images, strong_images, consistencies = next(unlabeled_iter)
+
+        weak_images = weak_images.to(device)
+        strong_images = strong_images.to(device)
+        logits_u_w = model(weak_images) 
+        logits_u_s = model(strong_images)
+        pseudo_label = torch.softmax(logits_u_w.detach()/temperature, dim=-1)
+
+        max_probs, targets_u = torch.max(pseudo_label, dim=-1)
+        mask = max_probs.ge(threshold).float()
+        weight_mask = mask*consistencies
+
+        Lu = (F.cross_entropy(logits_u_s, targets_u, reduction='none') * weight_mask).mean()
+
+        loss = Lx + lambda_u*Lu
+        losses.update(loss.item())
+
+        loss.backward()
+        optimizer.step()
+
+
+    return losses.avg
+
+
+
+
+
+
+
+
+
+

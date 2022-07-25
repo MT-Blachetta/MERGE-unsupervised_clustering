@@ -443,7 +443,10 @@ def evaluation(device_id,p,model,loaders,start_stats,best_loss,last_loss):
                 test_split_data = Analysator(device_id,model,test_split_loader,forwarding='singleHead_eval') # OK
                 test_split_data.compute_kNN_statistics(100)
                 test_split_data.compute_real_consistency(0.5)
-                session_stats = test_split_data.return_statistic_summary(best_loss) if p['train_split'] == 'train' else train_split_data.return_statistic_summary(best_loss) # OK
+                train_split_session = train_split_data.return_statistic_summary(best_loss)
+                test_split_session = test_split_data.return_statistic_summary(best_loss)
+                session_stats = test_split_session if p['train_split'] == 'train' else train_split_session # OK
+
                 predictions = get_predictions(device_id, p, train_split_loader, model) #if p['train_split'] == 'train'  else  get_predictions(device_id, p, train_split_loader, model)
                 clustering_stats = hungarian_evaluate(device_id, model_checkpoint['head'], predictions,
                                                             class_names=train_split_loader.dataset.classes,
@@ -460,13 +463,15 @@ def evaluation(device_id,p,model,loaders,start_stats,best_loss,last_loss):
             else:
                 val_loader = loaders['val_loader']
                 val_data = Analysator(device_id,model,val_loader,forwarding='singleHead_eval')
+                val_data.compute_kNN_statistics(100)
+                val_data.compute_real_consistency(0.5)
+                session_stats = val_data.return_statistic_summary(best_loss)
                 predictions = get_predictions(device_id, p, val_loader, model) #if p['train_split'] == 'train'  else  get_predictions(device_id, p, train_split_loader, model)
                 clustering_stats = hungarian_evaluate(device_id, model_checkpoint['head'], predictions,
                                                             class_names=val_loader.dataset.classes,
                                                             compute_confusion_matrix=True,
                                                             confusion_matrix_file=os.path.join(p['scan_dir'],prefix+'_confusion_matrix.png'))
                 torch.save({'analysator': val_data,'parameter':p},'EVALUATION/'+rID+'/'+prefix+'_ANALYSATOR') # OK
-                session_stats = val_data.return_statistic_summary(best_loss)
             ##add_file_path('/home/blachm86/'+rID+'_files.txt',str(os.path.join(p['scan_dir'],prefix+'_confusion_matrix.png')))
 
 
@@ -493,7 +498,11 @@ def evaluation(device_id,p,model,loaders,start_stats,best_loss,last_loss):
                 test_split_data = Analysator(device_id,model,test_split_loader,forwarding='singleHead_eval')
                 test_split_data.compute_kNN_statistics(100)
                 test_split_data.compute_real_consistency(0.5)
-                session_stats = test_split_data.return_statistic_summary(best_loss) if p['train_split'] == 'train' else train_split_data.return_statistic_summary(best_loss)
+
+                train_split_session = train_split_data.return_statistic_summary(best_loss)
+                test_split_session = test_split_data.return_statistic_summary(best_loss)
+                session_stats = test_split_session if p['train_split'] == 'train' else train_split_session # OK
+
                 torch.save({'analysator': train_split_data,'parameter':p},'EVALUATION/'+rID+'/'+prefix+'TrainSplit_ANALYSATOR')
                 torch.save({'analysator': test_split_data,'parameter':p},'EVALUATION/'+rID+'/'+prefix+'TestSplit_ANALYSATOR')
             
