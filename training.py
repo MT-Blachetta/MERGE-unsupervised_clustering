@@ -138,10 +138,15 @@ def contrastive_clustering_STL10(device, model, optimizer, instance_dataloader, 
         x_i, x_j = batch['image']
         x_i = x_i.to(device)
         x_j = x_j.to(device)
+        print('x_i € ',x_i.shape)
 
         z_i, z_j, c_i, c_j = model(x_i, x_j)
+        print('z_i € ',z_i.shape)
+        print('c_j € ',c_i.shape)
         loss_instance = instance_criterion(z_i, z_j)
         loss_cluster = cluster_criterion(c_i, c_j)
+
+        if step % 20 == 0: print(f"Step [{step}/{len(cluster_dataloader)}]\t loss_instance: {loss_instance.item()}\t loss_cluster: {loss_cluster.item()}")
 
         instance_losses.update(loss_instance.item())
         cluster_losses.update(loss_cluster.item())
@@ -152,7 +157,7 @@ def contrastive_clustering_STL10(device, model, optimizer, instance_dataloader, 
         loss.backward()
         optimizer.step()
 
-        if step % 20 == 0: print(f"Step [{step}/{len(cluster_dataloader)}]\t loss_instance: {loss_instance.item()}\t loss_cluster: {loss_cluster.item()}")
+        
         #losses.update(loss.item())
 
     return (instance_losses.avg + cluster_losses.avg)*0.5, 0
