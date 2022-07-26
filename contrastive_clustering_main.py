@@ -25,6 +25,10 @@ from evaluate import evaluate_singleHead, Analysator, logger
 from utils.evaluate_utils import get_predictions, scan_evaluate, hungarian_evaluate
 from execution_utils import evaluation
 import pandas as pd
+import os
+import yaml
+from easydict import EasyDict
+from utils.utils import mkdir_if_missing
 
 
 FLAGS = argparse.ArgumentParser(description='loss training')
@@ -35,7 +39,15 @@ FLAGS.add_argument('--root_dir', help='root directory for saves', default='RESUL
 
 args = FLAGS.parse_args()
 
-p = create_config(args.p ,args.root_dir, args.config, args.p)
+mkdir_if_missing('EVALUATION/'+args.p)
+with open(args.config, 'r') as stream:
+    config = yaml.safe_load(stream)
+    p = EasyDict()
+    # Copy
+    for k, v in config.items():
+        p[k] = v
+
+
 prefix = args.p
 p['prefix'] = args.p
 gpu_id = args.gpu
