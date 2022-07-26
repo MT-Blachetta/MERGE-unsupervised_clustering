@@ -115,8 +115,8 @@ def contrastive_clustering_STL10(device, model, optimizer, instance_dataloader, 
     instance_criterion.to(device)
     cluster_criterion.to(device)
 
-    instance_losses = AverageMeter()
-    cluster_losses = AverageMeter()
+    instance_losses = AverageMeter('instance_loss')
+    cluster_losses = AverageMeter('cluster_loss')
 
     for step, batch in enumerate(instance_dataloader):
         x_i, x_j = batch['image']
@@ -505,7 +505,7 @@ def fixmatch_train(device,model,labeled_loader,unlabeled_loader,optimizer,train_
     #model.zero_grad()
     model.to(device)
 
-    losses = AverageMeter()
+    losses = AverageMeter('loss')
     #losses_x = AverageMeter()
     #losses_u = AverageMeter()
 
