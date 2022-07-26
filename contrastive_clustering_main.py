@@ -54,6 +54,7 @@ gpu_id = args.gpu
 p['device'] = 'cuda:'+str(gpu_id)
 p['hidden_dim'] = 128
 p['num_heads'] = 0
+p['model_args'] = {'nheads': 0}
 #num_cluster = p['num_classes']
 #fea_dim = p['feature_dim']
 components = initialize_contrastive_clustering(p)
