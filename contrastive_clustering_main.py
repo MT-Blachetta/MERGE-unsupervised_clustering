@@ -55,13 +55,14 @@ p['device'] = 'cuda:'+str(gpu_id)
 p['hidden_dim'] = 128
 p['num_heads'] = 0
 p['model_args'] = {'nheads': 0}
+end_epoch = p['epochs']
+p['update_cluster_head_only'] = False
+p['rID'] = prefix
 #num_cluster = p['num_classes']
 #fea_dim = p['feature_dim']
 components = initialize_contrastive_clustering(p)
 
-end_epoch = p['epochs']
-p['update_cluster_head_only'] = False
-p['rID'] = prefix
+
 
 #prefix = p['prefix']
 #batch_loader = components['train_dataloader']
