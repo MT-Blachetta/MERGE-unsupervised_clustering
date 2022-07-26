@@ -75,7 +75,7 @@ optimizer = components['optimizer']
 train_one_epoch = components['train_method']
 val_loader = components['val_dataloader']
 
-best_loss = 1e5
+best_loss = 10000
 
 
  # Main loop
@@ -90,7 +90,10 @@ for epoch in range(0, end_epoch):
     print('Train ...')
     c_loss, _ = train_one_epoch(p['device'], model, optimizer, unlabeled_loader, labeled_loader, instance_criterion, cluster_criterion)
 
+
+    print('loss = ', c_loss)
     if c_loss < best_loss:
+        print('new best loss: ',best_loss,' --> ',c_loss)
         best_loss = c_loss
         torch.save(model.state_dict(),'PRODUCTS/'+prefix+'_best_model.pth')
 
