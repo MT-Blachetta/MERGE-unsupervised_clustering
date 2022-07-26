@@ -14,7 +14,7 @@ train_split: unlabeled
 val_split: both
 
 augmentation_type: twist
-augmentation_strategy: ScanAugmentation
+augmentation_strategy: scan
 
 augmentation_kwargs:
    local_crops_number: 0 
