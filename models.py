@@ -1,6 +1,7 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from torch.nn.functional import normalize
 
 class GeneralModel(nn.Module):
     def __init__(self,backbone,head):
@@ -766,3 +767,46 @@ class Sim2Sem(nn.Module):
 
         else:
             raise TypeError
+
+
+class Network(nn.Module):
+    def __init__(self, resnet, feature_dim, class_num):
+        super(Network, self).__init__()
+        self.resnet = resnet
+        self.feature_dim = feature_dim
+        self.cluster_num = class_num
+        self.instance_projector = nn.Sequential(
+            nn.Linear(self.resnet.rep_dim, self.resnet.rep_dim),
+            nn.ReLU(),
+            nn.Linear(self.resnet.rep_dim, self.feature_dim),
+        )
+        self.cluster_projector = nn.Sequential(
+            nn.Linear(self.resnet.rep_dim, self.resnet.rep_dim),
+            nn.ReLU(),
+            nn.Linear(self.resnet.rep_dim, self.cluster_num),
+            nn.Softmax(dim=1)
+        )
+
+    def forward(self, x, forward_pass = 'default'):
+
+        h = self.resnet(x)
+
+        if forward_pass == 'default':
+            return self.cluster_projector(h)
+
+        elif forward_pass == 'backbone':
+            return h
+
+        elif forward_pass == 'features':
+            return normalize(self.instance_projector(h), dim=1)
+
+        elif forward_pass == 'head':
+            return self.cluster_projector(x)
+
+        else: raise ValueError('invalid forward pass')
+
+    def forward_cluster(self, x):
+        h = self.resnet(x)
+        c = self.cluster_projector(h)
+        c = torch.argmax(c, dim=1)
+        return c

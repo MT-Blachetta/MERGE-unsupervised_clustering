@@ -384,22 +384,24 @@ class Analysator():
                 if model_type == 'contrastive_clustering':
                     image = image.to(device,non_blocking=True)
                     feats, _,preds, _ = model(image,image)
-                    features.append(feats)
-                    soft_labels.append(preds)
-                    max_confidence, prediction = torch.max(preds,dim=1) 
-                    predictions.append(prediction)
-                    confidences.append(max_confidence)
-                    labels.append(label)
+    
+                elif model_type == 'fixmatch_model':
+                    image = image.to(device,non_blocking=True)
+                    feats = model(image,forward_pass='features')
+                    preds = model(image)
+                    
                 else:
                     image = image.to(device,non_blocking=True)
-                    fea = model(image,forward_pass='features')
-                    features.append(fea)
-                    preds = model(fea,forward_pass=forwarding)
-                    soft_labels.append(preds)
-                    max_confidence, prediction = torch.max(preds,dim=1) 
-                    predictions.append(prediction)
-                    confidences.append(max_confidence)
-                    labels.append(label)
+                    feats = model(image,forward_pass='features')
+                    preds = model(feats,forward_pass=forwarding)
+
+
+                features.append(feats)
+                soft_labels.append(preds)
+                max_confidence, prediction = torch.max(preds,dim=1) 
+                predictions.append(prediction)
+                confidences.append(max_confidence)
+                labels.append(label)
 
         self.feature_tensor = torch.cat(features)
         self.softlabel_tensor = torch.cat(soft_labels)
