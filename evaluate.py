@@ -359,7 +359,7 @@ def to_value(v):
 
 
 class Analysator():
-    def __init__(self,device,model,dataloader,forwarding='head',class_names=['airplane','bird','car','cat','deer','dog','horse','monkey','ship','truck']):
+    def __init__(self,device,model,dataloader,forwarding='head',model_type='cluster_head',class_names=['airplane','bird','car','cat','deer','dog','horse','monkey','ship','truck']):
          
         model.eval()
         predictions = []
@@ -381,15 +381,25 @@ class Analysator():
                     image = batch[0]
                     label = batch[1]
 
-                image = image.to(device,non_blocking=True)
-                fea = model(image,forward_pass='features')
-                features.append(fea)
-                preds = model(fea,forward_pass=forwarding)
-                soft_labels.append(preds)
-                max_confidence, prediction = torch.max(preds,dim=1) 
-                predictions.append(prediction)
-                confidences.append(max_confidence)
-                labels.append(label)
+                if model_type == 'contrastive_clustering':
+                    image = image.to(device,non_blocking=True)
+                    feats, _,preds, _ = model(image,image)
+                    features.append(feats)
+                    soft_labels.append(preds)
+                    max_confidence, prediction = torch.max(preds,dim=1) 
+                    predictions.append(prediction)
+                    confidences.append(max_confidence)
+                    labels.append(label)
+                else:
+                    image = image.to(device,non_blocking=True)
+                    fea = model(image,forward_pass='features')
+                    features.append(fea)
+                    preds = model(fea,forward_pass=forwarding)
+                    soft_labels.append(preds)
+                    max_confidence, prediction = torch.max(preds,dim=1) 
+                    predictions.append(prediction)
+                    confidences.append(max_confidence)
+                    labels.append(label)
 
         self.feature_tensor = torch.cat(features)
         self.softlabel_tensor = torch.cat(soft_labels)

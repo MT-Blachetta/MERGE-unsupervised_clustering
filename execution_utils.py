@@ -422,7 +422,7 @@ def evaluate_standard(p,parameters):
     return pdict
 
 
-def evaluation(device_id,p,model,loaders,start_stats,best_loss,last_loss):
+def evaluation(device_id,p,model,loaders,start_stats,best_loss,last_loss,model_type='cluster_head'):
 
     rID = p['rID'] # OK
     prefix = p['prefix'] # OK
@@ -437,10 +437,10 @@ def evaluation(device_id,p,model,loaders,start_stats,best_loss,last_loss):
 
                 train_split_loader = loaders['train_split'] # OK
                 test_split_loader = loaders['test_split'] # OK
-                train_split_data = Analysator(device_id,model,train_split_loader,forwarding='singleHead_eval') # OK
+                train_split_data = Analysator(device_id,model,train_split_loader,forwarding='singleHead_eval',model_type=model_type) # OK
                 train_split_data.compute_kNN_statistics(100)
                 train_split_data.compute_real_consistency(0.5)
-                test_split_data = Analysator(device_id,model,test_split_loader,forwarding='singleHead_eval') # OK
+                test_split_data = Analysator(device_id,model,test_split_loader,forwarding='singleHead_eval',model_type=model_type) # OK
                 test_split_data.compute_kNN_statistics(100)
                 test_split_data.compute_real_consistency(0.5)
                 train_split_session = train_split_data.return_statistic_summary(best_loss)
@@ -462,7 +462,7 @@ def evaluation(device_id,p,model,loaders,start_stats,best_loss,last_loss):
 
             else:
                 val_loader = loaders['val_loader']
-                val_data = Analysator(device_id,model,val_loader,forwarding='singleHead_eval')
+                val_data = Analysator(device_id,model,val_loader,forwarding='singleHead_eval',model_type=model_type)
                 val_data.compute_kNN_statistics(100)
                 val_data.compute_real_consistency(0.5)
                 session_stats = val_data.return_statistic_summary(best_loss)
@@ -492,10 +492,10 @@ def evaluation(device_id,p,model,loaders,start_stats,best_loss,last_loss):
 
                 train_split_loader = loaders['train_split']
                 test_split_loader = loaders['test_split']
-                train_split_data = Analysator(device_id,model,train_split_loader,forwarding='singleHead_eval')
+                train_split_data = Analysator(device_id,model,train_split_loader,forwarding='singleHead_eval',model_type=model_type)
                 train_split_data.compute_kNN_statistics(100)
                 train_split_data.compute_real_consistency(0.5)
-                test_split_data = Analysator(device_id,model,test_split_loader,forwarding='singleHead_eval')
+                test_split_data = Analysator(device_id,model,test_split_loader,forwarding='singleHead_eval',model_type=model_type)
                 test_split_data.compute_kNN_statistics(100)
                 test_split_data.compute_real_consistency(0.5)
 
@@ -509,7 +509,7 @@ def evaluation(device_id,p,model,loaders,start_stats,best_loss,last_loss):
             else:
 
                 val_loader = loaders['val_loader']
-                metric_data = Analysator(device_id,model,val_loader,forwarding='singleHead_eval')
+                metric_data = Analysator(device_id,model,val_loader,forwarding='singleHead_eval',model_type=model_type)
                 metric_data.compute_kNN_statistics(100)
                 metric_data.compute_real_consistency(0.5)
                 session_stats = metric_data.return_statistic_summary(best_loss)
@@ -526,7 +526,7 @@ def evaluation(device_id,p,model,loaders,start_stats,best_loss,last_loss):
         best_copy = torch.load('PRODUCTS/'+prefix+'_best_model.pth',map_location='cpu')
         model.load_state_dict(best_copy)
         val_loader = loaders['val_loader']
-        metric_data = Analysator(device_id,model,val_loader)
+        metric_data = Analysator(device_id,model,val_loader,forwarding='head',model_type=model_type)
         metric_data.compute_kNN_statistics(100)
         metric_data.compute_real_consistency(0.5)
         session_stats = metric_data.return_statistic_summary(best_loss)

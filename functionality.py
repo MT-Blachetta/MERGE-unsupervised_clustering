@@ -308,6 +308,10 @@ def get_backbone(p):
         backbone = res18['backbone']
         #backbone_outdim = 512
 
+    elif backbone_model_ID in ["ResNet18","ResNet34","ResNet50"]:
+        from contrastive_clustering import ResNet, get_resnet
+        backbone = get_resnet(p['backbone'])
+
     elif backbone_model_ID == 'scatnet':
         from scatnet import ScatSimCLR
         backbone = ScatSimCLR(J=p['scatnet_args']['J'], L=p['scatnet_args']['L'], input_size=tuple(p['scatnet_args']['input_size']), res_blocks=p['scatnet_args']['res_blocks'],out_dim=p['scatnet_args']['out_dim'])
@@ -351,6 +355,16 @@ def get_head_model(p,backbone):
     elif model_type in ['spice_linearMLP','spice_batchnormMLP','spice_linearMLP_lastBatchnorm','spice_fullBatchnorm']:
         from models import Sim2Sem
         model = Sim2Sem(backbone,model_args)
+
+    elif model_type == 'contrastive_clustering':
+        from contrastive_clustering import Network
+        print('resNet Backbone dimension = ',backbone.rep_dim)
+        model = Network(backbone,p['feature_dim'],p['num_classes'])
+
+    elif model_type == 'fixmatch':
+        from contrastive_clustering import pseudolabelModel
+        print('resNet Backbone dimension = ',backbone.rep_dim)
+        model = pseudolabelModel(backbone,p['feature_dim'],p['num_classes'])
 
     else: raise ValueError
 
@@ -414,6 +428,11 @@ def get_criterion(p):
         from loss import ConfidenceBasedCE
         first_criterion = ConfidenceBasedCE(p['loss_args']['threshold'], p['loss_args']['apply_class_balancing'])
 
+    elif loss_ID == 'contrastive_clustering':
+        from loss import InstanceLoss, ClusterLoss
+        first_criterion = InstanceLoss(p['batch_size'],p['instance_temperature'])
+        second_criterion = ClusterLoss(p['num_classes'],p['cluster_temperature'])
+
     else: raise ValueError
 
     return first_criterion, second_criterion
@@ -453,6 +472,10 @@ def get_train_function(train_method):
     elif train_method == 'multitwist':
         from training import multihead_twist_train
         train_one_epoch = multihead_twist_train
+
+    elif train_method == 'contrastive_clustering_stl10':
+        from training import contrastive_clustering_STL10
+        train_one_epoch = contrastive_clustering_STL10
         
     else: raise ValueError
 
@@ -562,6 +585,54 @@ def initialize_training(p):
                         'augmentation': strong_transform}
 
     return components
+
+
+def initialize_contrastive_clustering(p):
+
+    train_transformation = get_augmentation(p)
+    
+    if p['train_db_name'] == 'stl-10':
+        from datasets import STL10, STL10_eval
+        dataset_unlabeled = STL10(split='unlabeled',transform=train_transformation, download=False)
+        dataset_label =  STL10_eval(path='/space/blachetta/data',aug=train_transformation)
+
+        unlabeled_loader = torch.utils.data.DataLoader(dataset_unlabeled, num_workers=p['num_workers'], 
+                                                        batch_size=p['batch_size'], pin_memory=True, collate_fn=collate_custom,
+                                                        drop_last=True, shuffle=True)
+
+        labeled_loader = torch.utils.data.DataLoader(dataset_label, num_workers=p['num_workers'], 
+                                                    batch_size=p['batch_size'], pin_memory=True, collate_fn=collate_custom,
+                                                    drop_last=True, shuffle=True)
+
+        dataset_loader = None
+
+    else: 
+        dataset_loader = get_train_dataloader(p,train_transformation)
+        unlabeled_loader = None
+        labeled_loader = None
+
+    instance_criterion, cluster_criterion = get_criterion(p) #@ref[criterion_retrieval]
+    train_one_epoch = get_train_function(p['train_method'])
+    val_loader = get_val_dataloader(p)
+    backbone = get_backbone(p)
+    model = get_head_model(p,backbone)
+    optimizer = get_optimizer(p,model)
+
+    components = {'train_dataloader': dataset_loader,
+                  'unlabeled_dataloader': unlabeled_loader,
+                  'labeled_dataloader': labeled_loader,
+                  'instance_criterion': instance_criterion, 
+                  'cluster_criterion': cluster_criterion,
+                  'model': model,
+                  'optimizer': optimizer,
+                  'train_method': train_one_epoch,
+                  'val_dataloader': val_loader }
+
+    return components
+
+
+
+
 
 
 def initialize_evaluation(p,best_model_path=''):

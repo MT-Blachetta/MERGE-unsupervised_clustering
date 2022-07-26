@@ -39,7 +39,6 @@ def simclr_train(train_loader, model, criterion, optimizer, epoch, train_args, s
 
     return losses.avg, 0
 
-
 def scan_train(train_loader, model, criterion, optimizer, epoch, train_args, second_criterion=None):
     """ 
     Train w/ SCAN-Loss
@@ -108,6 +107,55 @@ def scan_train(train_loader, model, criterion, optimizer, epoch, train_args, sec
             progress.display(i)
 
     return total_losses.avg, best_head
+
+def contrastive_clustering_STL10(device, model, optimizer, instance_dataloader, cluster_dataloader, instance_criterion, cluster_criterion):
+
+    model.train()
+    model.to(device)
+    instance_criterion.to(device)
+    cluster_criterion.to(device)
+
+    instance_losses = AverageMeter('ILoss', ':.4e')
+    cluster_losses = AverageMeter('CLoss', ':.4e')
+
+    for step, batch in enumerate(instance_dataloader):
+        x_i, x_j = batch['image']
+        x_i = x_i.to(device)
+        x_j = x_j.to(device)
+        z_i, z_j, c_i, c_j = model(x_i, x_j)
+        
+        loss_instance = instance_criterion(z_i, z_j)
+
+        optimizer.zero_grad()
+        loss_instance.backward()
+        optimizer.step()
+
+        if step % 50 == 0: print(f"Step [{step}/{len(instance_dataloader)}]\t loss_instance: {loss_instance.item()}")
+        instance_losses.update(loss_instance.item())
+
+    for step, batch in enumerate(cluster_dataloader):
+
+        x_i, x_j = batch['image']
+        x_i = x_i.to(device)
+        x_j = x_j.to(device)
+
+        z_i, z_j, c_i, c_j = model(x_i, x_j)
+        loss_instance = instance_criterion(z_i, z_j)
+        loss_cluster = cluster_criterion(c_i, c_j)
+
+        instance_losses.update(loss_instance.item())
+        cluster_losses.update(loss_cluster.item())
+
+        loss = loss_instance + loss_cluster
+
+        optimizer.zero_grad()
+        loss.backward()
+        optimizer.step()
+
+        if step % 50 == 0: print(f"Step [{step}/{len(cluster_dataloader)}]\t loss_instance: {loss_instance.item()}\t loss_cluster: {loss_cluster.item()}")
+        #losses.update(loss.item())
+
+    return (instance_losses.avg + cluster_losses.avg)*0.5, 0
 
 
 def selflabel_train(train_loader, model, criterion, optimizer, epoch, train_args, second_criterion=None):
@@ -255,7 +303,6 @@ def double_training(train_loader, model, criterion, optimizer, epoch, train_args
 
     return losses.avg, 0
 
-
 def multidouble_training(train_loader, model, criterion, optimizer, epoch, train_args, second_criterion=None):
 
     if train_args['update_cluster_head_only']:
@@ -402,6 +449,7 @@ def multihead_twist_train(train_loader, model, criterion, optimizer, epoch, trai
     return losses.avg, best_head
 
 
+
 def pseudolabel_train(train_loader, model, criterion, optimizer, epoch, train_args, use_softmax=False):
 
     device = 'cuda:'+str(train_args['gpu_id'])
@@ -449,14 +497,13 @@ def pseudolabel_train(train_loader, model, criterion, optimizer, epoch, train_ar
         loss.backward()
         optimizer.step()
 
-    #criterion.to(device)
 
 def fixmatch_train(device,model,labeled_loader,unlabeled_loader,optimizer,train_steps,threshold=0.99,temperature=0.5,lambda_u=0.5,augmented=False):
     
 
     model.train()
     #model.zero_grad()
-    optimizer.zero_grad()
+    model.to(device)
 
     losses = AverageMeter()
     #losses_x = AverageMeter()
@@ -497,6 +544,7 @@ def fixmatch_train(device,model,labeled_loader,unlabeled_loader,optimizer,train_
         loss = Lx + lambda_u*Lu
         losses.update(loss.item())
 
+        optimizer.zero_grad()
         loss.backward()
         optimizer.step()
 

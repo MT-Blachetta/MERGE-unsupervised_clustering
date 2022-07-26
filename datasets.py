@@ -970,7 +970,7 @@ class STL10(Dataset):
         Args:
             index (int): Index
         Returns:
-            tuple: (image, target) where target is index of the target class.
+            tuple: (image, target)  where target is index of the target class.
         """
         if self.labels is not None:
             img, target = self.data[index], int(self.labels[index])
