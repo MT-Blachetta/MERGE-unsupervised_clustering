@@ -40,4 +40,4 @@ eval_object.compute_real_consistency(0.5)
 results = eval_object.return_statistic_summary(0)
 print(results)
 
-torch.save(eval_object,'home/blachm86/contrastive_clustering_analysator.torch')
+torch.save(eval_object,'/home/blachm86/contrastive_clustering_analysator.torch')
