@@ -21,8 +21,7 @@ FLAGS.add_argument('-prefix',help='prefix name')
 FLAGS.add_argument('-root',help='root directory',default='SELFLABEL')
 
 
-def main():
-    args = FLAGS.parse_args()
+def main(args):
 
     #print('arguments.gpu = ',args.gpu)
     #print('arguments.prefix = ',args.prefix)
@@ -40,6 +39,7 @@ def main():
     #fea_dim = p['feature_dim']
     #p['model_args']['num_neurons'] = [fea_dim, fea_dim, num_cluster]
     params = initialize_fixmatch_training(p)
+    print('Initialization done')
 
     logging = logger({'args.prefix':str(args.prefix),'args.root':str(args.root),'args.config':str(args.config)},'SELFLABEL_Method')
     rlog = logger(value=p,unit_name=str(args.p),unit_type='<Session>')
@@ -128,4 +128,9 @@ def compute_accuracy(device,model,loader):
     print('PERFORMANCE: ',accuracy)
 
     return accuracy
+
+
+if __name__ == '__main__':
+    args = FLAGS.parse_args()
+    main(args)
 
