@@ -8,7 +8,7 @@ import torchvision.transforms as transforms
 
 
 
-checkpoint = torch.load('/home/blachm86/backbone_models/cc_stl10.tar',map_location='cpu')
+checkpoint = torch.load('/home/blachm86/backbone_models/cc_stl10_ra.pth',map_location='cpu')
 model_dict = checkpoint['net']
 
 backbone = get_resnet("ResNet34")
