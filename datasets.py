@@ -94,7 +94,7 @@ class NeighborsDataset(Dataset):
         
         return output
 
-class ReliableSamplesSet(Dataset): # §: ReliableSamplesSet_Initialisation
+class ReliableSamplesSet(Dataset): # ReliableSamplesSet --> labeled_dataset
 
     def __init__(self,dataset,eval_transform,strong_transform):
         super(ReliableSamplesSet, self).__init__()
@@ -112,8 +112,10 @@ class ReliableSamplesSet(Dataset): # §: ReliableSamplesSet_Initialisation
         self.consistency = None
 
 
-    def evaluate_samples(self,p,model,forwarding='head',knn=100,display=False):
+    def evaluate_samples(self,p,model,model_type='cluster_head',forwarding='head',knn=100,display=False):
 
+
+        label_ratio = p['labeled_samples_ratio']
         device = p['device']
         self.dataset.transform = self.eval_transform
 
@@ -141,6 +143,7 @@ class ReliableSamplesSet(Dataset): # §: ReliableSamplesSet_Initialisation
         #print('MODEL first critical expresssion: ',type(model))
 
 
+
         with torch.no_grad():      
             for batch in val_dataloader:
                 if isinstance(batch,dict):
@@ -150,10 +153,22 @@ class ReliableSamplesSet(Dataset): # §: ReliableSamplesSet_Initialisation
                     image = batch[0]
                     label = batch[1]
 
-                image = image.to(device,non_blocking=True) # OK(%-cexp_00)
-                fea = model(image,forward_pass='features')
-                features.append(fea)
-                preds = model(fea,forward_pass=forwarding)
+                if model_type == 'contrastive_clustering':
+                    image = image.to(device,non_blocking=True)
+                    feats, _,preds, _ = model(image,image)
+    
+                elif model_type == 'fixmatch_model':
+                    image = image.to(device,non_blocking=True)
+                    feats = model(image,forward_pass='features')
+                    preds = model(image)
+                    
+                else:
+                    image = image.to(device,non_blocking=True)
+                    feats = model(image,forward_pass='features')
+                    preds = model(feats,forward_pass=forwarding)
+
+
+                features.append(feats)
                 soft_labels.append(preds)
                 max_confidence, prediction = torch.max(preds,dim=1) 
                 predictions.append(prediction)
@@ -218,7 +233,7 @@ class ReliableSamplesSet(Dataset): # §: ReliableSamplesSet_Initialisation
             self.alternative_consistency = kNN_consistent.sum(dim=1)/knn
 
             self.consistency = torch.Tensor(criterion_consistent)
-            self.select_top_samples()
+            self.select_top_samples(label_ratio)
             self.dataset.transform = None
             
             if display: self.top_samples_accuracy()
@@ -240,26 +255,26 @@ class ReliableSamplesSet(Dataset): # §: ReliableSamplesSet_Initialisation
         if isinstance(input_img,list):
             return {'image':pred_img, 'image_augment': input_img[0], 'target': target}
         else:
-            return {'image':pred_img , 'image_augment':input_img, 'target':target} 
+            return {'image':pred_img , 'image_augment':input_img, 'target': target} 
 
 
-    def select_top_samples(self):
+    def select_top_samples(self,min_ratio=0.05,conf_ratio=0.99):
 
         print('len(dataset): ',len(self.dataset))
-        min_size = (len(self.dataset)/self.num_clusters)*0.05
+        min_size = (len(self.dataset)/self.num_clusters)*min_ratio
         print('min_size = ',min_size)
-        start_ratio_cf = 0.99
+        start_ratio_cf = conf_ratio
         #start_ratio_cs = 0.99
 
         confident_samples, num_confident = self.get_confident_samples(ratio=start_ratio_cf)
-        confirmed_samples, num_confirmed = self.get_consistent_samples(confident_samples)  # ,start_ratio_cs)
+        confirmed_samples, num_confirmed = self.get_consistent_samples(confident_samples,min_size)  # ,start_ratio_cs)
 
         while((num_confident < min_size) and (num_confirmed < 1)):
             
             start_ratio_cf -= 0.005
             print('reduce confidence to ', start_ratio_cf)
             confident_samples, num_confident = self.get_confident_samples(ratio=start_ratio_cf)
-            confirmed_samples, num_confirmed = self.get_consistent_samples(confident_samples)
+            confirmed_samples, num_confirmed = self.get_consistent_samples(confident_samples,min_size)
         
         self.index_mapping = []
 
@@ -292,11 +307,11 @@ class ReliableSamplesSet(Dataset): # §: ReliableSamplesSet_Initialisation
         return confirmed_samples, min_confirmed            
         
 
-    def get_consistent_samples(self,confident_samples):
+    def get_consistent_samples(self,confident_samples,min_size):
 
         ratio = 0.99
 
-        min_size = (len(self.dataset)/self.num_clusters)*0.05
+        #min_size = (len(self.dataset)/self.num_clusters)*0.05
         min_consistency = 100000000
         confirmed_samples = []
 
@@ -313,7 +328,7 @@ class ReliableSamplesSet(Dataset): # §: ReliableSamplesSet_Initialisation
             ratio -= 0.01
 
             if ratio < 0.899: 
-                confirmed_samples, min_consistency = self.get_alternative_consistence(confident_samples)
+                confirmed_samples, min_consistency = self.get_alternative_consistence(confident_samples,min_size)
                 if min_consistency < 1: return confirmed_samples, min_consistency
             else:
                 min_consistency = 100000000
@@ -330,12 +345,12 @@ class ReliableSamplesSet(Dataset): # §: ReliableSamplesSet_Initialisation
         print('min_confirmed = ',min_consistency)
         return confirmed_samples, min_consistency
 
-    def get_alternative_consistence(self,confident_samples):
+    def get_alternative_consistence(self,confident_samples,min_size):
         
         print('looking for alternative consistency criterion')
         ratio = 0.99
 
-        min_size = (len(self.dataset)/self.num_clusters)*0.05
+        #min_size = (len(self.dataset)/self.num_clusters)*0.05
         min_consistency = 100000000
         confirmed_samples = []
 
@@ -387,7 +402,7 @@ class ReliableSamplesSet(Dataset): # §: ReliableSamplesSet_Initialisation
         accuracy = accuracy_from_assignment(C,ri,ci)
         print('top_samples accuracy: ',accuracy)
 
-class consistencyDataset(Dataset):
+class consistencyDataset(Dataset): # --> UNlabeled_dataset
 
     def __init__(self,dataset,weak_aug,strong_aug):
         self.dataset = dataset
@@ -398,7 +413,7 @@ class consistencyDataset(Dataset):
     def __len__(self):
         return len(self.dataset)
 
-    def compute_consistency(self,p,model,forwarding='head',val_transform=None,kNN=100,extended_consistency=-1):
+    def compute_consistency(self,p,model,model_type='fixmatch_model',forwarding='head',val_transform=None,kNN=100,extended_consistency=-1): # execute for each epoch
         
         device = p['device']
         if val_transform:
@@ -423,23 +438,35 @@ class consistencyDataset(Dataset):
         #print('MODEL first critical expresssion: ',type(model))
 
 
+
         with torch.no_grad():      
             for batch in val_dataloader:
                 if isinstance(batch,dict):
                     image = batch['image']
-                    label = batch['target']
                 else:
                     image = batch[0]
-                    label = batch[1]
 
-                image = image.to(device,non_blocking=True) # OK(%-cexp_00)
-                fea = model(image,forward_pass='features')
-                features.append(fea)
-                preds = model(fea,forward_pass=forwarding)
+                if model_type == 'contrastive_clustering':
+                    image = image.to(device,non_blocking=True)
+                    feats, _,preds, _ = model(image,image)
+    
+                elif model_type == 'fixmatch_model':
+                    image = image.to(device,non_blocking=True)
+                    feats = model(image,forward_pass='features')
+                    preds = model(image)
+                    
+                else:
+                    image = image.to(device,non_blocking=True)
+                    feats = model(image,forward_pass='features')
+                    preds = model(feats,forward_pass=forwarding)
+
+
+                features.append(feats)
                 soft_labels.append(preds)
                 max_confidence, prediction = torch.max(preds,dim=1) 
                 predictions.append(prediction)
                 confidences.append(max_confidence)
+
 
             feature_tensor = torch.cat(features)
                 #self.softlabel_tensor = torch.cat(soft_labels)
@@ -497,8 +524,7 @@ class consistencyDataset(Dataset):
 
 
 
-            
-            
+              
             
 
 

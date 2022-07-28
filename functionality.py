@@ -51,12 +51,15 @@ def collate_custom(batch):
     raise TypeError(('Type is {}'.format(type(batch[0]))))
 
 
-def get_augmentation(p):
+def get_augmentation(p,aug_method=None,aug_type=None):
 
     """------------- Augmentation & Transformation --------------------"""
 
-    augmentation_method = p['augmentation_strategy']
-    augmentation_type = p['augmentation_type']
+    if aug_method is None: augmentation_method = p['augmentation_strategy']
+    else: augmentation_method = aug_method
+
+    if aug_type is None: augmentation_type = p['augmentation_type']
+    else: augmentation_type = aug_type
 
     if augmentation_type == 'scan': # <return_type> torch.Tensor
 
@@ -143,7 +146,6 @@ def get_augmentation(p):
     return train_transformation
 
 #train_transformations = get_train_transformations(p)
-
 
 def get_train_dataloader(p,train_transformation):
 
@@ -290,83 +292,144 @@ def get_val_dataloader(p):
 
 """ ------------- Build MODEL ------------------"""
 
-def get_backbone(p):
+def get_backbone(p,secondary=False):
 
-    backbone_model_ID = p['backbone']
+    if secondary:
+        
+        backbone_model_ID = p['fixmatch_model']['backbone']
 
-    # get Backbone model
+        if backbone_model_ID == 'lightly_resnet18':
+            resnet = torchvision.models.resnet18()
+            coreModel = nn.Sequential(*list(resnet.children())[:-1])
+            backbone = wrapped_resnet(coreModel)
+            #backbone_outdim = 512
 
-    if backbone_model_ID == 'lightly_resnet18':
-        resnet = torchvision.models.resnet18()
-        coreModel = nn.Sequential(*list(resnet.children())[:-1])
-        backbone = wrapped_resnet(coreModel)
-        #backbone_outdim = 512
+        elif backbone_model_ID in ['clPcl','resnet18']: # <return_type> dict{'backbone': ResNet(BasicBlock, [2, 2, 2, 2], **kwargs), 'dim': 512}
+            from models import resnet18
+            res18 = resnet18()
+            backbone = res18['backbone']
+            #backbone_outdim = 512
 
-    elif backbone_model_ID == 'clPcl': # <return_type> dict{'backbone': ResNet(BasicBlock, [2, 2, 2, 2], **kwargs), 'dim': 512}
-        from models import resnet18
-        res18 = resnet18()
-        backbone = res18['backbone']
-        #backbone_outdim = 512
+        elif backbone_model_ID in ["ResNet18","ResNet34","ResNet50"]:
+            from resnet import ResNet, get_resnet
+            backbone = get_resnet(backbone_model_ID)
 
-    elif backbone_model_ID in ["ResNet18","ResNet34","ResNet50"]:
-        from contrastive_clustering import ResNet, get_resnet
-        backbone = get_resnet(p['backbone'])
+        elif backbone_model_ID == 'scatnet':
+            from scatnet import ScatSimCLR
+            backbone = ScatSimCLR(J=p['fixmatch_model']['scatnet_args']['J'], L=p['fixmatch_model']['scatnet_args']['L'], input_size=tuple(p['fixmatch_model']['scatnet_args']['input_size']), res_blocks=p['fixmatch_model']['scatnet_args']['res_blocks'],out_dim=p['fixmatch_model']['scatnet_args']['out_dim'])
+            print('get scatnet backbone ')
+            #backbone_outdim = p['scatnet_args']['out_dim']
 
-    elif backbone_model_ID == 'scatnet':
-        from scatnet import ScatSimCLR
-        backbone = ScatSimCLR(J=p['scatnet_args']['J'], L=p['scatnet_args']['L'], input_size=tuple(p['scatnet_args']['input_size']), res_blocks=p['scatnet_args']['res_blocks'],out_dim=p['scatnet_args']['out_dim'])
-        print('get scatnet backbone ')
-        #backbone_outdim = p['scatnet_args']['out_dim']
+        else: raise ValueError
 
-    else: raise ValueError
+    else:
+        
+        backbone_model_ID = p['backbone']
+
+        # get Backbone model
+
+        if backbone_model_ID == 'lightly_resnet18':
+            resnet = torchvision.models.resnet18()
+            coreModel = nn.Sequential(*list(resnet.children())[:-1])
+            backbone = wrapped_resnet(coreModel)
+            #backbone_outdim = 512
+
+        elif backbone_model_ID in ['clPcl','resnet18']: # <return_type> dict{'backbone': ResNet(BasicBlock, [2, 2, 2, 2], **kwargs), 'dim': 512}
+            from models import resnet18
+            res18 = resnet18()
+            backbone = res18['backbone']
+            #backbone_outdim = 512
+
+        elif backbone_model_ID in ["ResNet18","ResNet34","ResNet50"]:
+            from resnet import ResNet, get_resnet
+            backbone = get_resnet(p['backbone'])
+
+        elif backbone_model_ID == 'scatnet':
+            from scatnet import ScatSimCLR
+            backbone = ScatSimCLR(J=p['scatnet_args']['J'], L=p['scatnet_args']['L'], input_size=tuple(p['scatnet_args']['input_size']), res_blocks=p['scatnet_args']['res_blocks'],out_dim=p['scatnet_args']['out_dim'])
+            print('get scatnet backbone ')
+            #backbone_outdim = p['scatnet_args']['out_dim']
+
+        else: raise ValueError
 
     return backbone
 
 
-def get_head_model(p,backbone):
+def get_head_model(p,backbone,secondary=False):
 
-    model_type = p['model_type']
-    p['model_args']['nheads'] = p['num_heads']
-    model_args = p['model_args']
-    hidden_dim = p['hidden_dim']
-    num_cluster = p['num_classes']
-    backbone_outdim = p['feature_dim']
 
-    if model_type == 'backbone':
-        model = backbone
+    if secondary:
+        
+        model_type = p['fixmatch_model']['model_type']
+        #hidden_dim = p['hidden_dim']
+        num_cluster = p['num_classes']
+        backbone_outdim = p['fixmatch_model']['feature_dim']
 
-    elif model_type == 'contrastiveModel':
-        from models import ContrastiveModel
-        model = ContrastiveModel({'backbone': backbone ,'dim': backbone_outdim },p['model_args']['head_type'],p['feature_dim'])
+        if model_type == 'clusterHeads':
+            from models import ClusteringModel
+            model_args = p['fixmatch_model']['model_args']
+            model = ClusteringModel(backbone = {'backbone': backbone ,'dim': backbone_outdim } , nclusters = num_cluster , m = model_args)
+        
+        elif model_type == 'mlpHead':
+            from models import MlpHeadModel
+            model_args = p['fixmatch_model']['model_args']
+            model = MlpHeadModel(backbone,backbone_outdim,model_args)
 
-    elif model_type == 'clusterHeads':
-        from models import ClusteringModel
-        model = ClusteringModel(backbone = {'backbone': backbone ,'dim': backbone_outdim } , nclusters = num_cluster , m = model_args)
-       
+        elif model_type in ['spice_linearMLP','spice_batchnormMLP','spice_linearMLP_lastBatchnorm','spice_fullBatchnorm']:
+            from models import Sim2Sem
+            model_args = p['fixmatch_model']['model_args']
+            model = Sim2Sem(backbone,model_args)
 
-    elif model_type == 'mlpHead':
-        from models import MlpHeadModel
-        model = MlpHeadModel(backbone,backbone_outdim,model_args)
+        elif model_type == 'cc_network':
+            from models import Network
+            print('resNet Backbone dimension = ',backbone.rep_dim)
+            model = Network(backbone,p['fixmatch_model']['feature_dim'],p['num_classes'])
 
-    elif model_type == 'twist':
-        from models import TWIST
-        model = TWIST(hidden_dim,num_cluster,backbone,backbone_outdim)
+        else: raise ValueError
 
-    elif model_type in ['spice_linearMLP','spice_batchnormMLP','spice_linearMLP_lastBatchnorm','spice_fullBatchnorm']:
-        from models import Sim2Sem
-        model = Sim2Sem(backbone,model_args)
+    else:
+        
+        model_type = p['model_type']
+        p['model_args']['nheads'] = p['num_heads']
+        model_args = p['model_args']
+        hidden_dim = p['hidden_dim']
+        num_cluster = p['num_classes']
+        backbone_outdim = p['feature_dim']
 
-    elif model_type == 'contrastive_clustering':
-        from contrastive_clustering import Network
-        print('resNet Backbone dimension = ',backbone.rep_dim)
-        model = Network(backbone,p['feature_dim'],p['num_classes'])
+        if model_type == 'backbone':
+            model = backbone
 
-    elif model_type == 'fixmatch':
-        from contrastive_clustering import pseudolabelModel
-        print('resNet Backbone dimension = ',backbone.rep_dim)
-        model = pseudolabelModel(backbone,p['feature_dim'],p['num_classes'])
+        elif model_type == 'contrastiveModel':
+            from models import ContrastiveModel
+            model = ContrastiveModel({'backbone': backbone ,'dim': backbone_outdim },p['model_args']['head_type'],p['feature_dim'])
 
-    else: raise ValueError
+        elif model_type == 'clusterHeads':
+            from models import ClusteringModel
+            model = ClusteringModel(backbone = {'backbone': backbone ,'dim': backbone_outdim } , nclusters = num_cluster , m = model_args)
+        
+        elif model_type == 'mlpHead':
+            from models import MlpHeadModel
+            model = MlpHeadModel(backbone,backbone_outdim,model_args)
+
+        elif model_type == 'twist':
+            from models import TWIST
+            model = TWIST(hidden_dim,num_cluster,backbone,backbone_outdim)
+
+        elif model_type in ['spice_linearMLP','spice_batchnormMLP','spice_linearMLP_lastBatchnorm','spice_fullBatchnorm']:
+            from models import Sim2Sem
+            model = Sim2Sem(backbone,model_args)
+
+        elif model_type == 'contrastive_clustering':
+            from contrastive_clustering import Network
+            print('resNet Backbone dimension = ',backbone.rep_dim)
+            model = Network(backbone,p['feature_dim'],p['num_classes'])
+
+        elif model_type == 'fixmatch':
+            from models import Network
+            print('resNet Backbone dimension = ',backbone.rep_dim)
+            model = Network(backbone,p['feature_dim'],p['num_classes'])
+
+        else: raise ValueError
 
     return model
 
@@ -555,6 +618,7 @@ def initialize_training(p):
         elif p['pretrain_type'] == 'spice':
             model = load_spice_model(model,p['pretrain_path'],p['model_type'])        
             model = transfer_multihead_model(p,model)
+        # elif p['pretrain_type'] == 'cc_network' # to do: implement
         else:
             pretrained = torch.load(p['pretrain_path'],map_location='cpu')
             model.load_state_dict(pretrained,strict=True)
@@ -631,7 +695,79 @@ def initialize_contrastive_clustering(p):
     return components
 
 
+def initialize_fixmatch_training(p):
 
+    # Dataset
+
+    dataset = get_dataset(p,None)
+    val_loader = get_val_dataloader(p)
+
+    strong_transform = get_augmentation(p)   
+    weak_transform = get_augmentation(p,aug_method='standard',aug_type='scan')
+    val_transform = transforms.Compose([
+                            transforms.CenterCrop(p['transformation_kwargs']['crop_size']),
+                            transforms.ToTensor(),
+                            transforms.Normalize(**p['transformation_kwargs']['normalize'])])
+    medium_transform = get_augmentation(p,aug_method='simclr',aug_type='scan')
+
+    from datasets import ReliableSamplesSet, consistencyDataset
+    unlabeled_data = consistencyDataset(dataset,weak_transform,strong_transform)
+    labeled_data = ReliableSamplesSet(dataset,val_transform,medium_transform)
+
+    # Model
+
+    pretrain_backbone = get_backbone(p)
+    pretrain_model = get_head_model(p,pretrain_backbone)
+
+    if p['pretrain_type'] == 'scan':
+        pretrained = torch.load(p['pretrain_path'],map_location='cpu')
+        pretrain_model.load_state_dict(pretrained['model'],strict=True)
+        pretrain_model = transfer_multihead_model(p,pretrain_model,pretrained['head'])
+    elif p['pretrain_type'] == 'spice':
+        pretrain_model = load_spice_model(pretrain_model,p['pretrain_path'],p['model_type'])        
+        pretrain_model = transfer_multihead_model(p,pretrain_model)
+    else: raise ValueError('not implemented')
+
+
+    backbone = get_backbone(p,secondary=True)
+    model = get_head_model(p,backbone,secondary=True)
+
+    if p['fixmatch_model']['pretrain_type'] == 'scan':
+        pretrained = torch.load(p['fixmatch_model']['pretrain_path'],map_location='cpu')
+        model.load_state_dict(pretrained['model'],strict=True)
+        model = transfer_multihead_model(p,model,pretrained['head'])
+        model_type = 'cluster_head'
+    elif p['fixmatch_model']['pretrain_type'] == 'spice':
+        model = load_spice_model(model,p['fixmatch_model']['pretrain_path'],p['fixmatch_model']['model_type'])        
+        model = transfer_multihead_model(p,model)
+        model_type = 'cluster_head'
+    else:
+        model_dict = torch.load(p['fixmatch_model']['pretrain_path'],map_location='cpu')
+        model.load_state_dict(model_dict,strict=True)
+        model_type = 'fixmatch_model'
+
+    optimizer = get_optimizer(p,model)
+
+    labeled_data.evaluate_samples(p,pretrain_model)
+
+    label_step = len(labeled_data)//p['batch_size']
+    unlabeled_step = len(unlabeled_data)//p['batch_size']
+
+    step_size = min(label_step,unlabeled_step)
+
+    labeled_loader = torch.utils.data.DataLoader(labeled_data, num_workers=p['num_workers'], 
+                                                batch_size=p['batch_size'], pin_memory=True, collate_fn=collate_custom,
+                                                drop_last=True, shuffle=True)
+
+    return {'label_dataloader': labeled_loader, 'unlabeled_dataset': unlabeled_data, 'validation_loader': val_loader, 'step_size': step_size, 'optimizer': optimizer, 'model': model, 'model_type': model_type}
+
+    
+
+
+
+
+
+    
 
 
 

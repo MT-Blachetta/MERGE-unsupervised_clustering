@@ -607,18 +607,28 @@ class Analysator():
         return consistent_mask.type(torch.bool) # in dataset size        
                       
         
-    def accuracy_from_selection(self,selection_mask):
+    def accuracy_from_selection(self,selection_mask,preselect_mask=None):
 
-        correct_subset = self.correct_samples[selection_mask]
+        #0# §(preselect_mask) --> correct_indicator
+        if preselect_mask is None:
+            correct_indicator = self.correct_samples
+        else:
+            correct_indicator = self.correct_samples[preselect_mask]
+        ###
+
+        correct_subset = correct_indicator[selection_mask]
 
         if len(correct_subset) < 1: return nan 
 
         return to_value(sum(correct_subset)/len(correct_subset))
         
         
-    def ratio_from_selection(self,selection_mask,boolean_tensor,relative=True):
+    def ratio_from_selection(self,selection_mask,boolean_tensor,preselect_mask=None,relative=True):
         
-        indicators = boolean_tensor[selection_mask]
+        if preselect_mask is None: boolean_selected = boolean_tensor
+        else: boolean_selected = boolean_tensor[preselect_mask]
+
+        indicators = boolean_selected[selection_mask]
         if len(indicators) == 0: return 0 
         
         if relative:
@@ -698,12 +708,15 @@ class Analysator():
         return result
 
 
-    def mean_from_selection(self,selection_mask,scalar_tensor):
+    def mean_from_selection(self,selection_mask,scalar_tensor,preselect_mask=None):
         
         if selection_mask is None:
             selection_mask = torch.full([self.dataset_size],True)
 
-        subset_values = scalar_tensor[selection_mask]
+        if preselect_mask is None:  scalar_select = scalar_tensor
+        else: scalar_select = scalar_tensor[preselect_mask]
+
+        subset_values = scalar_select[selection_mask]
         subset_size = len(subset_values)
 
         if subset_size == 0: return 0
@@ -928,9 +941,11 @@ class Analysator():
         if dataset_mask is None:
             selected_features = category_values
             subset_size = self.dataset_size
+            preselect_mask = None
         else:
             selected_features = self.select_mask(category_values,dataset_mask)
             subset_size = len(selected_features)
+            preselect_mask = dataset_mask
 
         if isinstance(category_values,torch.Tensor):
             bins = torch.unique(category_values)
@@ -946,11 +961,11 @@ class Analysator():
 
             subcategory_mask = self.match_value(selected_features,v)
             if func == 'accuracy':
-                amounts.append( self.accuracy_from_selection(subcategory_mask) )
+                amounts.append( self.accuracy_from_selection(subcategory_mask,dataset_mask) )
             elif func == 'mean':
-                amounts.append( self.mean_from_selection(subcategory_mask,value_base) )
+                amounts.append( self.mean_from_selection(subcategory_mask,value_base,dataset_mask) )
             elif func == 'ratio':
-                amounts.append( self.ratio_from_selection(subcategory_mask,value_base) )
+                amounts.append( self.ratio_from_selection(subcategory_mask,value_base,dataset_mask) )
             else: raise ValueError('not yet implemented')
 
         if return_type == 'list': 
@@ -1020,19 +1035,27 @@ class Analysator():
         else:
             return values == query
 
-    def scalar_cumulative_from_selection(self,selection_mask,scalar_tensor,func='accuracy',scalar_name='',val_range=[0,1.0],interval=0.1,returntype='pandas',values_to_count=None):
+
+#@doc: define a subset of the dataset from all samples with a chosen criterion --> selction_mask
+# We evaluate the real_value property from [scalar_tensor] to evaluate the number or ratio of samples with a certain property value
+# within the selected samples of the mask. 
+    def scalar_cumulative_from_selection(self,scalar_tensor,selection_mask=None,func='accuracy',scalar_name='',val_range=[0,1.0],interval=0.1,returntype='pandas',values_to_count=None):
 
         # init -----------------------------------
+        measurements = None
 
         if selection_mask is None:
-            selection_mask = torch.full([self.dataset_size],True)
-        
-        if values_to_count: 
-            measurements = values_to_count[selection_mask]
-        else: measurements = None
+            #selection_mask = torch.full([self.dataset_size],True)
+            subset_values = scalar_tensor
+            if values_to_count: measurements = values_to_count
+        else:
+            subset_values = scalar_tensor[selection_mask]
+            if values_to_count: measurements = values_to_count[selection_mask]
 
-        subset_values = scalar_tensor[selection_mask]
         subset_size = len(subset_values)
+
+
+
 
         # initialize index or column names
         names = []
@@ -1070,9 +1093,9 @@ class Analysator():
             #names.append(str(iv+interval))
             cmask =  subset_values >= iv+interval
             if func == 'accuracy':
-                values.append( self.accuracy_from_selection(cmask) )
+                values.append( self.accuracy_from_selection(cmask, selection_mask) )
             elif func == 'ratio':
-                values.append( self.ratio_from_selection(cmask,values_to_count) )
+                values.append( self.ratio_from_selection(cmask, values_to_count, selection_mask) )
             else:
                 counted_value = self.count_set(cmask,measurements,'ratio') # count_mode
                 values.append(counted_value)

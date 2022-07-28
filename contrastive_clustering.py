@@ -162,7 +162,6 @@ def get_resnet(name):
     return resnets[name]
 
 
-
 class pseudolabelModel(nn.Module):
     def __init__(self, resnet, feature_dim, class_num):
         super(pseudolabelModel, self).__init__()

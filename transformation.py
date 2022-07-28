@@ -306,6 +306,8 @@ class MultiCropAugmentation(object):
             crops.append(self.local_transfo(image))
         return crops
 
+#class weakAugment(object):
+#    def __init__(self,p):
 
 class StandardAugmentation(object):
 
