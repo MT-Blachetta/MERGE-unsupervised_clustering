@@ -34,10 +34,10 @@ def main(args):
     #p['train_args']['gpu_id'] = args.gpu
     p['device'] = 'cuda:'+str(args.gpu)
     p['prefix'] = args.prefix
-    #p['gpu_id'] = args.gpu
-    #num_cluster = p['num_classes']
-    #fea_dim = p['feature_dim']
-    #p['model_args']['num_neurons'] = [fea_dim, fea_dim, num_cluster]
+    p['gpu_id'] = args.gpu
+    num_cluster = p['num_classes']
+    fea_dim = p['feature_dim']
+    p['model_args']['num_neurons'] = [fea_dim, fea_dim, num_cluster]
     params = initialize_fixmatch_training(p)
     print('Initialization done')
 
