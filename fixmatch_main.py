@@ -42,7 +42,7 @@ def main(args):
     print('Initialization done')
 
     logging = logger({'args.prefix':str(args.prefix),'args.root':str(args.root),'args.config':str(args.config)},'SELFLABEL_Method')
-    rlog = logger(value=p,unit_name=str(args.p),unit_type='<Session>')
+    rlog = logger(value=p,unit_name=str(args.prefix),unit_type='<Session>')
     param_types = {k: str(type(params[k])) for k in params.keys() }
     rlog2 = logger(value=param_types,unit_name='programm_components',unit_type='datatypes:')
     rlog.add_element(rlog2)
