@@ -74,9 +74,10 @@ class MLP_head_model(nn.Module):
 
         else: ValueError('invalid forward pass')
 
-backbone = ScatSimCLR(J=2, L=16, input_size=(96, 96, 3), res_blocks=30, out_dim=128)
-backbone_dict = {'backbone': backbone, 'dim': 128}
-model = get_head_model(p,backbone_dict)
+backbone = get_backbone(p)
+#ScatSimCLR(J=2, L=16, input_size=(96, 96, 3), res_blocks=30, out_dim=128)
+#backbone_dict = {'backbone': backbone, 'dim': 128}
+model = get_head_model(p,backbone)
 
 scan_save = torch.load(pretrain_path,map_location='cpu')
 itext = model.load_state_dict(scan_save['model'])
