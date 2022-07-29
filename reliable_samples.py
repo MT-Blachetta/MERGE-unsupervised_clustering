@@ -45,7 +45,7 @@ dataloader = torch.utils.data.DataLoader(dataset, num_workers=8, batch_size=512,
 
 # Model
 
-p = {'backbone': 'scatnet', 'pretrain_type': 'scan', 'pretrain_path': '/home/blachm86/backbone_models/SCAN_best.pth', 'feature_dim': 128, 'hidden_dim': 128, 'scatnet_args': { 'J': 2, 'L': 16, 'input_size': [96, 96, 3] , 'res_blocks': 30, 'out_dim': 128 },
+p = {'num_classes': 10, 'backbone': 'scatnet', 'pretrain_type': 'scan', 'pretrain_path': '/home/blachm86/backbone_models/SCAN_best.pth', 'feature_dim': 128, 'hidden_dim': 128, 'scatnet_args': { 'J': 2, 'L': 16, 'input_size': [96, 96, 3] , 'res_blocks': 30, 'out_dim': 128 },
 'num_heads': 10, 'model_type': 'clusterHeads', 'model_args':{'head_type': 'mlp','aug_type': 'default','batch_norm': False, 'last_batchnorm': False, 'last_activation': 'None', 'drop_out': -1 } }
 
 num_cluster = p['num_classes']
