@@ -534,6 +534,8 @@ def fixmatch_train(device,model,labeled_loader,unlabeled_loader,consistency_tens
 
         u_batch = unlabeled_iter.next()
         indices = u_batch['index']
+        indices.to(device)
+        consistencies.to(device)
         weak_images = u_batch['weak_image']
         strong_images = u_batch['strong_image']
 
