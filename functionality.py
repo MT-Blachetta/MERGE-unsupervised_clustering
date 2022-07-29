@@ -768,7 +768,7 @@ def initialize_fixmatch_training(p):
                                                 batch_size=p['batch_size'], pin_memory=True, collate_fn=collate_custom,
                                                 drop_last=True, shuffle=True)
 
-    return {'base_dataloader': base_dataloader, 'label_dataloader': labeled_loader, 'unlabeled_dataloader': unlabeled_loader, 'validation_loader': val_loader, 'step_size': step_size, 'optimizer': optimizer, 'model': model, 'model_type': model_type}
+    return {'base_dataloader': base_dataloader, 'label_dataloader': labeled_loader, 'unlabeled_dataloader': unlabeled_loader, 'validation_loader': val_loader['val_loader'], 'step_size': step_size, 'optimizer': optimizer, 'model': model, 'model_type': model_type}
 
     
 
