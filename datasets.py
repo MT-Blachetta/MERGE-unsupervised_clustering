@@ -564,7 +564,7 @@ class fixmatchDataset(Dataset):
         strong_img = self.strong_transform(image)
 
 
-        return weak_img, strong_img, index
+        return {'weak_image':weak_img, 'strong_image':strong_img, 'index': index}
 
 
               

@@ -532,7 +532,10 @@ def fixmatch_train(device,model,labeled_loader,unlabeled_loader,consistency_tens
         Lx = F.cross_entropy(inputs,targets,weight=None,reduction='mean')
 
 
-        weak_images, strong_images, indices = unlabeled_iter.next()
+        u_batch = unlabeled_iter.next()
+        indices = u_batch['index']
+        weak_images = u_batch['weak_image']
+        strong_images = u_batch['strong_image']
 
         consistencies = consistency_tensor[indices]
 
