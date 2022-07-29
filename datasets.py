@@ -522,7 +522,49 @@ class consistencyDataset(Dataset): # --> UNlabeled_dataset
 
         return weak_img, strong_img, consistency
 
+class pseudolabelDataset(Dataset):
+    def __init__(self, dataset, indices, targets, default_transform, aug_transform):
+        self.dataset = dataset
+        self.sample_index = indices
+        self.pseudolabel = targets
+        self.transform = default_transform
+        self.augmentation = aug_transform
 
+    def __len__(self):
+        return len(self.sample_index)
+
+    def __getitem__(self, i):
+        index = self.sample_index[i]
+        ddict = self.dataset[index]
+
+        image = ddict['image']
+        target = self.pseudolabel[i]
+
+        original_img = self.transform(image)
+        augmented_img = self.augmentation(image)
+
+
+        return {'image': original_img , 'image_augment': augmented_img, 'target': target}
+
+class fixmatchDataset(Dataset):
+    def __init__(self,dataset,weak_aug,strong_aug):
+        self.dataset = dataset
+        self.weak_transform = weak_aug
+        self.strong_transform = strong_aug
+
+    def __len__(self):
+        return len(self.dataset)
+
+    def __getitem__(self, index):
+
+        datadict = self.dataset[index]
+        image = datadict['image']
+
+        weak_img = self.weak_transform(image)
+        strong_img = self.strong_transform(image)
+
+
+        return weak_img, strong_img, index
 
 
               

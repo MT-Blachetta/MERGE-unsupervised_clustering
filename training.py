@@ -503,7 +503,7 @@ def pseudolabel_train(train_loader, model, criterion, optimizer, epoch, train_ar
         optimizer.step()
 
 
-def fixmatch_train(device,model,labeled_loader,unlabeled_loader,optimizer,train_steps,threshold=0.99,temperature=0.5,lambda_u=0.5,augmented=False):
+def fixmatch_train(device,model,labeled_loader,unlabeled_loader,consistency_tensor,optimizer,train_steps,threshold=0.99,temperature=0.5,lambda_u=0.5,augmented=False):
     
 
     model.train()
@@ -532,7 +532,9 @@ def fixmatch_train(device,model,labeled_loader,unlabeled_loader,optimizer,train_
         Lx = F.cross_entropy(inputs,targets,weight=None,reduction='mean')
 
 
-        weak_images, strong_images, consistencies = next(unlabeled_iter)
+        weak_images, strong_images, indices = next(unlabeled_iter)
+
+        consistencies = consistency_tensor[indices]
 
         weak_images = weak_images.to(device)
         strong_images = strong_images.to(device)

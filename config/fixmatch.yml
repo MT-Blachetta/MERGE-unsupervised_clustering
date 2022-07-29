@@ -97,6 +97,9 @@ model_args: # softmax is performed over loss function
     last_activation: None
     drop_out: -1
 
+
+indexfile_path: /home/blachm86/scan_pseudolabels.ind
+
 fixmatch_model:
     backbone: ResNet34
     model_type: cc_network

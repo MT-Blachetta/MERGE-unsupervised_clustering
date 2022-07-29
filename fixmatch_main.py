@@ -49,7 +49,8 @@ def main(args):
     logging.add_element(rlog)
 
     labeled_dataloader = params['label_dataloader'] 
-    unlabeled_dataset = params['unlabeled_dataset'] 
+    unlabeled_dataloader = params['unlabeled_dataloader']
+    base_dataloader = params['base_dataloader']
     val_loader = params['validation_loader'] 
     step_size = params['step_size'] 
     optimizer = params['optimizer'] 
@@ -62,17 +63,14 @@ def main(args):
         
         print('\nepoch: ',epoch)
         #print('dataset_len = ',len(training_set))
-        unlabeled_dataset.compute_consistency(p,model,model_type)
-        unlabeled_loader = torch.utils.data.DataLoader(unlabeled_dataset, num_workers=p['num_workers'], 
-                                                    batch_size=p['batch_size'], pin_memory=True, collate_fn=collate_custom,
-                                                    drop_last=True, shuffle=True)
+        consistency_tensor = compute_consistency(p['device'],model,base_dataloader)
 
         lr = adjust_learning_rate(p, optimizer, epoch)
         print('Adjusted learning rate to {:.5f}'.format(lr))
 
             # Train
         print('Train ...')
-        fixmatch_train(p['device'],model,labeled_dataloader,unlabeled_loader,optimizer,step_size,threshold=p['confidence_threshold'],temperature=p['temperature'],lambda_u=p['lambda_u'],augmented=True)
+        fixmatch_train(p['device'],model,labeled_dataloader,unlabeled_dataloader,consistency_tensor,optimizer,step_size,threshold=p['confidence_threshold'],temperature=p['temperature'],lambda_u=p['lambda_u'],augmented=True)
         
         #@COMPONENT:Evaluation&Measures
         #val_dataset = copy.deepcopy(dataset)
@@ -91,6 +89,81 @@ def main(args):
     torch.save(model.state_dict(),'SELFLABEL/'+args.prefix+'_model.pth')
 
 
+
+def compute_consistency(device,model,val_dataloader,kNN=200,model_type='fixmatch_model',forwarding='head'): # execute for each epoch
+        
+
+        model.eval()
+        predictions = []
+        features = []
+        soft_labels = []
+        confidences = []
+
+        model = model.to(device) # OK(%-cexp_00)
+        #print('MODEL first critical expresssion: ',type(model))
+
+
+
+        with torch.no_grad():      
+            for batch in val_dataloader:
+                if isinstance(batch,dict):
+                    image = batch['image']
+                else:
+                    image = batch[0]
+
+                if model_type == 'contrastive_clustering':
+                    image = image.to(device)
+                    feats, _,preds, _ = model(image,image)
+    
+                elif model_type == 'fixmatch_model':
+                    image = image.to(device)
+                    feats = model(image,forward_pass='features')
+                    preds = model(image)
+                    
+                else:
+                    image = image.to(device)
+                    feats = model(image,forward_pass='features')
+                    preds = model(feats,forward_pass=forwarding)
+
+
+                features.append(feats)
+                soft_labels.append(preds)
+                max_confidence, prediction = torch.max(preds,dim=1) 
+                predictions.append(prediction)
+                confidences.append(max_confidence)
+
+
+            feature_tensor = torch.cat(features)
+                #self.softlabel_tensor = torch.cat(soft_labels)
+            self_predictions = torch.cat(predictions)
+                #print('max_prediction A: ',self.predictions.max())
+            self_predictions = self_predictions.type(torch.LongTensor)
+                #print('max_prediction B: ',self.predictions.max())
+                #print('len(self.predictions) B: ',len(self.predictions))
+            #self_num_clusters = self_predictions.max()+1 # !issue: by test config assert(self.num_clusters == 10) get 9
+                #print('num_clusters: ',self.num_clusters)
+            self_confidence = torch.cat(confidences)
+            #dataset_size = len(self_predictions)
+
+            feature_tensor = torch.nn.functional.normalize(feature_tensor, dim = 1)
+
+            idx_list = []
+            for i in range(len(feature_tensor)):
+                feature = torch.unsqueeze(feature_tensor[i],dim=0)
+                similarities = torch.mm(feature,feature_tensor.t())
+                scores, idx_ = similarities.topk(k=kNN, dim=1)
+                idx_list.append(idx_)
+            idx_k = torch.cat(idx_list)
+
+            labels_topk = torch.zeros_like(idx_k)
+            #confidence_topk = torch.zeros_like(idx_k,dtype=torch.float)
+            for s in range(kNN):
+                labels_topk[:, s] = self_predictions[idx_k[:, s]]
+                #confidence_topk[:, s] = self_confidence[idx_k[:, s]]
+            
+            kNN_consistent = labels_topk[:, 0:1] == labels_topk # <boolean mask>
+            #kNN_labels = labels_topk
+            return kNN_consistent.sum(dim=1)/kNN
 
 
 

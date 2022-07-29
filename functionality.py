@@ -178,6 +178,8 @@ def get_train_dataloader(p,train_transformation):
             from datasets import STL10_eval
             dataset = STL10_eval(path='/space/blachetta/data',aug=train_transformation)
         elif train_split == 'unlabeled':
+            dataset = STL10(split='unlabeled',transform=train_transformation, download=False)
+        elif train_split == 'train+unlabeled':
             dataset = STL10(split='train+unlabeled',transform=train_transformation, download=False)
         else: raise ValueError('Invalid stl10 split')
 
@@ -574,6 +576,8 @@ def get_dataset(p,train_transformation,train=True):
             from datasets import STL10_eval
             dataset = STL10_eval(path='/space/blachetta/data',aug=train_transformation)
         elif _split == 'unlabeled':
+            dataset = STL10(split='unlabeled',transform=train_transformation, download=False)
+        elif _split == 'train+unlabeled':
             dataset = STL10(split='train+unlabeled',transform=train_transformation, download=False)
         else: raise ValueError('Invalid stl10 split')
 
@@ -710,12 +714,14 @@ def initialize_fixmatch_training(p):
                             transforms.Normalize(**p['transformation_kwargs']['normalize'])])
     medium_transform = get_augmentation(p,aug_method='simclr',aug_type='scan')
 
-    from datasets import ReliableSamplesSet, consistencyDataset
-    unlabeled_data = consistencyDataset(dataset,weak_transform,strong_transform)
-    labeled_data = ReliableSamplesSet(dataset,val_transform,medium_transform)
+    from datasets import pseudolabelDataset, fixmatchDataset
+    unlabeled_data = fixmatchDataset(dataset,weak_transform,strong_transform)
+    reliable_samples = torch.load(p['indexfile_path'],map_location='cpu')
+    labeled_data = pseudolabelDataset(dataset, reliable_samples['sample_index'], reliable_samples['pseudolabel'], val_transform, medium_transform)
+    base_dataloader = get_train_dataloader(p,val_transform)
 
     # Model
-
+    """
     pretrain_backbone = get_backbone(p)
     pretrain_model = get_head_model(p,pretrain_backbone)
 
@@ -727,7 +733,7 @@ def initialize_fixmatch_training(p):
         pretrain_model = load_spice_model(pretrain_model,p['pretrain_path'],p['model_type'])        
         pretrain_model = transfer_multihead_model(p,pretrain_model)
     else: raise ValueError('not implemented')
-
+    """
 
     backbone = get_backbone(p,secondary=True)
     model = get_head_model(p,backbone,secondary=True)
@@ -748,18 +754,21 @@ def initialize_fixmatch_training(p):
 
     optimizer = get_optimizer(p,model)
 
-    labeled_data.evaluate_samples(p,pretrain_model)
+    #labeled_data.evaluate_samples(p,pretrain_model)
 
     label_step = len(labeled_data)//p['batch_size']
     unlabeled_step = len(unlabeled_data)//p['batch_size']
-
     step_size = min(label_step,unlabeled_step)
 
     labeled_loader = torch.utils.data.DataLoader(labeled_data, num_workers=p['num_workers'], 
                                                 batch_size=p['batch_size'], pin_memory=True, collate_fn=collate_custom,
                                                 drop_last=True, shuffle=True)
 
-    return {'label_dataloader': labeled_loader, 'unlabeled_dataset': unlabeled_data, 'validation_loader': val_loader, 'step_size': step_size, 'optimizer': optimizer, 'model': model, 'model_type': model_type}
+    unlabeled_loader = torch.utils.data.DataLoader(unlabeled_data, num_workers=p['num_workers'], 
+                                                batch_size=p['batch_size'], pin_memory=True, collate_fn=collate_custom,
+                                                drop_last=True, shuffle=True)
+
+    return {'base_dataloader': base_dataloader, 'label_dataloader': labeled_loader, 'unlabeled_dataloader': unlabeled_loader, 'validation_loader': val_loader, 'step_size': step_size, 'optimizer': optimizer, 'model': model, 'model_type': model_type}
 
     
 
