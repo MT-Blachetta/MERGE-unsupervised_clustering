@@ -162,7 +162,7 @@ for i in range(len(prediction_tensor)):
 
 consistencies = torch.Tensor(criterion_consistent)
 # alternative_consistency = kNN_consistent.sum(dim=1)/knn
-
+confidences = confidences.cpu()
 performance = 1.5*confidences + consistencies
 
 selection = []
