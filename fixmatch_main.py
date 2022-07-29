@@ -32,7 +32,9 @@ def main(args):
     #p['train_args'] = {}
     #p['train_args']['device'] = 'cuda'
     #p['train_args']['gpu_id'] = args.gpu
-    p['device'] = 'cuda:'+str(args.gpu)
+
+    p['device'] = 'cpu'
+    #p['device'] = 'cuda:'+str(args.gpu)
     p['prefix'] = args.prefix
     p['gpu_id'] = args.gpu
     num_cluster = p['num_classes']
