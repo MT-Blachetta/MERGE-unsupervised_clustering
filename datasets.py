@@ -447,16 +447,16 @@ class consistencyDataset(Dataset): # --> UNlabeled_dataset
                     image = batch[0]
 
                 if model_type == 'contrastive_clustering':
-                    image = image.to(device,non_blocking=True)
+                    image = image.to(device)
                     feats, _,preds, _ = model(image,image)
     
                 elif model_type == 'fixmatch_model':
-                    image = image.to(device,non_blocking=True)
+                    image = image.to(device)
                     feats = model(image,forward_pass='features')
                     preds = model(image)
                     
                 else:
-                    image = image.to(device,non_blocking=True)
+                    image = image.to(device)
                     feats = model(image,forward_pass='features')
                     preds = model(feats,forward_pass=forwarding)
 
@@ -506,7 +506,8 @@ class consistencyDataset(Dataset): # --> UNlabeled_dataset
                     real = confids > 0.5
                     criterion_consistent.append(sum(real)/kNN)
                 self.local_consistency = torch.Tensor(criterion_consistent)
-            else: self.local_consistency = kNN_consistent.sum(dim=1)/kNN
+            else: 
+                self.local_consistency = kNN_consistent.sum(dim=1)/kNN
 
             self.dataset.transform = None
 
