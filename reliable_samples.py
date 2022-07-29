@@ -3,7 +3,7 @@ import torchvision.transforms as transforms
 from scatnet import ScatSimCLR
 import torch
 import torch.nn as nn
-from functionality import collate_custom
+from functionality import collate_custom, get_backbone, get_head_model
 
 
 
@@ -45,73 +45,13 @@ dataloader = torch.utils.data.DataLoader(dataset, num_workers=8, batch_size=512,
 
 # Model
 
-class MLP(nn.Module): # id MlpHead
-    def __init__(self, num_neurons, batch_norm=True):
-        super(MLP, self).__init__()
-        num_layer = len(num_neurons) - 1
-        for i in range(num_layer):
-            layer_name = "lin{}".format(i+1)
-            layer = nn.Linear(num_neurons[i], num_neurons[i+1])
-            self.add_module(layer_name, layer)
+p = {'backbone': 'scatnet', 'pretrain_type': 'scan', 'pretrain_path': '/home/blachm86/backbone_models/SCAN_best.pth', 'feature_dim': 128, 'hidden_dim': 128, 'scatnet_args': { 'J': 2, 'L': 16, 'input_size': [96, 96, 3] , 'res_blocks': 30, 'out_dim': 128 },
+'num_heads': 10, 'model_type': 'clusterHeads', 'model_args':{'head_type': 'mlp','aug_type': 'default','batch_norm': False, 'last_batchnorm': False, 'last_activation': 'None', 'drop_out': -1 } }
 
-            if batch_norm:
-                layer_name = "bn{}".format(i+1)
-                layer = nn.BatchNorm1d(num_neurons[i+1])
-                self.add_module(layer_name, layer)
+num_cluster = p['num_classes']
+fea_dim = p['feature_dim']
+p['model_args']['num_neurons'] = [fea_dim, fea_dim, num_cluster]
 
-        self.num_layer = num_layer
-        self.batch_norm = batch_norm
-
-
-    def forward(self, x):
-        num_layer = self.num_layer
-
-        for i in range(num_layer):
-            layer_name = "lin{}".format(i+1)
-            layer = self.__getattr__(layer_name)
-            x = layer(x)
-
-            if self.batch_norm:
-                bn_name = "bn{}".format(i+1)
-                bn = self.__getattr__(bn_name)
-                x = bn(x)
-
-            if i < num_layer - 1:
-                x = F.relu(x, inplace=True)
-
-        return x
-
-
-class ClusteringModel(nn.Module):
-    def __init__(self, backbone, nclusters, nheads=1):
-        super(ClusteringModel, self).__init__()
-        self.backbone = backbone['backbone']
-        self.backbone_dim = backbone['dim']
-        self.nheads = nheads
-        assert(isinstance(self.nheads, int))
-        assert(self.nheads > 0)
-        #self.cluster_head = nn.ModuleList([nn.Linear(self.backbone_dim, nclusters) for _ in range(self.nheads)])
-        self.cluster_head = nn.ModuleList([MLP([self.backbone_dim,self.backbone_dim,nclusters]) for _ in range(self.nheads)])
-
-    def forward(self, x, forward_pass='default'):
-        if forward_pass == 'default':
-            features = self.backbone(x)
-            out = [cluster_head(features) for cluster_head in self.cluster_head]
-
-        elif forward_pass == 'backbone':
-            out = self.backbone(x)
-
-        elif forward_pass == 'head':
-            out = [cluster_head(x) for cluster_head in self.cluster_head]
-
-        elif forward_pass == 'return_all':
-            features = self.backbone(x)
-            out = {'features': features, 'output': [cluster_head(features) for cluster_head in self.cluster_head]}
-
-        else:
-            raise ValueError('Invalid forward pass {}'.format(forward_pass))
-
-        return out
 
 
 class MLP_head_model(nn.Module):
@@ -136,8 +76,7 @@ class MLP_head_model(nn.Module):
 
 backbone = ScatSimCLR(J=2, L=16, input_size=(96, 96, 3), res_blocks=30, out_dim=128)
 backbone_dict = {'backbone': backbone, 'dim': 128}
-
-model = ClusteringModel(backbone_dict,10,10)
+model = get_head_model(p,backbone_dict)
 
 scan_save = torch.load(pretrain_path,map_location='cpu')
 itext = model.load_state_dict(scan_save['model'])
@@ -243,10 +182,3 @@ label_index = torch.cat(selection)
 selected_predictions = prediction_tensor[label_index]
 
 torch.save({'sample_index': label_index, 'pseudolabel': selected_predictions},'/home/blachm86/scan_pseudolabels.ind')
-
-
-
-
-
-
-
