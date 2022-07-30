@@ -534,25 +534,25 @@ def fixmatch_train(device,model,labeled_loader,unlabeled_loader,consistency_tens
 
         u_batch = unlabeled_iter.next()
         indices = u_batch['index']
-        indices.to(device)
-        consistency_tensor.to(device)
+        #indices.to(device)
+        #consistency_tensor.to(device)
         weak_images = u_batch['weak_image']
         strong_images = u_batch['strong_image']
 
         consistencies = consistency_tensor[indices]
-        consistencies.to(device)
+        #consistencies.to(device)
 
         weak_images = weak_images.to(device)
         strong_images = strong_images.to(device)
         logits_u_w = model(weak_images) 
         logits_u_s = model(strong_images)
         pseudo_label = torch.softmax(logits_u_w.detach()/temperature, dim=-1)
-        pseudo_label.to(device)
+        #pseudo_label.to(device)
 
         max_probs, targets_u = torch.max(pseudo_label, dim=-1)
-        max_probs.to(device)
+        #max_probs.to(device)
         mask = max_probs.ge(threshold).float()
-        mask.to(device)
+        #mask.to(device)
         weight_mask = mask*consistencies
 
         Lu = (F.cross_entropy(logits_u_s, targets_u, reduction='none') * weight_mask).mean()
@@ -566,6 +566,72 @@ def fixmatch_train(device,model,labeled_loader,unlabeled_loader,consistency_tens
 
 
     return losses.avg
+
+
+def fixmatch_trainV2(device,model,labeled_loader,unlabeled_loader,consistency_tensor,optimizer,threshold=0.99,temperature=0.5,lambda_u=0.5,augmented=False):
+
+    model.train()
+    #model.zero_grad()
+    model.to(device)
+
+    label_losses = AverageMeter('label_loss')
+    unlabeled_losses = AverageMeter('unlabeled_loss')
+
+    for batch in labeled_loader:
+
+        optimizer.zero_grad()
+
+        if augmented: input_imgs = batch['image_augment']
+        else: input_imgs = batch['image']
+
+        input_imgs = input_imgs.to(device)
+        targets = batch['target']
+        inputs = model(input_imgs)
+        targets = targets.to(device)
+
+        loss = F.cross_entropy(inputs,targets,weight=None,reduction='mean')
+
+        label_losses.update(loss.item())
+
+
+        loss.backward()
+        optimizer.step()
+
+    for batch in unlabeled_loader:
+
+        optimizer.zero_grad()
+
+        weak_images = batch['weak_image']
+        strong_images = batch['strong_image']
+        indices = batch['indices']
+
+        consistencies = consistency_tensor[indices]
+
+        weak_images = weak_images.to(device)
+        strong_images = strong_images.to(device)
+        logits_u_w = model(weak_images) 
+        logits_u_s = model(strong_images)
+        pseudo_label = torch.softmax(logits_u_w.detach()/temperature, dim=-1)
+        pseudo_label.to(device)
+
+        max_probs, targets_u = torch.max(pseudo_label, dim=-1)
+        #max_probs.to(device)
+        mask = max_probs.ge(threshold).float()
+        #mask.to(device)
+        weight_mask = mask*consistencies
+
+        Lu = (F.cross_entropy(logits_u_s, targets_u, reduction='none') * weight_mask).mean()
+
+        loss = lambda_u*Lu
+
+        unlabeled_losses.update(loss.item())
+
+        loss.backward()
+        optimizer.step()
+
+    return (label_losses.avg + unlabeled_losses.avg)/2
+
+
 
 
 

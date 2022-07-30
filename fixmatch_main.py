@@ -29,12 +29,10 @@ def main(args):
     #print('arguments.root = ',args.root)
 
     p = create_config(args.prefix,args.root, args.config, args.prefix)
-    #p['train_args'] = {}
-    #p['train_args']['device'] = 'cuda'
-    #p['train_args']['gpu_id'] = args.gpu
 
-    p['device'] = 'cpu'
-    #p['device'] = 'cuda:'+str(args.gpu)
+
+    #p['device'] = 'cpu'
+    p['device'] = 'cuda:'+str(args.gpu)
     p['prefix'] = args.prefix
     p['gpu_id'] = args.gpu
     num_cluster = p['num_classes']
@@ -83,7 +81,7 @@ def main(args):
         #metric_data = Analysator(p['device'],model,val_loader)
         #print('Accuracy: ',metric_data.get_accuracy())
 
-        #compute_accuracy('cuda:0',model,val_loader) <--------------------------------------------------------- RE_ACTIVATE !
+        compute_accuracy(p['device'],model,val_loader)
 
 
     final_accuracy = compute_accuracy(p['device'],model,val_loader)
@@ -148,7 +146,7 @@ def compute_consistency(device,model,val_dataloader,kNN=200,model_type='fixmatch
                 #print('len(self.predictions) B: ',len(self.predictions))
             #self_num_clusters = self_predictions.max()+1 # !issue: by test config assert(self.num_clusters == 10) get 9
                 #print('num_clusters: ',self.num_clusters)
-            self_confidence = torch.cat(confidences)
+            #self_confidence = torch.cat(confidences)
             #dataset_size = len(self_predictions)
 
             feature_tensor = torch.nn.functional.normalize(feature_tensor, dim = 1)
@@ -169,7 +167,12 @@ def compute_consistency(device,model,val_dataloader,kNN=200,model_type='fixmatch
             
             kNN_consistent = labels_topk[:, 0:1] == labels_topk # <boolean mask>
             #kNN_labels = labels_topk
-            return kNN_consistent.sum(dim=1)/kNN
+            consistencies = kNN_consistent.sum(dim=1)/kNN
+            #assert(len(consistencies) == 100000) <-------------- !
+            print(consistencies.shape)
+
+            return consistencies
+
 
 
 

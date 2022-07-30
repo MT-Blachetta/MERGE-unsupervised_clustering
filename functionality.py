@@ -294,6 +294,65 @@ def get_val_dataloader(p):
 
 """ ------------- Build MODEL ------------------"""
 
+def get_direct_valDataloader(p):
+    
+    # dataset:
+    from datasets import STL10_trainNtest, STL10_eval
+    train_split = p['train_split'] 
+
+    val_transformations = transforms.Compose([
+                                transforms.CenterCrop(p['transformation_kwargs']['crop_size']),
+                                transforms.ToTensor(),
+                                transforms.Normalize(**p['transformation_kwargs']['normalize'])])
+
+
+    if p['val_db_name'] == 'cifar-10':
+        from datasets import CIFAR10
+        #dataset = CIFAR10(train=True, transform=train_transformation, download=True)
+        eval_dataset = CIFAR10(train=False, transform=val_transformations, download=True)
+        val_dataloader = torch.utils.data.DataLoader(eval_dataset, num_workers=p['num_workers'],
+                            batch_size=p['batch_size'], pin_memory=True, collate_fn=collate_custom,
+                            drop_last=False, shuffle=False)
+        return val_dataloader
+
+    elif p['val_db_name'] == 'cifar-20':
+        from datasets import CIFAR20
+        #dataset = CIFAR20(train=True, transform=train_transformation, download=True)
+        eval_dataset = CIFAR20(train=False, transform=val_transformations, download=True)
+        val_dataloader = torch.utils.data.DataLoader(eval_dataset, num_workers=p['num_workers'],
+                            batch_size=p['batch_size'], pin_memory=True, collate_fn=collate_custom,
+                            drop_last=False, shuffle=False)
+        return  val_dataloader
+
+    elif p['val_db_name'] == 'stl-10':
+        if train_split in ['train','test']:
+            from datasets import STL10
+            train_dataset = STL10(split='train', transform=val_transformations, download=False)
+            test_dataset = STL10(split='test', transform=val_transformations, download=False)
+            train_loader = torch.utils.data.DataLoader(train_dataset, num_workers=p['num_workers'],
+                                batch_size=p['batch_size'], pin_memory=True, collate_fn=collate_custom,
+                                drop_last=False, shuffle=False)
+            test_loader = torch.utils.data.DataLoader(test_dataset, num_workers=p['num_workers'],
+                                batch_size=p['batch_size'], pin_memory=True, collate_fn=collate_custom,
+                                drop_last=False, shuffle=False)
+            return train_loader if train_split=='test' else test_loader
+
+        elif train_split in ['both','unlabeled','train+unlabeled']:
+            labeled_dataset = STL10_eval(path='/space/blachetta/data',aug=val_transformations)
+            val_dataloader = torch.utils.data.DataLoader(labeled_dataset, num_workers=p['num_workers'],
+                            batch_size=p['batch_size'], pin_memory=True, collate_fn=collate_custom,
+                            drop_last=False, shuffle=False)
+            return val_dataloader
+
+        else: 
+            raise ValueError('Invalid stl10 split')
+
+
+    else:
+        raise ValueError('Invalid train dataset {}'.format(p['train_db_name']))
+        
+
+
 def get_backbone(p,secondary=False):
 
     if secondary:
@@ -718,7 +777,7 @@ def initialize_fixmatch_training(p):
     unlabeled_data = fixmatchDataset(dataset,weak_transform,strong_transform)
     reliable_samples = torch.load(p['indexfile_path'],map_location='cpu')
     labeled_data = pseudolabelDataset(dataset, reliable_samples['sample_index'], reliable_samples['pseudolabel'], val_transform, medium_transform)
-    base_dataloader = get_train_dataloader(p,val_transform)
+    base_dataloader = get_direct_valDataloader(p)
 
     # Model
     """
