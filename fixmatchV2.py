@@ -111,7 +111,7 @@ def main(args):
         compute_accuracy(p['device'],use_model,val_dataloader)
 
 
-    final_accuracy = compute_accuracy(p['device'],model,val_dataloader)
+    final_accuracy = compute_accuracy(p['device'],use_model,val_dataloader)
 
    # with open('SELFLABEL/'+args.prefix+'_log.txt','w') as f:
    #     f.write(str(logging))
