@@ -132,4 +132,4 @@ optimizer_kwargs:
 
 
 ## Scheduler
-scheduler: constan
+scheduler: constant
