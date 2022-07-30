@@ -5,7 +5,7 @@ setup: fixmatch
 num_workers: 8
 
 ### Universal Parameters
-epochs: 2
+epochs: 100
 batch_size: 128
 
 update_cluster_head_only: False
@@ -73,7 +73,7 @@ transformation_kwargs:
 # <dependent>
 backbone: scatnet
 pretrain_type: scan
-pretrain_path: /home/blachm86/backbone_models/SCAN_best.pth
+#pretrain_path: /home/blachm86/backbone_models/SCAN_best.pth
 feature_dim: 128
 hidden_dim: 128
 scatnet_args: 
@@ -86,7 +86,7 @@ scatnet_args:
 #hidden_dim: 4096 # parameter for [backbone]:twist
 # <dependent>
 num_heads: 10
-model_type: clusterHeads
+#model_type: clusterHeads
 # <dependent>
 
 model_args: # softmax is performed over loss function
@@ -129,11 +129,13 @@ entropy_weight: 5.0 # scan_loss parameter
 ## optimizer
 
 # VERSION
-optimizer: adam
-optimizer_kwargs:
-   lr: 0.003
-   weight_decay: 0.0005
 
+optimizer: sgd
+optimizer_kwargs:
+   nesterov: True
+   weight_decay: 0.0005 
+   momentum: 0.9
+   lr: 0.003
 
 
 ## Scheduler
