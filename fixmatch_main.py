@@ -94,7 +94,7 @@ def main(args):
 
 
 
-def compute_consistency(device,model,val_dataloader,kNN=200,model_type='fixmatch_model',forwarding='head'): # execute for each epoch
+def compute_consistency(device,model,base_dataloader,kNN=200,model_type='fixmatch_model',forwarding='head'): # execute for each epoch
         
 
         model.eval()
@@ -109,7 +109,7 @@ def compute_consistency(device,model,val_dataloader,kNN=200,model_type='fixmatch
 
 
         with torch.no_grad():      
-            for batch in val_dataloader:
+            for batch in base_dataloader:
                 if isinstance(batch,dict):
                     image = batch['image']
                 else:
@@ -169,7 +169,7 @@ def compute_consistency(device,model,val_dataloader,kNN=200,model_type='fixmatch
             #kNN_labels = labels_topk
             consistencies = kNN_consistent.sum(dim=1)/kNN
             #assert(len(consistencies) == 100000) <-------------- !
-            print(consistencies.shape)
+            print('Consistency_tensor SHAPE = ',consistencies.shape)
 
             return consistencies
 

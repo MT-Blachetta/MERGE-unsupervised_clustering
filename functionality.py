@@ -325,19 +325,16 @@ def get_direct_valDataloader(p):
         return  val_dataloader
 
     elif p['val_db_name'] == 'stl-10':
-        if train_split in ['train','test']:
+        if train_split in ['train','test','unlabeled','train+unlabeled']:
             from datasets import STL10
-            train_dataset = STL10(split='train', transform=val_transformations, download=False)
-            test_dataset = STL10(split='test', transform=val_transformations, download=False)
+            train_dataset = STL10(split=train_split, transform=val_transformations, download=False)
             train_loader = torch.utils.data.DataLoader(train_dataset, num_workers=p['num_workers'],
                                 batch_size=p['batch_size'], pin_memory=True, collate_fn=collate_custom,
-                                drop_last=False, shuffle=False)
-            test_loader = torch.utils.data.DataLoader(test_dataset, num_workers=p['num_workers'],
-                                batch_size=p['batch_size'], pin_memory=True, collate_fn=collate_custom,
-                                drop_last=False, shuffle=False)
-            return train_loader if train_split=='test' else test_loader
+                                drop_last=False, shuffle=False) # OK
 
-        elif train_split in ['both','unlabeled','train+unlabeled']:
+            return train_loader
+
+        elif train_split == 'both':
             labeled_dataset = STL10_eval(path='/space/blachetta/data',aug=val_transformations)
             val_dataloader = torch.utils.data.DataLoader(labeled_dataset, num_workers=p['num_workers'],
                             batch_size=p['batch_size'], pin_memory=True, collate_fn=collate_custom,
@@ -794,8 +791,8 @@ def initialize_fixmatch_training(p):
     else: raise ValueError('not implemented')
     """
 
-    backbone = get_backbone(p,secondary=True)
-    model = get_head_model(p,backbone,secondary=True)
+    backbone = get_backbone(p,secondary=True) # OK
+    model = get_head_model(p,backbone,secondary=True) # OK
 
     if p['fixmatch_model']['pretrain_type'] == 'scan':
         pretrained = torch.load(p['fixmatch_model']['pretrain_path'],map_location='cpu')
