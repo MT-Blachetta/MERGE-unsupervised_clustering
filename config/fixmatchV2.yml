@@ -92,9 +92,9 @@ model_type: clusterHeads
 model_args: # softmax is performed over loss function
     head_type: mlp
     aug_type: default
-    batch_norm: False
+    batch_norm: True
     last_batchnorm: False
-    last_activation: None
+    last_activation: softmax
     drop_out: -1
 
 
@@ -131,8 +131,8 @@ entropy_weight: 5.0 # scan_loss parameter
 # VERSION
 optimizer: adam
 optimizer_kwargs:
-   lr: 0.0001
-   weight_decay: 0.0001
+   lr: 0.003
+   weight_decay: 0.0005
 
 
 

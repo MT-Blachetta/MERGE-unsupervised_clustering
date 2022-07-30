@@ -66,8 +66,9 @@ def get_augmentation(p,aug_method=None,aug_type=None):
         if p['augmentation_strategy'] == 'standard':
             # Standard augmentation strategy
             train_transformation = transforms.Compose([
-                transforms.RandomResizedCrop(**p['augmentation_kwargs']['random_resized_crop']),
+                #transforms.RandomResizedCrop(**p['augmentation_kwargs']['random_resized_crop']),
                 transforms.RandomHorizontalFlip(),
+                transforms.RandomAffine(degrees=0, translate=(0.125,0.125)),
                 transforms.ToTensor(),
                 transforms.Normalize(**p['augmentation_kwargs']['normalize'])
             ])
