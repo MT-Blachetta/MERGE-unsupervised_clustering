@@ -540,15 +540,19 @@ def fixmatch_train(device,model,labeled_loader,unlabeled_loader,consistency_tens
         strong_images = u_batch['strong_image']
 
         consistencies = consistency_tensor[indices]
+        consistencies.to(device)
 
         weak_images = weak_images.to(device)
         strong_images = strong_images.to(device)
         logits_u_w = model(weak_images) 
         logits_u_s = model(strong_images)
         pseudo_label = torch.softmax(logits_u_w.detach()/temperature, dim=-1)
+        pseudo_label.to(device)
 
         max_probs, targets_u = torch.max(pseudo_label, dim=-1)
+        max_probs.to(device)
         mask = max_probs.ge(threshold).float()
+        mask.to(device)
         weight_mask = mask*consistencies
 
         Lu = (F.cross_entropy(logits_u_s, targets_u, reduction='none') * weight_mask).mean()
