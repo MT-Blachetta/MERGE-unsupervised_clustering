@@ -65,9 +65,9 @@ def main(args):
         
         print('\nepoch: ',epoch)
         #print('dataset_len = ',len(training_set))
-        consistency_tensor = compute_consistency('cuda:0',model,base_dataloader)
-        consistency_tensor.detach().cpu()
-        model.to('cpu')
+        consistency_tensor = compute_consistency(p['device'],model,base_dataloader)
+        #consistency_tensor.detach().cpu()
+        #model.to('cpu')
 
         lr = adjust_learning_rate(p, optimizer, epoch)
         print('Adjusted learning rate to {:.5f}'.format(lr))
@@ -83,7 +83,7 @@ def main(args):
         #metric_data = Analysator(p['device'],model,val_loader)
         #print('Accuracy: ',metric_data.get_accuracy())
 
-        #compute_accuracy('cuda:0',model,val_loader) <---------------------------------------------------------
+        #compute_accuracy('cuda:0',model,val_loader) <--------------------------------------------------------- RE_ACTIVATE !
 
 
     final_accuracy = compute_accuracy(p['device'],model,val_loader)
