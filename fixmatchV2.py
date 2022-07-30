@@ -57,7 +57,8 @@ def main(args):
     model = get_head_model(p,backbone,secondary=True) # OK
 
     model_dict = torch.load(p['fixmatch_model']['pretrain_path'],map_location='cpu')
-    model.load_state_dict(model_dict,strict=True)
+    ltext = model.load_state_dict(model_dict,strict=True)
+    print(ltext)
         #model_type = 'fixmatch_model'
 
     from models import MlpHeadModel
