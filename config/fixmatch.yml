@@ -5,8 +5,8 @@ setup: fixmatch
 num_workers: 8
 
 ### Universal Parameters
-epochs: 2
-batch_size: 128
+epochs: 100
+batch_size: 256
 
 update_cluster_head_only: False
 
