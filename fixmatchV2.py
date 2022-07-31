@@ -208,7 +208,7 @@ def compute_consistency(device,model,base_dataloader,kNN=200,model_type='fixmatc
             #kNN_labels = labels_topk
             consistencies = kNN_consistent.sum(dim=1)/kNN
             #assert(len(consistencies) == 100000) <-------------- !
-            print('Consistency_tensor SHAPE = ',consistencies.shape)
+            #print('Consistency_tensor SHAPE = ',consistencies.shape)
 
             return consistencies
 

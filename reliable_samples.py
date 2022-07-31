@@ -7,12 +7,12 @@ from functionality import collate_custom, get_backbone, get_head_model
 
 
 
-split = 'unlabeled'
+split = 'train+unlabeled'
 dataset_id = 'stl-10'
-pretrain_path = '/home/blachm86/backbone_models/SCAN_best.pth'
-model_type = 'clusterHead'
+pretrain_path = '/home/blachm86/backbone_models/cc_stl10.tar'
+model_type = 'fixmatch_model'
 device = 'cuda:0'
-samples_per_class = 128
+samples_per_class = 500
 
 kNN = 200
 num_classes = 10
@@ -45,8 +45,8 @@ dataloader = torch.utils.data.DataLoader(dataset, num_workers=8, batch_size=512,
 
 # Model
 
-p = {'num_classes': 10, 'backbone': 'scatnet', 'pretrain_type': 'scan', 'pretrain_path': '/home/blachm86/backbone_models/SCAN_best.pth', 'feature_dim': 128, 'hidden_dim': 128, 'scatnet_args': { 'J': 2, 'L': 16, 'input_size': [96, 96, 3] , 'res_blocks': 30, 'out_dim': 128 },
-'num_heads': 10, 'model_type': 'clusterHeads', 'model_args':{'head_type': 'mlp','aug_type': 'default','batch_norm': False, 'last_batchnorm': False, 'last_activation': 'None', 'drop_out': -1 } }
+p = {'num_classes': 10, 'backbone': 'ResNet34', 'pretrain_type': 'fixmatch', 'pretrain_path': pretrain_path, 'feature_dim': 128, 'hidden_dim': 128, 'scatnet_args': { 'J': 2, 'L': 16, 'input_size': [96, 96, 3] , 'res_blocks': 30, 'out_dim': 128 },
+'num_heads': 10, 'model_type': 'fixmatch', 'model_args':{'head_type': 'mlp','aug_type': 'default','batch_norm': False, 'last_batchnorm': False, 'last_activation': 'None', 'drop_out': -1 } }
 
 num_cluster = p['num_classes']
 fea_dim = p['feature_dim']
@@ -79,15 +79,20 @@ backbone = get_backbone(p)
 #backbone_dict = {'backbone': backbone, 'dim': 128}
 model = get_head_model(p,backbone)
 
-scan_save = torch.load(pretrain_path,map_location='cpu')
-itext = model.load_state_dict(scan_save['model'])
+#scan_save = torch.load(pretrain_path,map_location='cpu')
+#itext = model.load_state_dict(scan_save['model'])
+#print('itext: ',itext)
+
+model_save = torch.load(pretrain_path,map_location='cpu')
+itext = model.load_state_dict(model_save)
 print('itext: ',itext)
 
-best_head = model.cluster_head[scan_save['head']]
+#best_head = model.cluster_head[scan_save['head']]
 #print('best_head: ',best_head)
 #torch.save(best_head.state_dict(),'scan_transfer_head.pth')
 
-eval_model = MLP_head_model(model.backbone,best_head)
+#eval_model = MLP_head_model(model.backbone,best_head)
+eval_model = model
 
 eval_model.eval()
 predictions = []
@@ -182,4 +187,4 @@ label_index = torch.cat(selection)
 
 selected_predictions = prediction_tensor[label_index]
 
-torch.save({'sample_index': label_index, 'pseudolabel': selected_predictions},'/home/blachm86/scan_pseudolabels.ind')
+torch.save({'sample_index': label_index, 'pseudolabel': selected_predictions},'/home/blachm86/train&unlabeled_5%.ind')
