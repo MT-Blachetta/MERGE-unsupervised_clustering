@@ -98,7 +98,7 @@ model_args: # softmax is performed over loss function
     drop_out: -1
 
 
-indexfile_path: /home/blachm86/pseudolabels_1p.ind
+indexfile_path: /home/blachm86/pseudolabel_1p.ind
 
 fixmatch_model:
     backbone: ResNet34
@@ -119,7 +119,7 @@ lambda_u: 1
 
 ### Training Algorithm with loss function
 
-train_method: fixmatch
+train_method: fixmatch # or fixmatchV2
 loss_type: scan_loss
 entropy_weight: 5.0 # scan_loss parameter
 
