@@ -115,7 +115,7 @@ temperature: 0.5
 lambda_u: 1
 # <dependent>
 
-
+warmup_epochs: 50
 
 ### Training Algorithm with loss function
 
