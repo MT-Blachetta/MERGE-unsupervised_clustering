@@ -5,7 +5,7 @@ setup: fixmatch
 num_workers: 8
 
 ### Universal Parameters
-epochs: 250
+epochs: 100
 batch_size: 256
 
 update_cluster_head_only: False
@@ -75,6 +75,7 @@ backbone: scatnet
 pretrain_type: scan
 #pretrain_path: /home/blachm86/backbone_models/SCAN_best.pth
 feature_dim: 128
+
 hidden_dim: 128
 scatnet_args: 
     J: 2
@@ -119,7 +120,7 @@ lambda_u: 1
 
 ### Training Algorithm with loss function
 
-train_method: fixmatch # or fixmatchV2
+train_method: fixmatchV2 # or fixmatch
 loss_type: scan_loss
 entropy_weight: 5.0 # scan_loss parameter
 
