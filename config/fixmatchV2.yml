@@ -1,6 +1,13 @@
 setup: fixmatch
 #prefix: SCAN_test_mlpHead
 
+consistency_weights: False
+train_method: fixmatchV1 # or fixmatchV1
+indexfile_path: /home/blachm86/pseudolabel_5p.ind
+train_split: train+unlabeled
+epochs: 200
+warmup_epochs: 50
+
 ### Technical Parameters (unimportant) FIXED
 num_workers: 8
 
@@ -16,7 +23,7 @@ update_cluster_head_only: False
 num_classes: 10
 train_db_name: stl-10
 val_db_name: stl-10
-train_split: unlabeled
+
 
 ## nearest neighbors scan loss related
 # for model training
@@ -119,11 +126,7 @@ lambda_u: 1
 
 ### Training Algorithm with loss function
 
-consistency_weights: False
-train_method: fixmatchV1 # or fixmatchV1
-indexfile_path: /home/blachm86/pseudolabel_5p.ind
-epochs: 200
-warmup_epochs: 50
+
 
 
 
