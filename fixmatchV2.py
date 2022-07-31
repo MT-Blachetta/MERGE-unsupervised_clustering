@@ -18,7 +18,7 @@ FLAGS = argparse.ArgumentParser(description='loss training')
 FLAGS.add_argument('-gpu',help='number as gpu identifier', default=0)
 FLAGS.add_argument('-config', help='path to the model files')
 FLAGS.add_argument('-prefix',help='prefix name')
-FLAGS.add_argument('-consistency',help='use local consistency weighting',default=1)
+#FLAGS.add_argument('-consistency',help='use local consistency weighting',default=1)
 FLAGS.add_argument('-add_augment', help='additional augmentation for the pseudolabel data', default=0)
 FLAGS.add_argument('-root',help='root directory',default='SELFLABEL')
 
@@ -91,7 +91,7 @@ def main(args):
     if p['train_method'] == 'fixmatchV2':
         train_one_epoch = fixmatch_trainV2
 
-    if args.consistency:
+    if p['consistency_weights']:
 
         for epoch in range(p['warmup_epochs']):          
             print('warm-up phase epoch: ',epoch)
