@@ -5,7 +5,7 @@ setup: fixmatch
 num_workers: 8
 
 ### Universal Parameters
-epochs: 100
+epochs: 250
 batch_size: 128
 
 update_cluster_head_only: False
@@ -98,7 +98,7 @@ model_args: # softmax is performed over loss function
     drop_out: -1
 
 
-indexfile_path: /home/blachm86/scan_pseudolabels.ind
+indexfile_path: /home/blachm86/pseudolabels_1p.ind
 
 fixmatch_model:
     backbone: ResNet34
