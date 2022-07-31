@@ -95,8 +95,10 @@ def main(args):
 
         for epoch in range(p['warmup_epochs']):          
             print('warm-up phase epoch: ',epoch)
+            lr = adjust_learning_rate(p, optimizer, epoch)
             train_one_epoch(p['device'],use_model,labeled_loader,unlabeled_loader,consistency_tensor,optimizer,step_size,threshold=p['confidence_threshold'],temperature=p['temperature'],lambda_u=p['lambda_u'],augmented=add_aug)
-        
+
+        optimizer = get_optimizer(p,model)   
         print('accuracy after warm-up phase: ')
         compute_accuracy(p['device'],use_model,val_dataloader)       
 
