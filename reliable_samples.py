@@ -12,7 +12,7 @@ dataset_id = 'stl-10'
 pretrain_path = '/home/blachm86/backbone_models/cc_stl10.tar'
 model_type = 'fixmatch_model'
 device = 'cuda:0'
-samples_per_class = 500
+samples_per_class = 1000
 
 kNN = 200
 num_classes = 10
@@ -187,4 +187,4 @@ label_index = torch.cat(selection)
 
 selected_predictions = prediction_tensor[label_index]
 
-torch.save({'sample_index': label_index, 'pseudolabel': selected_predictions},'/home/blachm86/train&unlabeled_5%.ind')
+torch.save({'sample_index': label_index, 'pseudolabel': selected_predictions},'/home/blachm86/train&unlabeled_10%.ind')
