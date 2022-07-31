@@ -133,10 +133,23 @@ entropy_weight: 5.0 # scan_loss parameter
 optimizer: sgd
 optimizer_kwargs:
    nesterov: True
-   weight_decay: 0.0005 
+   weight_decay: 0.0003
    momentum: 0.9
-   lr: 0.003
+   lr: 0.03
 
 
+
+scheduler: cosine
+scheduler_kwargs:
+   lr_decay_rate: 0.1
+   
 ## Scheduler
-scheduler: constant
+#scheduler: constant
+
+
+#optimizer: sgd
+#optimizer_kwargs:
+#   nesterov: False
+#   weight_decay: 0.0001 
+#   momentum: 0.9
+#   lr: 0.4
