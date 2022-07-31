@@ -10,7 +10,7 @@ import torch
 import copy
 import numpy as np
 from evaluate import get_cost_matrix, assign_classes_hungarian, accuracy_from_assignment
-from training import fixmatch_train
+from training import fixmatch_train, fixmatch_trainV2
 from functionality import get_backbone, get_head_model, get_augmentation ,get_dataset, get_val_dataloader, get_direct_valDataloader, get_optimizer
 
 #@ref=[main_command_line]
@@ -18,11 +18,14 @@ FLAGS = argparse.ArgumentParser(description='loss training')
 FLAGS.add_argument('-gpu',help='number as gpu identifier', default=0)
 FLAGS.add_argument('-config', help='path to the model files')
 FLAGS.add_argument('-prefix',help='prefix name')
+FLAGS.add_argument('-consistency',help='use local consistency weighting',default=1)
+FLAGS.add_argument('-add_augment', help='additional augmentation for the pseudolabel data', default=0)
 FLAGS.add_argument('-root',help='root directory',default='SELFLABEL')
 
 
 def main(args):
 
+    add_aug = bool(args.add_augment)
     #print('arguments.gpu = ',args.gpu)
     #print('arguments.prefix = ',args.prefix)
     #print('arguments.config = ',args.config)
@@ -66,10 +69,7 @@ def main(args):
     use_model = MlpHeadModel(model.resnet,model.resnet.rep_dim,model_args)
     model_type = 'cluster_head'
 
-
     optimizer = get_optimizer(p,model)
-
-    #labeled_data.evaluate_samples(p,pretrain_model)
 
     label_step = len(labeled_data)//p['batch_size']
     unlabeled_step = len(unlabeled_data)//p['batch_size']
@@ -84,31 +84,42 @@ def main(args):
                                                 drop_last=True, shuffle=True)
 
     val_dataloader = val_loader['val_loader']
+    consistency_tensor = None
 
-    print('start training loop...')
-    for epoch in range(0, p['epochs']):
+    train_one_epoch = fixmatch_train
+
+    if p['train_method'] == 'fixmatchV2':
+        train_one_epoch = fixmatch_trainV2
+
+    if args.consistency:
+
+        for epoch in range(p['warmup_epochs']):          
+            print('warm-up phase epoch: ',epoch)
+            train_one_epoch(p['device'],use_model,labeled_loader,unlabeled_loader,consistency_tensor,optimizer,step_size,threshold=p['confidence_threshold'],temperature=p['temperature'],lambda_u=p['lambda_u'],augmented=add_aug)
         
-        print('\nepoch: ',epoch)
-        #print('dataset_len = ',len(training_set))
-        consistency_tensor = compute_consistency(p['device'],use_model,base_dataloader,200,model_type)
-        #consistency_tensor.detach().cpu()
-        #model.to('cpu')
+        print('accuracy after warm-up phase: ')
+        compute_accuracy(p['device'],use_model,val_dataloader)       
 
-        lr = adjust_learning_rate(p, optimizer, epoch)
-        print('Adjusted learning rate to {:.5f}'.format(lr))
+        print('start training loop...')
+        for epoch in range(0, p['epochs']):
+            print('\nepoch: ',epoch)
+            consistency_tensor = compute_consistency(p['device'],use_model,base_dataloader,200,model_type)
+            lr = adjust_learning_rate(p, optimizer, epoch)
+            print('Adjusted learning rate to {:.5f}'.format(lr))
+            print('Train ...')
+            train_one_epoch(p['device'],use_model,labeled_loader,unlabeled_loader,consistency_tensor,optimizer,step_size,threshold=p['confidence_threshold'],temperature=p['temperature'],lambda_u=p['lambda_u'],augmented=add_aug)
+            compute_accuracy(p['device'],use_model,val_dataloader)
 
-            # Train
-        print('Train ...')
-        fixmatch_train(p['device'],use_model,labeled_loader,unlabeled_loader,consistency_tensor,optimizer,step_size,threshold=p['confidence_threshold'],temperature=p['temperature'],lambda_u=p['lambda_u'],augmented=True)
+    else: 
+        print('start training loop...')
+        for epoch in range(0, p['epochs']):
         
-        #@COMPONENT:Evaluation&Measures
-        #val_dataset = copy.deepcopy(dataset)
-        #val_dataset.transform = val_transformations
-        #val_loader = torch.utils.data.DataLoader(val_dataset, num_workers=p['num_workers'], batch_size=p['batch_size'], pin_memory=True,collate_fn=collate_custom, drop_last=False, shuffle=False)
-        #metric_data = Analysator(p['device'],model,val_loader)
-        #print('Accuracy: ',metric_data.get_accuracy())
-
-        compute_accuracy(p['device'],use_model,val_dataloader)
+            print('\nepoch: ',epoch)
+            lr = adjust_learning_rate(p, optimizer, epoch)
+            print('Adjusted learning rate to {:.5f}'.format(lr))
+            print('Train ...')
+            train_one_epoch(p['device'],use_model,labeled_loader,unlabeled_loader,consistency_tensor,optimizer,step_size,threshold=p['confidence_threshold'],temperature=p['temperature'],lambda_u=p['lambda_u'],augmented=add_aug)
+            compute_accuracy(p['device'],use_model,val_dataloader)
 
 
     final_accuracy = compute_accuracy(p['device'],use_model,val_dataloader)
@@ -118,6 +129,7 @@ def main(args):
    #     f.write('\nAccuracy = '+str(final_accuracy))
 
     torch.save(model.state_dict(),'SELFLABEL/'+args.prefix+'_model.pth')
+
 
 def compute_consistency(device,model,base_dataloader,kNN=200,model_type='fixmatch_model',forwarding='head'): # execute for each epoch
         

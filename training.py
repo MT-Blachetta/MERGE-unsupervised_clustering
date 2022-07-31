@@ -503,7 +503,7 @@ def pseudolabel_train(train_loader, model, criterion, optimizer, epoch, train_ar
         optimizer.step()
 
 
-def fixmatch_train(device,model,labeled_loader,unlabeled_loader,consistency_tensor,optimizer,train_steps,threshold=0.99,temperature=0.5,lambda_u=0.5,augmented=False):
+def fixmatch_train(device,model,labeled_loader,unlabeled_loader,consistency_tensor,optimizer,train_steps,threshold=0.99,temperature=0.5,lambda_u=1,augmented=False):
     
 
     model.train()
@@ -533,13 +533,13 @@ def fixmatch_train(device,model,labeled_loader,unlabeled_loader,consistency_tens
 
 
         u_batch = unlabeled_iter.next()
-        indices = u_batch['index']
+        
         #indices.to(device)
         #consistency_tensor.to(device)
         weak_images = u_batch['weak_image']
         strong_images = u_batch['strong_image']
 
-        consistencies = consistency_tensor[indices]
+
         #consistencies.to(device)
 
         weak_images = weak_images.to(device)
@@ -553,7 +553,12 @@ def fixmatch_train(device,model,labeled_loader,unlabeled_loader,consistency_tens
         #max_probs.to(device)
         mask = max_probs.ge(threshold).float()
         #mask.to(device)
-        weight_mask = mask*consistencies
+        weight_mask = mask
+
+        if consistency_tensor is not None:
+            indices = u_batch['index']
+            consistencies = consistency_tensor[indices]
+            weight_mask = mask*consistencies
 
         Lu = (F.cross_entropy(logits_u_s, targets_u, reduction='none') * weight_mask).mean()
 
@@ -568,7 +573,7 @@ def fixmatch_train(device,model,labeled_loader,unlabeled_loader,consistency_tens
     return losses.avg
 
 
-def fixmatch_trainV2(device,model,labeled_loader,unlabeled_loader,consistency_tensor,optimizer,threshold=0.99,temperature=0.5,lambda_u=0.5,augmented=False):
+def fixmatch_trainV2(device,model,labeled_loader,unlabeled_loader,consistency_tensor,optimizer,train_steps,threshold=0.99,temperature=0.5,lambda_u=1,augmented=False):
 
     model.train()
     #model.zero_grad()
@@ -603,9 +608,6 @@ def fixmatch_trainV2(device,model,labeled_loader,unlabeled_loader,consistency_te
 
         weak_images = batch['weak_image']
         strong_images = batch['strong_image']
-        indices = batch['indices']
-
-        consistencies = consistency_tensor[indices]
 
         weak_images = weak_images.to(device)
         strong_images = strong_images.to(device)
@@ -618,7 +620,12 @@ def fixmatch_trainV2(device,model,labeled_loader,unlabeled_loader,consistency_te
         #max_probs.to(device)
         mask = max_probs.ge(threshold).float()
         #mask.to(device)
-        weight_mask = mask*consistencies
+        weight_mask = mask
+
+        if consistency_tensor is not None:
+            indices = batch['index']
+            consistencies = consistency_tensor[indices]
+            weight_mask = mask*consistencies
 
         Lu = (F.cross_entropy(logits_u_s, targets_u, reduction='none') * weight_mask).mean()
 
