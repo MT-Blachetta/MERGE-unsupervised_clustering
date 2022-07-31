@@ -142,9 +142,9 @@ optimizer_kwargs:
 
 
 
-scheduler: cosine
-scheduler_kwargs:
-   lr_decay_rate: 0.1
+scheduler: constant
+#scheduler_kwargs:
+#   lr_decay_rate: 0.1
    
 ## Scheduler
 #scheduler: constant
