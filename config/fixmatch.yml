@@ -8,6 +8,19 @@ num_workers: 8
 epochs: 100
 batch_size: 256
 
+consistency_weights: False
+train_method: fixmatchV1 # or fixmatchV1
+train_split: train+unlabeled
+
+indexfile_path: /home/blachm86/train_unlabeled_5p.ind
+
+fixmatch_model:
+    backbone: ResNet34
+    model_type: cc_network
+    feature_dim: 128
+    pretrain_type: cc_resnet
+    pretrain_path: /home/blachm86/backbone_models/cc_stl10.tar
+
 update_cluster_head_only: False
 
 
@@ -16,7 +29,7 @@ update_cluster_head_only: False
 num_classes: 10
 train_db_name: stl-10
 val_db_name: stl-10
-train_split: unlabeled
+
 
 ## nearest neighbors scan loss related
 # for model training
@@ -81,14 +94,7 @@ num_heads: 10
 # <dependent>
 
 
-indexfile_path: /home/blachm86/scan_pseudolabels.ind
 
-fixmatch_model:
-    backbone: ResNet34
-    model_type: cc_network
-    feature_dim: 128
-    pretrain_type: cc_resnet
-    pretrain_path: /home/blachm86/backbone_models/cc_stl10.tar
 
 
 ## head
@@ -102,19 +108,19 @@ lambda_u: 1
 
 ### Training Algorithm with loss function
 
-train_method: fixmatch
 
 ### Training Process Parameter
 
 ## optimizer
 
 # VERSION
-optimizer: adam
+optimizer: sgd
 optimizer_kwargs:
-   lr: 0.0001
-   weight_decay: 0.0001
+   nesterov: True
+   weight_decay: 0.0003
+   momentum: 0.9
+   lr: 0.03
 
 
 
-## Scheduler
 scheduler: constant

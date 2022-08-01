@@ -17,7 +17,7 @@ from functionality import initialize_fixmatch_training
 FLAGS = argparse.ArgumentParser(description='loss training')
 FLAGS.add_argument('-gpu',help='number as gpu identifier', default=0)
 FLAGS.add_argument('-config', help='path to the model files')
-FLAGS.add_argument('-consistency',help='use local consistency weighting',default=1)
+#FLAGS.add_argument('-consistency',help='use local consistency weighting',default=1)
 FLAGS.add_argument('-add_augment', help='additional augmentation for the pseudolabel data', default=0)
 FLAGS.add_argument('-prefix',help='prefix name')
 FLAGS.add_argument('-root',help='root directory',default='SELFLABEL')
@@ -71,7 +71,7 @@ def main(args):
         
         print('\nepoch: ',epoch)
         #print('dataset_len = ',len(training_set))
-        if args.consistency:
+        if p['consistency_weights']:
             consistency_tensor = compute_consistency(p['device'],model,base_dataloader,kNN=200,model_type=model_type)
         #consistency_tensor.detach().cpu()
         #model.to('cpu')
