@@ -3,10 +3,17 @@ setup: fixmatch
 
 consistency_weights: False
 train_method: fixmatchV2 # or fixmatchV1
-indexfile_path: /home/blachm86/pseudolabel_5p.ind
+indexfile_path: /home/blachm86/train_unlabeled_5p.ind
 train_split: train+unlabeled
 epochs: 100
 warmup_epochs: 50
+
+fixmatch_model:
+    backbone: ResNet34
+    model_type: cc_network
+    feature_dim: 128
+    pretrain_type: cc_resnet
+    pretrain_path: /home/blachm86/backbone_models/cc_stl10.tar
 
 ### Technical Parameters (unimportant) FIXED
 num_workers: 8
@@ -107,12 +114,7 @@ model_args: # softmax is performed over loss function
 
 
 
-fixmatch_model:
-    backbone: ResNet34
-    model_type: cc_network
-    feature_dim: 128
-    pretrain_type: cc_resnet
-    pretrain_path: /home/blachm86/backbone_models/cc_stl10.tar
+
 
 
 ## head
