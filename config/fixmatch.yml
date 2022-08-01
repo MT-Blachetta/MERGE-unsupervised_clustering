@@ -9,7 +9,7 @@ epochs: 100
 batch_size: 256
 
 consistency_weights: False
-train_method: fixmatchV1 # or fixmatchV1
+train_method: fixmatchV2 # or fixmatchV1
 train_split: train+unlabeled
 
 indexfile_path: /home/blachm86/train_unlabeled_5p.ind
