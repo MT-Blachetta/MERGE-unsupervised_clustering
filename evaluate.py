@@ -1035,6 +1035,7 @@ class Analysator():
                 return to_value(sum(feature_values)/len(feature_values))
             else: return to_value(sum(feature_values))
 
+
     def select_mask(self,category_values,selection_mask):
  
         if isinstance(category_values,torch.Tensor):
@@ -1044,6 +1045,7 @@ class Analysator():
             for i in range(len(selection_mask)):
                 if selection_mask[i]: result.append(category_values[i])        
             return result
+
 
     def match_value(self,values,query):
 
