@@ -8,7 +8,7 @@ import torchvision.transforms as transforms
 
 
 
-checkpoint = torch.load('/home/blachm86/cc_stl10_FINAL1000.pth',map_location='cpu')
+checkpoint = torch.load('/home/blachm86/cc_stl10_FINAL500.pth',map_location='cpu')
 #model_dict = checkpoint['net']
 model_dict = checkpoint
 
@@ -41,4 +41,4 @@ eval_object.compute_real_consistency(0.5)
 results = eval_object.return_statistic_summary(0)
 print(results)
 
-torch.save(eval_object,'/home/blachm86/cc1000_analysator.torch')
+torch.save(eval_object,'/home/blachm86/cc500_analysator.torch')
