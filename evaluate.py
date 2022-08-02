@@ -426,7 +426,10 @@ class Analysator():
         ri, ci = assign_classes_hungarian(self.C)
 
         self.cluster_to_class = torch.Tensor(ci)
-        self.correct_samples = self.cluster_to_class[self.prediction_tensor] == self.label_tensor
+        self.cluster_names = [ str(i)+'('+class_names[ci[i]]+')' for i in range(len(class_names)) ]
+        self.class_of_prediction = self.cluster_to_class[self.prediction_tensor]
+        self.clusters = [str(int(self.prediction_tensor[i]))+'('+class_names[int(self.class_of_prediction[i].item())]+')' for i in range(self.dataset_size) ]
+        self.correct_samples = self.class_of_prediction == self.label_tensor
         self.bad_samples = self.correct_samples == False
         #self.kNN_cosine_similarities = None
         self.kNN_indices = None
@@ -724,7 +727,7 @@ class Analysator():
         return sum(subset_values)/len(subset_values)
       
 
-    def scalar_statistics_from_selection(self,selection_mask,scalar_tensor,scalar_name='',val_range=[0,1.0],interval=0.1,returntype='pandas',values_to_count=None):
+    def scalar_statistics_from_selection(self,selection_mask,scalar_tensor,scalar_name='',val_range=[0,1],interval=0.1,returntype='pandas',values_to_count=None):
 
         # init ------------------------------------
 
@@ -861,8 +864,12 @@ class Analysator():
 
             if parameters['secondary_type'] == 'categorical':
                 next_row = self.categorical_from_selection(subfeature_values,next_set,values_to_count=vtc,mode=parameters['mode'],return_type=parameters['return_type'])
-            else:
+            elif parameters['secondary_type'] == 'scalar_interval':
                 next_row = self.scalar_statistics_from_selection(next_set,subfeature_values,scalar_name=parameters['col_name'],val_range=parameters['range_2'],interval=parameters['interval_2'],returntype='pandas',values_to_count=vtc)
+            elif parameters['secondary_type'] == 'scalar_cumulative':
+                next_row = self.scalar_cumulative_from_selection(scalar_tensor=subfeature_values,selection_mask=next_set,func='fraction',scalar_name=parameters['col_name'],val_range=parameters['range_2'],interval=parameters['interval_2'],returntype='pandas',values_to_count=vtc)
+            else:
+                raise ValueError("invalid property type")
             
             added = pd.DataFrame(dict(next_row),columns=next_row.index,index=[names[ni]])
             result_frame = pd.concat([result_frame,added])
@@ -921,7 +928,7 @@ class Analysator():
                 result_frame = pd.concat([result_frame,added])
                 #result_frame = pd.concat([result_frame,rowSeries])
 
-        else:
+        elif second_type == 'scalar_interval':
             #valuesToCount = parameters['']
             if 'count_measure' in parameters.keys(): 
                 values_to_count = parameters['count_measure']
@@ -932,6 +939,20 @@ class Analysator():
                 rowSeries = self.scalar_statistics_from_selection(subcategory_mask,subfeature_values,scalar_name=parameters['col_name'],val_range=parameters['range_2'],interval=parameters['interval_2'],returntype='pandas',values_to_count=parameters['count_measure'])
                 added = pd.DataFrame(dict(rowSeries),columns=rowSeries.index,index=[str(v)])
                 result_frame = pd.concat([result_frame,added])
+
+        elif second_type == 'scalar_cumulative':
+            if 'count_measure' in parameters.keys(): 
+                values_to_count = parameters['count_measure']
+                if dataset_mask is not None: parameters['count_measure'] = self.select_mask(values_to_count,dataset_mask)
+
+            for v in bins:
+                subcategory_mask = self.match_value(selected_features,v)
+                rowSeries = self.scalar_cumulative_from_selection(scalar_tensor=subfeature_values,selection_mask=subcategory_mask,func='fraction',scalar_name=parameters['col_name'],val_range=parameters['range_2'],interval=parameters['interval_2'],returntype='pandas',values_to_count=parameters['count_measure'])
+                added = pd.DataFrame(dict(rowSeries),columns=rowSeries.index,index=[str(v)])
+                result_frame = pd.concat([result_frame,added])
+        else: 
+            raise ValueError('invalid type for second dimension')
+            
 
         return result_frame
 
@@ -1009,7 +1030,6 @@ class Analysator():
             else: return to_value(sum(set_mask))
 
         else: 
-
             if ('ratio' in count_mode) or ('mean' in count_mode):
                 feature_values = measurements[set_mask]
                 return to_value(sum(feature_values)/len(feature_values))
@@ -1055,8 +1075,6 @@ class Analysator():
         subset_size = len(subset_values)
 
 
-
-
         # initialize index or column names
         names = []
         values = []
@@ -1097,6 +1115,7 @@ class Analysator():
             elif func == 'ratio':
                 values.append( self.ratio_from_selection(cmask, values_to_count, selection_mask) )
             else:
+                # equivalent to mean_from_selection
                 counted_value = self.count_set(cmask,measurements,'ratio') # count_mode
                 values.append(counted_value)
             numbers.append(to_value(sum(cmask)))
@@ -1126,6 +1145,79 @@ class Analysator():
 
         else:
             return names, values 
+
+
+    def two_cumulative_from_selection(self,scalar_tensor,second_feature,parameters,dataset_mask=None):
+
+
+        result_frame = pd.DataFrame()
+
+        if dataset_mask is None:
+            selected_features = scalar_tensor
+            subfeature_values = second_feature
+            subset_size = self.dataset_size
+
+        else:
+            selected_features = scalar_tensor[dataset_mask]
+            subfeature_values = self.select_mask(second_feature,dataset_mask)
+            subset_size = len(subfeature_values)
+
+        val_range = parameters['range']
+        interval = parameters['interval']
+        #returntype = parameters['return_type'] # pandas or dictionary
+
+        
+        if subset_size == 0: 
+            selected_features = torch.Tensor([0])
+            subfeature_values = torch.Tensor([0])
+
+        scalar_name = parameters['row_name']
+
+        names = []
+        #values = []
+        iv = val_range[0]
+        names.append(scalar_name+"|>{:4.2f}".format(iv))
+        iv += interval
+
+        while iv <= val_range[1]:            
+            names.append( ">{:4.2f}".format(iv) )
+            iv += interval
+
+        
+        #parameters['secondary'] = True
+
+        if 'count_measure' in parameters.keys():
+            valuesToCount = parameters['count_measure']
+            # values_to_count is in DATASET-SIZE, so it must be adapted
+            vtc = self.select_mask(valuesToCount,dataset_mask) if dataset_mask is not None else valuesToCount
+        else: vtc = None
+
+        iv = val_range[0] - interval
+        ni = 0
+
+        while iv+interval <= val_range[1]:
+
+            next_set = selected_features >= iv+interval
+
+            if parameters['secondary_type'] == 'categorical':
+                next_row = self.categorical_from_selection(subfeature_values,next_set,values_to_count=vtc,mode=parameters['mode'],return_type=parameters['return_type'])
+            elif parameters['secondary_type'] == 'scalar_interval':
+                next_row = self.scalar_statistics_from_selection(next_set,subfeature_values,scalar_name=parameters['col_name'],val_range=parameters['range_2'],interval=parameters['interval_2'],returntype='pandas',values_to_count=vtc)
+            elif parameters['secondary_type'] == 'scalar_cumulative':
+                next_row = self.scalar_cumulative_from_selection(scalar_tensor=subfeature_values,selection_mask=next_set,func='fraction',scalar_name=parameters['col_name'],val_range=parameters['range_2'],interval=parameters['interval_2'],returntype='pandas',values_to_count=vtc)
+            else:
+                raise ValueError("invalid property type")
+            
+            added = pd.DataFrame(dict(next_row),columns=next_row.index,index=[names[ni]])
+            result_frame = pd.concat([result_frame,added])
+            iv += interval
+            ni += 1
+    
+
+        return result_frame
+
+
+        
 
 
 
