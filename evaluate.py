@@ -745,7 +745,7 @@ class Analysator():
         names = []
         values = []
         iv = val_range[0]
-        names.append(scalar_name+"|{:4.2f}-{:4.2f}".format(iv,iv))
+        names.append(scalar_name+"|{:4.2f}-{:4.2f}".format(iv,iv+interval))
         iv += interval
 
         while iv <= val_range[1]:            
@@ -839,7 +839,7 @@ class Analysator():
         #high = max(scalar_tensor)
         iv = val_range[0]
 
-        names.append(parameters['row_name']+"|{:4.2f}-{:4.2f}".format(iv,iv))
+        names.append(parameters['row_name']+"|{:4.2f}-{:4.2f}".format(iv,iv+interval))
         iv += interval
         
         while iv <= val_range[1]:            
