@@ -429,6 +429,7 @@ class Analysator():
         self.cluster_names = [ str(i)+'('+class_names[ci[i]]+')' for i in range(len(class_names)) ]
         self.class_of_prediction = self.cluster_to_class[self.prediction_tensor]
         self.clusters = [str(int(self.prediction_tensor[i]))+'('+class_names[int(self.class_of_prediction[i].item())]+')' for i in range(self.dataset_size) ]
+
         self.correct_samples = self.class_of_prediction == self.label_tensor
         self.bad_samples = self.correct_samples == False
         #self.kNN_cosine_similarities = None
@@ -933,6 +934,7 @@ class Analysator():
             if 'count_measure' in parameters.keys(): 
                 values_to_count = parameters['count_measure']
                 if dataset_mask is not None: parameters['count_measure'] = self.select_mask(values_to_count,dataset_mask)
+            else: parameters['count_measure'] = None
             
             for v in bins:
                 subcategory_mask = self.match_value(selected_features,v)
@@ -944,6 +946,7 @@ class Analysator():
             if 'count_measure' in parameters.keys(): 
                 values_to_count = parameters['count_measure']
                 if dataset_mask is not None: parameters['count_measure'] = self.select_mask(values_to_count,dataset_mask)
+            else: parameters['count_measure'] = None
 
             for v in bins:
                 subcategory_mask = self.match_value(selected_features,v)
@@ -962,11 +965,11 @@ class Analysator():
         if dataset_mask is None:
             selected_features = category_values
             subset_size = self.dataset_size
-            preselect_mask = None
+            #preselect_mask = None
         else:
             selected_features = self.select_mask(category_values,dataset_mask)
             subset_size = len(selected_features)
-            preselect_mask = dataset_mask
+            #preselect_mask = dataset_mask
 
         if isinstance(category_values,torch.Tensor):
             bins = torch.unique(category_values)
