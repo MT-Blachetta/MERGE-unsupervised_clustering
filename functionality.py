@@ -719,14 +719,28 @@ def initialize_contrastive_clustering(p):
     if p['train_db_name'] == 'stl-10':
         from datasets import STL10, STL10_eval
         dataset_unlabeled = STL10(split='unlabeled',transform=train_transformation, download=False)
-        dataset_label =  STL10_eval(path='/space/blachetta/data',aug=train_transformation)
+        
+        train_dataset = torchvision.datasets.STL10(
+            root='/space/blachetta/data',
+            split="train",
+            download=True,
+            transform=train_transformation,
+        )
+        test_dataset = torchvision.datasets.STL10(
+            root='/space/blachetta/data',
+            split="test",
+            download=True,
+            transform=train_transformation,
+        )
+
+        dataset_label = torch.utils.data.ConcatDataset([train_dataset, test_dataset])
 
         unlabeled_loader = torch.utils.data.DataLoader(dataset_unlabeled, num_workers=p['num_workers'], 
                                                         batch_size=p['batch_size'], pin_memory=True, collate_fn=collate_custom,
                                                         drop_last=True, shuffle=True)
 
         labeled_loader = torch.utils.data.DataLoader(dataset_label, num_workers=p['num_workers'], 
-                                                    batch_size=p['batch_size'], pin_memory=True, collate_fn=collate_custom,
+                                                    batch_size=p['batch_size'], pin_memory=True,
                                                     drop_last=True, shuffle=True)
 
         dataset_loader = None

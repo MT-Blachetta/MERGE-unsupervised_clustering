@@ -4,8 +4,8 @@ setup: contrastive_clustering
 num_workers: 8
 
 ### Universal Parameters
-epochs: 1
-batch_size: 256
+epochs: 3
+batch_size: 512
 
 train_db_name: stl-10
 val_db_name: stl-10
