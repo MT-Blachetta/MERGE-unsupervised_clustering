@@ -499,8 +499,8 @@ class Analysator():
         #cluster_metric['min']
         statistic['cluster_entropy'] = cluster_metric['entropy']
 
-        statistic['consistency_ratio'] = self.num_of_consistents(upper=0.5,lower=1.0,real_consistent=True)/self.dataset_size
-        statistic['confidence_ratio'] = self.num_of_confidents(0.95)/self.dataset_size
+        statistic['consistency_ratio'] = self.num_of_consistents(upper=0.9,lower=1.0,real_consistent=True)/self.dataset_size
+        statistic['confidence_ratio'] = self.num_of_confidents(0.99)/self.dataset_size
 
         statistic['correct_mean_confidence'] = self.mean_from_selection(self.correct_samples.cpu().numpy(),self.confidence_tensor.cpu().numpy())
         statistic['bad_mean_confidence'] = self.mean_from_selection(self.bad_samples.cpu().numpy(),self.confidence_tensor.cpu().numpy())
@@ -722,10 +722,11 @@ class Analysator():
 
         subset_values = scalar_select[selection_mask]
         subset_size = len(subset_values)
+        mean = sum(subset_values)/len(subset_values)
 
         if subset_size == 0: return 0
 
-        return sum(subset_values)/len(subset_values)
+        return to_value(mean)
       
 
     def scalar_statistics_from_selection(self,selection_mask,scalar_tensor,scalar_name='',val_range=[0,1],interval=0.1,returntype='pandas',values_to_count=None):

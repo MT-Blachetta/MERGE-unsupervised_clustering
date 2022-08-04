@@ -36,12 +36,12 @@ def main():
     itext = model.load_state_dict(scan_save['model'],strict=True)
     print('itext: ',itext)
 
-    best_head = model.cluster_head[scan_save['head']]
+    model.best_head_id = scan_save['head']
+
+    #best_head = model.cluster_head[scan_save['head']]
 #print('best_head: ',best_head)
 #torch.save(best_head.state_dict(),'scan_transfer_head.pth')
 
-
-    eval_model = MLP_head_model(model.backbone,best_head)
 
 # now get dataset with dataloader
 
@@ -63,13 +63,13 @@ def main():
 
     print('compute features in Analysator')
 
-    eval_object = Analysator('cuda:3',eval_model,val_dataloader)
+    eval_object = Analysator('cuda:3',model,val_dataloader,forwarding='singleHead_eval')
 
     eval_object.compute_kNN_statistics(100)
     eval_object.compute_real_consistency(0.5)
     eval_object.return_statistic_summary(0)
 
-    torch.save(eval_object,'scan_train_analysator.torch')
+    torch.save(eval_object,'CORRECT_scan_analysator.torch')
 
 #---------------------------------------------------------------------------------------------
 
