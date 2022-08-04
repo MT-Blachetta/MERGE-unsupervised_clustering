@@ -11,6 +11,9 @@ from scipy.optimize import linear_sum_assignment
 import torchvision.transforms as transforms
 from scatnet import ScatSimCLR
 from evaluate import Analysator
+from functionality import initialize_training, collate_custom
+from utils.config import create_config
+from datasets import STL10_eval
 #from utils import compute_scan_dataset, compute_default_dataset
 import os
 from pcloud import PyCloud
@@ -19,117 +22,76 @@ from pcloud import PyCloud
 
 def main():
 
-    prefix = 'spice-scatnet_5head_batchnorm'
-    model_type = 'spice_batchnormMLP'
-    savefile = "/home/blachm86/SPICE-main/results/stl10/scatnet_self_5head_batchnorm/checkpoint_best.pth.tar" # put here the path to the model file 
-    device = 'cuda:0'
+    p = create_config('SCAN_train' ,'RESULTS', 'config/SCAN.yml', 'SCAN_train')
 
-    p = {
+    num_cluster = p['num_classes']
+    fea_dim = p['feature_dim']
+    p['model_args']['num_neurons'] = [fea_dim, fea_dim, num_cluster]
+    params = initialize_training(p)
+    model = params['model']
 
-    'val_split': 'both',
-    'dataset_type': 'scan',
-    'transformation_kwargs': {'crop_size': 96, 'normalize': {'mean': [0.485, 0.456, 0.406], 'std': [0.229, 0.224, 0.225]}},
-    'train_db_name': 'stl-10',
-    'to_neighbors_dataset': False, 
-    'topk_neighbors_val_path': 'RESULTS/stl-10/topk/scatnet_both_topk-val-neighbors.npy',
-    'num_workers': 8,
-    'batch_size': 256
+    scan_save = torch.load('/home/blachm86/SCAN_train_model.pth.tar',map_location='cpu')
+    itext = model.load_state_dict(scan_save['model'],strict=True)
+    print('itext: ',itext)
 
-    }
+    best_head = copy.deepcopy(model.cluster_head[scan_save['head']])
+#print('best_head: ',best_head)
+#torch.save(best_head.state_dict(),'scan_transfer_head.pth')
 
-    m_args = {'model_type': model_type, 
-            'num_neurons': [128,128,10], 
-            'last_activation': 'softmax', 
-            'batch_norm': True,
-            'last_batchnorm': False,
-            'J': 2,
-            'L': 16,
-            'input_size': [96,96,3],
-            'res_blocks': 30,
-            'out_dim': 128
-            }
 
- 
-    backbone = ScatSimCLR(J=m_args['J'], L=m_args['L'], input_size=tuple(m_args['input_size']), res_blocks=m_args['res_blocks'],out_dim=m_args['out_dim'])
+    eval_model = MLP_head_model(model.backbone,best_head)
 
-    # get the model from file to the code
-    model = construct_spice_model(m_args,backbone)
-    load_spice_model(model,savefile,model_type)
+# now get dataset with dataloader
 
-    from datasets import STL10_trainNtest, STL10_eval
-
+    print('get validation dataset')
+    
+    # dataset:
 
     val_transformations = transforms.Compose([
-                                transforms.CenterCrop(p['transformation_kwargs']['crop_size']),
-                                transforms.ToTensor(),
-                                transforms.Normalize(**p['transformation_kwargs']['normalize'])])
+                                    transforms.CenterCrop(96),
+                                    transforms.ToTensor(),
+                                    transforms.Normalize(mean=[0.485, 0.456, 0.406],std=[0.229, 0.224, 0.225])])
         
-    val_split = p['val_split']
-    dataset_type = p['dataset_type']
-
-    if dataset_type == 'scan':
-
-        if p['train_db_name'] == 'cifar-10':
-            from datasets import CIFAR10
-            #dataset = CIFAR10(train=True, transform=train_transformation, download=True)
-            eval_dataset = CIFAR10(train=False, transform=val_transformations, download=True)
-
-        elif p['train_db_name'] == 'cifar-20':
-            from datasets import CIFAR20
-            #dataset = CIFAR20(train=True, transform=train_transformation, download=True)
-            eval_dataset = CIFAR20(train=False, transform=val_transformations, download=True)
-
-        elif p['train_db_name'] == 'stl-10':
-            if val_split == 'train':
-                from datasets import STL10
-                eval_dataset = STL10(split='train', transform=val_transformations, download=False)
-            elif val_split == 'test':
-                eval_dataset = STL10(split='test', transform=val_transformations, download=False)
-            elif val_split == 'both':
-                eval_dataset = STL10_eval(path='/space/blachetta/data',aug=val_transformations)
-            else: raise ValueError('Invalid stl10 split')
-
-                #print('eval_dataset:len: ',len(eval_dataset))
-                #eval_dataset = STL10(split='train',transform=val_transformations,download=False)
-
-        else:
-            raise ValueError('Invalid train dataset {}'.format(p['train_db_name']))
-            
-
-        if p['to_neighbors_dataset']: # Dataset returns an image and one of its nearest neighbors.
-            from datasets import NeighborsDataset
-            #print(p['topk_neighbors_train_path'])
-            indices = np.load(p['topk_neighbors_val_path'])
-            #print(indices.shape)
-            eval_dataset = NeighborsDataset(eval_dataset, indices) # , p['num_neighbors'])
-
-        val_dataloader = torch.utils.data.DataLoader(eval_dataset, num_workers=p['num_workers'],
-                batch_size=p['batch_size'], pin_memory=True, collate_fn=collate_custom,
-                drop_last=False, shuffle=False)
-                
-                
-
-    else:
-        #dataset = torchvision.datasets.STL10('/space/blachetta/data', split=split,transform=train_transformation, download=True)
-        eval_dataset = STL10_trainNtest(path='/space/blachetta/data',aug=val_transformations)
-
-        val_dataloader = torch.utils.data.DataLoader(eval_dataset, num_workers=p['num_workers'],
-                                                    batch_size=p['batch_size'], pin_memory=True,
-                                                    drop_last=False, shuffle=False)
+    eval_dataset = STL10_eval(path='/space/blachetta/data',aug=val_transformations)
 
 
-    metric_data = Analysator(device,model,val_dataloader)
-    metric_data.compute_kNN_statistics(100)
-    metric_data.compute_real_consistency(0.5)
-    metric_data.return_statistic_summary(0)
+    val_dataloader = torch.utils.data.DataLoader(eval_dataset, num_workers=8,
+                    batch_size=256, pin_memory=True, collate_fn=collate_custom,
+                    drop_last=False, shuffle=False)
 
-    #pickle.dump(metric_data, open('SPICE_EVAL/'+prefix+".pck",'wb'))
-    torch.save(metric_data,'SPICE_EVAL/'+prefix+".torch")
+    print('compute features in Analysator')
 
-    pc = PyCloud('michaelblachetta@gmail.com', 'yxcvbnm123', endpoint="eapi")
-    pc.uploadfile(files=['SPICE_EVAL/'+prefix+".torch"],path='/blachm86/models')
+    eval_object = Analysator('cuda:3',eval_model,val_dataloader)
+
+    eval_object.compute_kNN_statistics(100)
+    eval_object.compute_real_consistency(0.5)
+    eval_object.return_statistic_summary(0)
+
+    torch.save(eval_object,'scan_train_analysator.torch')
 
 #---------------------------------------------------------------------------------------------
+
+
+class MLP_head_model(nn.Module):
+    def __init__(self,backbone,head):
+        super(MLP_head_model, self).__init__()
+        self.backbone = backbone
+        self.head = head
+
+    def forward(self,x,forward_pass = 'default'):
+
+        if forward_pass == 'default':
+            features = self.backbone(x)
+            return torch.nn.functional.softmax(self.head(features),dim=1)
+
+        elif forward_pass == 'features':
+            return self.backbone(x)
+
+        elif forward_pass == 'head':
+            return torch.nn.functional.softmax(self.head(x),dim=1)
+
+        else: ValueError('invalid forward pass')
+
 
 if __name__ == "__main__":
     main()

@@ -92,7 +92,7 @@ model_args: # softmax is performed over loss function
     aug_type: default
     batch_norm: False
     last_batchnorm: False
-    last_activation: None
+    last_activation: softmax
     drop_out: -1
 
 
