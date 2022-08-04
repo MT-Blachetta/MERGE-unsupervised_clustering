@@ -17,6 +17,8 @@ from datasets import STL10_eval
 #from utils import compute_scan_dataset, compute_default_dataset
 import os
 from pcloud import PyCloud
+import torch.nn as nn
+
 
 
 
@@ -34,7 +36,7 @@ def main():
     itext = model.load_state_dict(scan_save['model'],strict=True)
     print('itext: ',itext)
 
-    best_head = copy.deepcopy(model.cluster_head[scan_save['head']])
+    best_head = model.cluster_head[scan_save['head']]
 #print('best_head: ',best_head)
 #torch.save(best_head.state_dict(),'scan_transfer_head.pth')
 
