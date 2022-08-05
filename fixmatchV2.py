@@ -67,7 +67,7 @@ def main(args):
     from models import MlpHeadModel
     model_args = p['model_args']
     use_model = MlpHeadModel(model.resnet,model.resnet.rep_dim,model_args)
-    model_type = 'cluster_head'
+    model_type = 'cluster_heads'
 
     optimizer = get_optimizer(p,model)
 
@@ -154,17 +154,19 @@ def compute_consistency(device,model,base_dataloader,kNN=200,model_type='fixmatc
                 else:
                     image = batch[0]
 
+                image = image.to(device)                
+
                 if model_type == 'contrastive_clustering':
-                    image = image.to(device)
+                    
                     feats, _,preds, _ = model(image,image)
     
                 elif model_type == 'fixmatch_model':
-                    image = image.to(device)
                     feats = model(image,forward_pass='features')
                     preds = model(image)
-                    
+                elif model_type == 'fixmatch_backbone':
+                    feats = model(image,forward_pass='backbone')
+                    preds = model(image)                   
                 else:
-                    image = image.to(device)
                     feats = model(image,forward_pass='features')
                     preds = model(feats,forward_pass=forwarding)
 

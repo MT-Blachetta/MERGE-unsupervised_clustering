@@ -124,17 +124,19 @@ def compute_consistency(device,model,base_dataloader,kNN=200,model_type='fixmatc
                 else:
                     image = batch[0]
 
+                image = image.to(device)                
+
                 if model_type == 'contrastive_clustering':
-                    image = image.to(device)
+                    
                     feats, _,preds, _ = model(image,image)
     
                 elif model_type == 'fixmatch_model':
-                    image = image.to(device)
                     feats = model(image,forward_pass='features')
                     preds = model(image)
-                    
+                elif model_type == 'fixmatch_backbone':
+                    feats = model(image,forward_pass='backbone')
+                    preds = model(image)                   
                 else:
-                    image = image.to(device)
                     feats = model(image,forward_pass='features')
                     preds = model(feats,forward_pass=forwarding)
 
@@ -178,7 +180,7 @@ def compute_consistency(device,model,base_dataloader,kNN=200,model_type='fixmatc
             #kNN_labels = labels_topk
             consistencies = kNN_consistent.sum(dim=1)/kNN
             #assert(len(consistencies) == 100000) <-------------- !
-            print('Consistency_tensor SHAPE = ',consistencies.shape)
+            #print('Consistency_tensor SHAPE = ',consistencies.shape)
 
             return consistencies
 

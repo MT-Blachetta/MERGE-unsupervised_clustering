@@ -1,19 +1,21 @@
 setup: fixmatch
 #prefix: SCAN_test_mlpHead
 
-consistency_weights: False
+consistency_weights: True
 train_method: fixmatchV1 # or fixmatchV1
 indexfile_path: /home/blachm86/pseudolabel_10p.ind
 train_split: train+unlabeled
-epochs: 200
+epochs: 100
 warmup_epochs: 50
 
+scheduler: constant
+
 fixmatch_model:
-    backbone: ResNet34
+    backbone: ResNet50
     model_type: cc_network
     feature_dim: 128
     pretrain_type: cc_resnet
-    pretrain_path: /home/blachm86/backbone_models/cc_stl10.tar
+    pretrain_path: /home/blachm86/cc_stl10_500r50.pth
 
 ### Technical Parameters (unimportant) FIXED
 num_workers: 8
@@ -154,7 +156,7 @@ optimizer_kwargs:
 
 
 
-scheduler: constant
+
 #scheduler_kwargs:
 #   lr_decay_rate: 0.1
    
