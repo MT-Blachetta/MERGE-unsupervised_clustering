@@ -8,11 +8,11 @@ import torchvision.transforms as transforms
 
 
 
-checkpoint = torch.load('/home/blachm86/cc_stl10_500r50.pth',map_location='cpu')
+checkpoint = torch.load('/home/blachm86/cc_stl10_500r18.pth',map_location='cpu')
 #model_dict = checkpoint['net']
 model_dict = checkpoint
 
-backbone = get_resnet("ResNet50")
+backbone = get_resnet("ResNet18")
 model = Network(backbone,128,10)
 model.load_state_dict(model_dict,strict=True)
 
@@ -41,4 +41,4 @@ eval_object.compute_real_consistency(0.5)
 results = eval_object.return_statistic_summary(0)
 print(results)
 
-torch.save(eval_object,'/home/blachm86/ccR50_analysator.torch')
+torch.save(eval_object,'/home/blachm86/ccR18_analysator.torch')
