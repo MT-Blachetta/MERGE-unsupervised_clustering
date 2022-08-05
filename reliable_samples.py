@@ -9,9 +9,9 @@ from functionality import collate_custom, get_backbone, get_head_model
 
 split = 'train+unlabeled'
 dataset_id = 'stl-10'
-pretrain_path = '/home/blachm86/backbone_models/cc_stl10.tar'
+pretrain_path = '/home/blachm86/train_unlabeled_5p.ind'
 model_type = 'fixmatch_model'
-device = 'cuda:2'
+device = 'cuda:3'
 samples_per_class = 500
 
 kNN = 200
@@ -187,4 +187,4 @@ label_index = torch.cat(selection)
 
 selected_predictions = prediction_tensor[label_index]
 
-torch.save({'sample_index': label_index, 'pseudolabel': selected_predictions},'/home/blachm86/train_unlabeled_5p.ind')
+torch.save({'sample_index': label_index, 'pseudolabel': selected_predictions},'/home/blachm86/train_unlabel_5p_r50.ind')
