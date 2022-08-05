@@ -1,7 +1,7 @@
 setup: fixmatch
 #prefix: SCAN_test_mlpHead
 
-consistency_weights: True
+consistency_weights: False
 train_method: fixmatchV1 # or fixmatchV1
 indexfile_path: /home/blachm86/pseudolabel_10p.ind
 train_split: train+unlabeled
