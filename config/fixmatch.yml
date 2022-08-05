@@ -12,7 +12,7 @@ consistency_weights: True
 train_method: fixmatchV1 # or fixmatchV1
 train_split: train+unlabeled
 
-indexfile_path: /home/blachm86/train_unlabeled_5p.ind
+indexfile_path: /home/blachm86/train_unlabel_5p_r50.ind
 
 fixmatch_model:
     backbone: ResNet50
