@@ -1,16 +1,14 @@
 setup: fixmatch
 #prefix: SCAN_test_mlpHead
 
-consistency_weights: False
+consistency_weights: True
 train_method: fixmatchV1 # or fixmatchV1
-indexfile_path: /home/blachm86/pseudolabel_10p.ind
+indexfile_path: /home/blachm86/train_unlabeled_5p.ind
 train_split: train+unlabeled
 epochs: 100
 warmup_epochs: 50
 
-scheduler: cosine
-scheduler_kwargs:
-   lr_decay_rate: 0.01
+scheduler: constant
 
 fixmatch_model:
     backbone: ResNet50
@@ -111,7 +109,7 @@ num_heads: 10
 model_args: # softmax is performed over loss function
     head_type: mlp
     aug_type: default
-    batch_norm: True
+    batch_norm: False
     last_batchnorm: False
     last_activation: softmax
     drop_out: -1
