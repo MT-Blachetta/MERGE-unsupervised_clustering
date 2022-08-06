@@ -36,7 +36,7 @@ print('compute features in Analysator')
 
 eval_object = Analysator('cuda:3',model,val_dataloader,forwarding='head',model_type='fixmatch_model',labeled=False)
 
-eval_object.compute_kNN_statistics(100)
+eval_object.compute_kNN_statistics(200) # 100 for labeled dataset
 eval_object.compute_real_consistency(0.5)
 #results = eval_object.return_statistic_summary(0)
 #print(results)
