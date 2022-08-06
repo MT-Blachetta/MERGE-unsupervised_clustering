@@ -12,7 +12,7 @@ checkpoint = torch.load('/home/blachm86/unsupervisedClustering/SELFLABEL/FINAL_M
 #model_dict = checkpoint['net']
 model_dict = checkpoint
 
-backbone = get_resnet("ResNet18")
+backbone = get_resnet("ResNet50")
 model = Network(backbone,128,10)
 model.load_state_dict(model_dict,strict=True)
 
