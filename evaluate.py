@@ -359,8 +359,45 @@ def to_value(v):
 
 
 class Analysator():
-    def __init__(self,device,model,dataloader,forwarding='head',model_type='cluster_head',class_names=['airplane','bird','car','cat','deer','dog','horse','monkey','ship','truck']):
+    def __init__(self,device,model,dataloader,forwarding='head',model_type='cluster_head',labeled=True,class_names=['airplane','bird','car','cat','deer','dog','horse','monkey','ship','truck']):
          
+        self.feature_tensor = None
+        self.softlabel_tensor = None
+        self.prediction_tensor = None
+        self.label_tensor = None
+        self.confidence_tensor = None
+        self.confidences = None
+        self.classes = None
+        self.class_names = None
+        self.dataset_size = 0
+        self.feature_tensor = None
+        self.C = None
+        self.cluster_to_class = None
+        self.cluster_names = None
+        self.class_of_prediction = None
+        self.clusters = None
+
+        self.correct_samples = None
+        self.bad_samples = None
+        #self.kNN_cosine_similarities = None
+        self.kNN_indices = None
+        self.kNN_labels = None
+        self.kNN_consistent = None
+        self.kNN_confidences = None
+        self.proximity = None # mean distance of the top nearest neighbors
+        self.local_consistency = None
+        self.criterion_consistent = None
+        self.summary = None
+        self.knn = 100
+
+        if labeled:
+            self.initialize_labeled(device,model,dataloader,forwarding,model_type,class_names)
+        else:
+            self.initialize_unlabeled(device,model,dataloader,forwarding,model_type)
+            
+
+    def initialize_labeled(self,device,model,dataloader,forwarding='head',model_type='cluster_head',class_names=['airplane','bird','car','cat','deer','dog','horse','monkey','ship','truck']):
+        
         model.eval()
         predictions = []
         labels = []
@@ -443,23 +480,96 @@ class Analysator():
         self.summary = None
         self.knn = 0
 
+    def initialize_unlabeled(self,device,model,dataloader,forwarding='head',model_type='cluster_head'):
+         
+        model.eval()
+        predictions = []
+        features = []
+        soft_labels = []
+        confidences = []
+
+
+        model = model.to(device)
+
+
+        with torch.no_grad():      
+            for batch in dataloader:
+                if isinstance(batch,dict):
+                    image = batch['image']
+                else:
+                    image = batch[0]
+
+                if model_type == 'contrastive_clustering':
+                    image = image.to(device,non_blocking=True)
+                    feats, _,preds, _ = model(image,image)
+    
+                elif model_type == 'fixmatch_model':
+                    image = image.to(device,non_blocking=True)
+                    feats = model(image,forward_pass='features')
+                    preds = model(image)
+                    
+                else:
+                    image = image.to(device,non_blocking=True)
+                    feats = model(image,forward_pass='features')
+                    preds = model(feats,forward_pass=forwarding)
+
+
+                features.append(feats)
+                soft_labels.append(preds)
+                max_confidence, prediction = torch.max(preds,dim=1) 
+                predictions.append(prediction)
+                confidences.append(max_confidence)
+
+
+        self.feature_tensor = torch.cat(features)
+        self.softlabel_tensor = torch.cat(soft_labels)
+        self.prediction_tensor = torch.cat(predictions)
+        self.confidence_tensor = torch.cat(confidences)
+        self.confidences = self.confidence_tensor
+
+        self.dataset_size = self.label_tensor.shape[0]
+        self.feature_tensor = torch.nn.functional.normalize(self.feature_tensor, dim = 1)
 
     def compute_kNN_statistics(self,knn):
         self.knn = knn
-        similarity_matrix = torch.einsum('nd,cd->nc', [self.feature_tensor.cpu(), self.feature_tensor.cpu()])
-        scores_k, idx_k = similarity_matrix.topk(k=knn, dim=1)
-        self.proximity = torch.mean(scores_k,dim=1)
-        self.kNN_indices = idx_k
-        labels_topk = torch.zeros_like(idx_k)
-        confidence_topk = torch.zeros_like(idx_k,dtype=torch.float)
-        for s in range(knn):
-            labels_topk[:, s] = self.prediction_tensor[idx_k[:, s]]
-            confidence_topk[:, s] = self.confidence_tensor[idx_k[:, s]]
-        
-        self.kNN_consistent = labels_topk[:, 0:1] == labels_topk # <boolean mask>
-        self.local_consistency = self.kNN_consistent.sum(dim=1)/knn
-        self.kNN_labels = labels_topk
-        self.kNN_confidences = confidence_topk
+
+        if self.dataset_size > 15000:
+
+            idx_list = []
+            for i in range(len(self.feature_tensor)):
+                feature = torch.unsqueeze(self.feature_tensor[i],dim=0)
+                similarities = torch.mm(feature,self.feature_tensor.t())
+                scores, idx_ = similarities.topk(k=knn, dim=1)
+                idx_list.append(idx_)
+            idx_k = torch.cat(idx_list)
+
+            labels_topk = torch.zeros_like(idx_k)
+            confidence_topk = torch.zeros_like(idx_k,dtype=torch.float)
+            for s in range(knn):
+                labels_topk[:, s] = self.prediction_tensor[idx_k[:, s]]
+                confidence_topk[:, s] = self.confidence_tensor[idx_k[:, s]]
+            
+            self.kNN_consistent = labels_topk[:, 0:1] == labels_topk # <boolean mask>
+            self.local_consistency = self.kNN_consistent.sum(dim=1)/knn
+            self.kNN_labels = labels_topk
+            self.kNN_confidences = confidence_topk
+            
+        else:
+
+            similarity_matrix = torch.einsum('nd,cd->nc', [self.feature_tensor.cpu(), self.feature_tensor.cpu()])
+            scores_k, idx_k = similarity_matrix.topk(k=knn, dim=1)
+            self.proximity = torch.mean(scores_k,dim=1)
+            self.kNN_indices = idx_k
+            labels_topk = torch.zeros_like(idx_k)
+            confidence_topk = torch.zeros_like(idx_k,dtype=torch.float)
+            for s in range(knn):
+                labels_topk[:, s] = self.prediction_tensor[idx_k[:, s]]
+                confidence_topk[:, s] = self.confidence_tensor[idx_k[:, s]]
+            
+            self.kNN_consistent = labels_topk[:, 0:1] == labels_topk # <boolean mask>
+            self.local_consistency = self.kNN_consistent.sum(dim=1)/knn
+            self.kNN_labels = labels_topk
+            self.kNN_confidences = confidence_topk
              
     def compute_real_consistency(self, criterion):
 
