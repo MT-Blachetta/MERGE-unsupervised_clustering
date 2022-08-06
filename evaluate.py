@@ -394,7 +394,7 @@ class Analysator():
             self.initialize_labeled(device,model,dataloader,forwarding,model_type,class_names)
         else:
             self.initialize_unlabeled(device,model,dataloader,forwarding,model_type)
-            
+
 
     def initialize_labeled(self,device,model,dataloader,forwarding='head',model_type='cluster_head',class_names=['airplane','bird','car','cat','deer','dog','horse','monkey','ship','truck']):
         
@@ -527,7 +527,7 @@ class Analysator():
         self.confidence_tensor = torch.cat(confidences)
         self.confidences = self.confidence_tensor
 
-        self.dataset_size = self.label_tensor.shape[0]
+        self.dataset_size = self.prediction_tensor.shape[0]
         self.feature_tensor = torch.nn.functional.normalize(self.feature_tensor, dim = 1)
 
     def compute_kNN_statistics(self,knn):
