@@ -9,6 +9,7 @@ import pandas as pd
 from functionality import initialize_training
 from execution_utils import loss_track_session, general_session, statistics_register
 
+#@author: Michael Blachetta
 
 FLAGS = argparse.ArgumentParser(description='loss training')
 FLAGS.add_argument('-gpu',help='number as gpu identifier')
@@ -48,12 +49,12 @@ def main():
         f.write(str(logging))
         f.write('\n--------------RESULTS--------------\n')
         f.write(str(end_info))
-        ##add_file_path('/home/blachm86/'+args.rID+'_files.txt','EVALUATION/'+prefix+'/'+prefix+'_log.txt')
+       
 
     session_stats = statistics_register()
     session_stats.add_session_statistic(0,p,start_info,end_info)
     torch.save(session_stats,'EVALUATION/'+prefix+'/'+prefix+'.session')
-    ##add_file_path('/home/blachm86/'+args.rID+'_files.txt','EVALUATION/'+prefix+'/'+prefix+'.session')
+
 
     with open('/home/blachm86/'+args.p+'_files.txt','w') as f:
         f.write('['+'"EVALUATION/'+prefix+'/'+prefix+'_log.txt",')

@@ -119,6 +119,7 @@ def apply_augment(img, name, level):
     augment_fn, low, high = get_augment(name)
     return augment_fn(img.copy(), level * (high - low) + low)
 
+#@composed and adapted: Michael Blachetta
 class Cutout(object):
     def __init__(self, n_holes, length, random=False):
         self.n_holes = n_holes
@@ -181,6 +182,7 @@ def get_augmentations(args):
     if args['aug'] == 'rand':
         return RandAugmentation(args)
 
+#@composed and adapted: Michael Blachetta
 class RandAugmentation(object):
     def __init__(self, args):
         self.aug = create_transform(
@@ -200,6 +202,7 @@ class RandAugmentation(object):
         crops.append(self.aug(image))
         return crops
 
+#@composed and adapted: Michael Blachetta
 class MocoAugmentations(object):
     def __init__(self, args):
         self.aug = transforms.Compose([
@@ -217,6 +220,7 @@ class MocoAugmentations(object):
         crops.append(self.aug(image))
         return crops
 
+#@composed and adapted: Michael Blachetta
 class BarlowtwinsAugmentations(object):
     def __init__(self, args):
         self.aug1 = transforms.Compose([
@@ -252,6 +256,7 @@ class BarlowtwinsAugmentations(object):
         crops.append(self.aug2(image))
         return crops
 
+#@composed and adapted: Michael Blachetta
 class MultiCropAugmentation(object):
     def __init__(self, args):
         global_crops_scale = args['global_crops_scale']

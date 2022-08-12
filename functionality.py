@@ -20,6 +20,7 @@ class wrapped_resnet(nn.Module):
     def forward(self,x):
         return self.backbone(x).flatten(start_dim=1)
 
+#@Authors: Wouter Van Gansbeke, Simon Vandenhende
 # Custom collate function 
 def collate_custom(batch):
     if isinstance(batch[0], np.int64):
@@ -51,6 +52,8 @@ def collate_custom(batch):
     raise TypeError(('Type is {}'.format(type(batch[0]))))
 
 
+#@composed and adapted: Michael Blachetta
+#@origin: Wouter Van Gansbeke, Simon Vandenhende
 def get_augmentation(p,aug_method=None,aug_type=None):
 
     """------------- Augmentation & Transformation --------------------"""
@@ -148,6 +151,8 @@ def get_augmentation(p,aug_method=None,aug_type=None):
 
 #train_transformations = get_train_transformations(p)
 
+#@composed and adapted: Michael Blachetta
+#@origin: Wouter Van Gansbeke, Simon Vandenhende
 def get_train_dataloader(p,train_transformation):
 
     """ --------------- TRAINING: Select Dataset -------------------- """
@@ -218,6 +223,8 @@ def get_train_dataloader(p,train_transformation):
     return batch_loader
 
 
+#@high modified: Michael Blachetta
+#@origin: Wouter Van Gansbeke, Simon Vandenhende
 def get_val_dataloader(p):
     
     # dataset:
@@ -295,6 +302,8 @@ def get_val_dataloader(p):
 
 """ ------------- Build MODEL ------------------"""
 
+#@high modified: Michael Blachetta
+#@origin: Wouter Van Gansbeke, Simon Vandenhende
 def get_direct_valDataloader(p):
     
     # dataset:
@@ -350,7 +359,7 @@ def get_direct_valDataloader(p):
         raise ValueError('Invalid train dataset {}'.format(p['train_db_name']))
         
 
-
+#@author: Michael Blachetta
 def get_backbone(p,secondary=False):
 
     if secondary:
@@ -414,6 +423,7 @@ def get_backbone(p,secondary=False):
     return backbone
 
 
+#@author: Michael Blachetta
 def get_head_model(p,backbone,secondary=False):
 
 
@@ -492,6 +502,9 @@ def get_head_model(p,backbone,secondary=False):
 
     return model
 
+
+
+#@authors: Wouter Van Gansbeke, Simon Vandenhende
 def get_optimizer(p,model):
 
     """ ------------- Optimizer ---------------- """
@@ -520,6 +533,7 @@ def get_optimizer(p,model):
     return optimizer
 
 
+#@author: Michael Blachetta
 def get_criterion(p):
 
     """ ------------- Loss/criterion -------------- """
@@ -560,6 +574,7 @@ def get_criterion(p):
     return first_criterion, second_criterion
 
 
+#@author: Michael Blachetta
 def get_train_function(train_method):
 
     if train_method == 'scan':
@@ -603,6 +618,9 @@ def get_train_function(train_method):
 
     return train_one_epoch
 
+
+#@composed and adapted: Michael Blachetta
+#@origin: Wouter Van Gansbeke, Simon Vandenhende
 def get_dataset(p,train_transformation,train=True):
     
     if train:
@@ -653,6 +671,8 @@ def get_dataset(p,train_transformation,train=True):
     print('dataset: ',type(dataset))
     return dataset
 
+
+#@author: Michael Blachetta
 def initialize_training(p):
     
     aug_transform = get_augmentation(p)
@@ -712,6 +732,7 @@ def initialize_training(p):
     return components
 
 
+#@author: Michael Blachetta
 def initialize_contrastive_clustering(p):
 
     train_transformation = get_augmentation(p)
@@ -770,6 +791,7 @@ def initialize_contrastive_clustering(p):
     return components
 
 
+#@author: Michael Blachetta
 def initialize_fixmatch_training(p):
 
     # Dataset
@@ -843,7 +865,7 @@ def initialize_fixmatch_training(p):
     
 
 
-
+#@author: Michael Blachetta
 def initialize_evaluation(p,best_model_path=''):
     
     val_loader = get_val_dataloader(p)

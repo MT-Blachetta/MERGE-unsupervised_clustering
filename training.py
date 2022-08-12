@@ -5,6 +5,7 @@ import torch.nn.functional as F
 
 
 
+#@Authors: Wouter Van Gansbeke, Simon Vandenhende
 def simclr_train(train_loader, model, criterion, optimizer, epoch, train_args, second_criterion=None):
     """ 
     Train according to the scheme from SimCLR
@@ -39,6 +40,7 @@ def simclr_train(train_loader, model, criterion, optimizer, epoch, train_args, s
 
     return losses.avg, 0
 
+#@Authors: Wouter Van Gansbeke, Simon Vandenhende
 def scan_train(train_loader, model, criterion, optimizer, epoch, train_args, second_criterion=None):
     """ 
     Train w/ SCAN-Loss
@@ -108,6 +110,7 @@ def scan_train(train_loader, model, criterion, optimizer, epoch, train_args, sec
 
     return total_losses.avg, best_head
 
+#@author: Michael Blachetta
 def contrastive_clustering_STL10(device, model, optimizer, instance_dataloader, cluster_dataloader, instance_criterion, cluster_criterion):
 
     model.train()
@@ -166,6 +169,7 @@ def contrastive_clustering_STL10(device, model, optimizer, instance_dataloader, 
     return (instance_losses.avg + cluster_losses.avg)*0.5, 0
 
 
+#@Authors: Wouter Van Gansbeke, Simon Vandenhende
 def selflabel_train(train_loader, model, criterion, optimizer, epoch, train_args, second_criterion=None):
     """ 
     Self-labeling based on confident samples
@@ -204,6 +208,7 @@ def selflabel_train(train_loader, model, criterion, optimizer, epoch, train_args
 
     return losses.avg, 0
 
+#@author: Michael Blachetta
 def twist_training(train_loader, model, criterion, optimizer, epoch, train_args, second_criterion=None):
 
     device = train_args['device']+':'+str(train_args['gpu_id'])
@@ -242,6 +247,7 @@ def twist_training(train_loader, model, criterion, optimizer, epoch, train_args,
 
     return losses.avg, 0
 
+#@author: Michael Blachetta
 def double_training(train_loader, model, criterion, optimizer, epoch, train_args, second_criterion=None):
 
     if train_args['update_cluster_head_only']:
@@ -311,6 +317,7 @@ def double_training(train_loader, model, criterion, optimizer, epoch, train_args
 
     return losses.avg, 0
 
+#@author: Michael Blachetta
 def multidouble_training(train_loader, model, criterion, optimizer, epoch, train_args, second_criterion=None):
 
     if train_args['update_cluster_head_only']:
@@ -393,6 +400,7 @@ def multidouble_training(train_loader, model, criterion, optimizer, epoch, train
 
     return losses.avg, best_head
 
+#@author: Michael Blachetta
 def multihead_twist_train(train_loader, model, criterion, optimizer, epoch, train_args, second_criterion=None):
 
     #[dataset]: {<return_type>=list}
@@ -458,6 +466,7 @@ def multihead_twist_train(train_loader, model, criterion, optimizer, epoch, trai
 
 
 
+#@author: Michael Blachetta
 def pseudolabel_train(train_loader, model, criterion, optimizer, epoch, train_args, use_softmax=False):
 
     device = 'cuda:'+str(train_args['gpu_id'])
@@ -506,6 +515,7 @@ def pseudolabel_train(train_loader, model, criterion, optimizer, epoch, train_ar
         optimizer.step()
 
 
+#@author: Michael Blachetta
 def fixmatch_train(device,model,labeled_loader,unlabeled_loader,consistency_tensor,optimizer,train_steps,threshold=0.99,temperature=0.5,lambda_u=1,augmented=False):
     
 
@@ -576,6 +586,7 @@ def fixmatch_train(device,model,labeled_loader,unlabeled_loader,consistency_tens
     return losses.avg
 
 
+#@author: Michael Blachetta
 def fixmatch_trainV2(device,model,labeled_loader,unlabeled_loader,consistency_tensor,optimizer,train_steps,threshold=0.99,temperature=0.5,lambda_u=1,augmented=False):
 
     model.train()

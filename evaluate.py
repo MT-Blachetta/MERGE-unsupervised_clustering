@@ -10,6 +10,8 @@ from scipy.optimize import linear_sum_assignment
 import pandas as pd
 
 
+
+#@author: Michael Blachetta
 def topk_consistency(features,predictions,num_neighbors):
     
     features = torch.nn.functional.normalize(features, dim = 1)
@@ -26,6 +28,7 @@ def topk_consistency(features,predictions,num_neighbors):
     return num_consistent/num_neighbors
 
 
+#@author: Michael Blachetta
 def cluster_size_entropy(costmatrix):
 
     absolute = costmatrix.sum(axis=1)
@@ -33,14 +36,9 @@ def cluster_size_entropy(costmatrix):
     entropy = - sum(relative*np.log(relative))
     
     return entropy
-    #class_sum = costmatrix.sum(axis=0)
-    #sizes = costmatrix.shape
-    #class_relatives = [ costmatrix[:,i]/class_sum[i] for i in range(sizes[1]) ]
-    #clas
-    #for :
-    #[ costmatrix[:class_id] ]
-    #costmatrix.sum(axis=0)
 
+
+#@author: Michael Blachetta
 def confidence_statistic(softmatrix):
     max_confidences, _ = torch.max(softmatrix,dim=1)
     num_confident_samples = len(torch.where(max_confidences > 0.95)[0])
@@ -56,7 +54,7 @@ def batches(l, n):
         yield l[i:i + n] # teilt das array [l] in batch sub_sequences der Länge n auf
 
 
-
+#@composed and adapted: Michael Blachetta
 def get_cost_matrix(y_pred, y, nc=1000): # C[ground-truth_classes,cluster_labels] counts all instances with a given ground-truth and cluster_label
     C = np.zeros((nc, y.max() + 1))
     for pred, label in zip(y_pred, y):
@@ -64,7 +62,7 @@ def get_cost_matrix(y_pred, y, nc=1000): # C[ground-truth_classes,cluster_labels
     return C 
 
 
-
+#@composed and adapted: Michael Blachetta
 def assign_classes_hungarian(C): # rows are (num. of) clusters and columns (num. of) ground-truth classes
     row_ind, col_ind = linear_sum_assignment(C, maximize=True) # assume 1200 rows(clusters) and 1000 cols(classes)
     ri, ci = np.arange(C.shape[0]), np.zeros(C.shape[0]) # ri contains all CLUSTER/CLASS indexes as integer from 0 / ci the assigned class/cluster --> num_classes
@@ -80,6 +78,7 @@ def assign_classes_hungarian(C): # rows are (num. of) clusters and columns (num.
     return ri.astype(int), ci.astype(int) # at each position one assignment: ri[x] = index of cluster <--> ci[x] = classID assigned to cluster
 
 
+#@composed and adapted: Michael Blachetta
 def assign_classes_majority(C):
     col_ind = C.argmax(1) # assign class with the highest occurence to the cluster (row)
     row_ind = np.arange(C.shape[0]) # clusterID at position in both arrays (col_ind and row_ind)
@@ -91,10 +90,7 @@ def assign_classes_majority(C):
     return row_ind.astype(int), col_ind.astype(int)
 
 
-
-#cluster_idx,class_idx = assign_classes_hungarian(C_train)
-#rid,cid = assign_classes_majority(C_train)
-
+#@composed and adapted: Michael Blachetta
 def accuracy_from_assignment(C, row_ind, col_ind, set_size=None):
     if set_size is None:
         set_size = C.sum()
@@ -102,6 +98,8 @@ def accuracy_from_assignment(C, row_ind, col_ind, set_size=None):
     # (that caused the decision)
     return cnt / set_size # If all clusters would have only instaces of one unique class, this value becomes = 1
 
+
+#@composed and adapted: Michael Blachetta
 def get_best_clusters(C, k=3, formatation=False):
     Cpart = C / (C.sum(axis=1, keepdims=True) + 1e-5) # relative Häufigkeit für jedes Cluster label
     Cpart[C.sum(axis=1) < 10, :] = 0 # Schwellwert für die Mindestanzahl Instanzen mit ground-truth_class
@@ -143,6 +141,7 @@ def get_best_clusters(C, k=3, formatation=False):
     return {'best_clusters': good_clusters, 'classes': best_class, 'accuracies': best_acc}
 
 
+#@composed and adapted: Michael Blachetta
 def train_pca(X_train,n_comp):
     bs = max(4096, X_train.shape[1] * 2)
     transformer = IncrementalPCA(batch_size=bs,n_components=n_comp)  #
@@ -152,6 +151,8 @@ def train_pca(X_train,n_comp):
     print(transformer.explained_variance_ratio_.cumsum())
     return transformer
 
+
+#@composed and adapted: Michael Blachetta
 def transform_pca(X, transformer):
     n = max(4096, X.shape[1] * 2)
     n_comp = transformer.components_.shape[0]
@@ -162,6 +163,7 @@ def transform_pca(X, transformer):
     return X_
 
 
+#@author: Michael Blachetta
 @torch.no_grad()
 def evaluate_singleHead(device,model,dataloader,forwarding='head',formatation=False):
 
@@ -249,6 +251,7 @@ def evaluate_singleHead(device,model,dataloader,forwarding='head',formatation=Fa
     return result_dict
 
 
+#@author: Michael Blachetta
 def evaluate_prediction(y_true,y_pred,formatation=False):
 
     max_label = max(y_true)
@@ -288,6 +291,7 @@ def evaluate_prediction(y_true,y_pred,formatation=False):
     return result_dict
 
 
+#@author: Michael Blachetta
 def evaluate_headlist(device,model,dataloader,formatation=False):
 
     predictions = [ [] for _ in range(model.nheads) ]
@@ -348,16 +352,15 @@ def evaluate_headlist(device,model,dataloader,formatation=False):
     return dicts
 
 
-#def negate(boolean):
-#    return not boolean
 
+#@author: Michael Blachetta
 def to_value(v):
     if isinstance(v,torch.Tensor):
         v = v.item()        
     return v
         
 
-
+#@author: Michael Blachetta
 class Analysator():
     def __init__(self,device,model,dataloader,forwarding='head',model_type='cluster_head',labeled=True,class_names=['airplane','bird','car','cat','deer','dog','horse','monkey','ship','truck']):
          
@@ -379,7 +382,7 @@ class Analysator():
 
         self.correct_samples = None
         self.bad_samples = None
-        #self.kNN_cosine_similarities = None
+
         self.kNN_indices = None
         self.kNN_labels = None
         self.kNN_consistent = None
@@ -404,7 +407,7 @@ class Analysator():
         features = []
         soft_labels = []
         confidences = []
-        #self.run_parameters = run_parameters
+       
 
         model = model.to(device)
 
@@ -457,7 +460,7 @@ class Analysator():
         y_train = self.label_tensor.detach().cpu().numpy()
         pred = self.prediction_tensor.detach().cpu().numpy()
         max_label = max(y_train)
-        #assert(max_label==9)
+
 
         self.C = get_cost_matrix(pred, y_train, max_label+1)
         ri, ci = assign_classes_hungarian(self.C)
@@ -469,7 +472,7 @@ class Analysator():
 
         self.correct_samples = self.class_of_prediction == self.label_tensor
         self.bad_samples = self.correct_samples == False
-        #self.kNN_cosine_similarities = None
+
         self.kNN_indices = None
         self.kNN_labels = None
         self.kNN_consistent = None
@@ -575,7 +578,7 @@ class Analysator():
 
         self.criterion_consistent = []
         for i in range(self.dataset_size):
-            confids = self.kNN_confidences[i][self.kNN_consistent[i]] # +logical_index > +true for index of consistent label; +size=knn > +indexes topk instances
+            confids = self.kNN_confidences[i][self.kNN_consistent[i]] 
             real = confids > criterion
             self.criterion_consistent.append(sum(real)/self.knn)
 
@@ -606,7 +609,7 @@ class Analysator():
 
         statistic['cluster_size_min'] = min([ sum(self.C[ci,:]) for ci in range(10) ])
 
-        #cluster_metric['min']
+     
         statistic['cluster_entropy'] = cluster_metric['entropy']
 
         statistic['consistency_ratio'] = self.num_of_consistents(upper=0.9,lower=1.0,real_consistent=True)/self.dataset_size
@@ -630,8 +633,8 @@ class Analysator():
         
         means = []
         for i in range(self.dataset_size):
-            confids = self.kNN_confidences[i][self.kNN_consistent[i]] # +logical_index > +true for index of consistent label; +size=knn > +indexes topk instances
-            mean_confidence = sum(confids)/len(confids) # OK
+            confids = self.kNN_confidences[i][self.kNN_consistent[i]] 
+            mean_confidence = sum(confids)/len(confids) 
             means.append(mean_confidence)
 
         return torch.Tensor(means)
@@ -639,7 +642,7 @@ class Analysator():
 
     def meanConsistency_of_confidents(self,criterion):
 
-        #means = []
+
         conf_mask = self.confidence_tensor > criterion
         if sum(conf_mask) == 0: return nan
         consistents = self.local_consistency[conf_mask] # generic for selection masks
@@ -1333,10 +1336,8 @@ class Analysator():
         return result_frame
 
 
-        
 
-
-
+#@author: Michael Blachetta
 class logger():
     def __init__(self,value={},unit_name='MERGE_unsupervisedClustering',unit_type='<APPLICATION>'):
 

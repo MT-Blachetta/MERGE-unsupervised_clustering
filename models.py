@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.nn.functional import normalize
 
+#@author: Michael Blachetta
 class GeneralModel(nn.Module):
     def __init__(self,backbone,head):
         super(GeneralModel, self).__init__()
@@ -122,6 +123,7 @@ class ContrastiveModel(nn.Module):
         return self.backbone
 
 
+#@author: Michael Blachetta
 class ClusteringModel(nn.Module): # id = ScanClusteringModel
     def __init__(self, backbone, nclusters, m):
         super(ClusteringModel, self).__init__()
@@ -446,6 +448,7 @@ def resnet18(**kwargs):
     return {'backbone': ResNet(BasicBlock, [2, 2, 2, 2], **kwargs), 'dim': 512}
 
 
+#@author: Michael Blachetta
 class universalModel(nn.Module): # id = ScanClusteringModel
     def __init__(self, backbone, nclusters, m):
         super(universalModel, self).__init__()
@@ -525,6 +528,7 @@ class universalModel(nn.Module): # id = ScanClusteringModel
         return output
 
 
+#@author: Michael Blachetta
 def load_backbone_model(model,path,backbone_type):
     
     pretrained = torch.load(path,map_location='cpu')
@@ -541,6 +545,7 @@ def load_backbone_model(model,path,backbone_type):
 
     else: raise ValueError
 
+#@author: Michael Blachetta
 def transfer_multihead_model(p,model,head_id=0):
 
     backbone_dim = p['feature_dim']
@@ -568,7 +573,7 @@ def transfer_multihead_model(p,model,head_id=0):
 
     return transfer_model
 
-
+#@author: Michael Blachetta
 def construct_spice_model(m_args,backbone):
 
     feature_model = backbone  # get_backbone(m_args)
@@ -598,7 +603,7 @@ def construct_spice_model(m_args,backbone):
         m_args['last_batchnorm'] = True
         return Sim2Sem(feature_model, m_args)
 
-
+#@author: Michael Blachetta
 def load_spice_model(model,save_path,model_type):
 
     savepoint = torch.load(save_path,map_location='cpu')

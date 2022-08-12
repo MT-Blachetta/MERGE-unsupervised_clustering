@@ -19,6 +19,8 @@ from functionality import collate_custom
 from evaluate import get_cost_matrix, assign_classes_hungarian, accuracy_from_assignment
 import random
 
+
+#@Authors: Wouter Van Gansbeke, Simon Vandenhende
 class AugmentedDataset(Dataset):
     def __init__(self, dataset):
         super(AugmentedDataset, self).__init__()
@@ -48,6 +50,7 @@ class AugmentedDataset(Dataset):
 
 
 """ 
+    @Authors: Wouter Van Gansbeke, Simon Vandenhende
     NeighborsDataset
     Returns an image with one of its neighbors.
 """
@@ -94,6 +97,7 @@ class NeighborsDataset(Dataset):
         
         return output
 
+#@author: Michael Blachetta
 class ReliableSamplesSet(Dataset): # ReliableSamplesSet --> labeled_dataset
 
     def __init__(self,dataset,eval_transform,strong_transform):
@@ -103,7 +107,7 @@ class ReliableSamplesSet(Dataset): # ReliableSamplesSet --> labeled_dataset
         self.predictions = None
         self.dsize = 1
         self.strong_transform = strong_transform
-        #print('self.transform: ',self.transform )
+
         self.eval_transform = eval_transform
         self.num_clusters = 0
 
@@ -119,18 +123,14 @@ class ReliableSamplesSet(Dataset): # ReliableSamplesSet --> labeled_dataset
         device = p['device']
         self.dataset.transform = self.eval_transform
 
-        #print('dataset[0].shape ',type(self.dataset[0]))
-        #print('dataset[0].shape ',self.dataset[0].shape)
+
 
 
         val_dataloader = torch.utils.data.DataLoader(self.dataset, num_workers=p['num_workers'],
                                                     batch_size=p['batch_size'], pin_memory=True, collate_fn=collate_custom,
                                                     drop_last=False, shuffle=False)
 
-        #testbatch = next(iter(val_dataloader))
-        #print('testbatch-type: ',type(testbatch))
-        #print('testbatch-len: ',len(testbatch))
-        #print('testbatch-shape: ',testbatch.shape)
+
 
         model.eval()
         predictions = []
@@ -139,8 +139,8 @@ class ReliableSamplesSet(Dataset): # ReliableSamplesSet --> labeled_dataset
         soft_labels = []
         confidences = []
 
-        model = model.to(device) # OK(%-cexp_00)
-        #print('MODEL first critical expresssion: ',type(model))
+        model = model.to(device) 
+
 
 
 
@@ -176,14 +176,13 @@ class ReliableSamplesSet(Dataset): # ReliableSamplesSet --> labeled_dataset
                 labels.append(label)
 
             feature_tensor = torch.cat(features)
-                #self.softlabel_tensor = torch.cat(soft_labels)
+
             self.predictions = torch.cat(predictions)
-                #print('max_prediction A: ',self.predictions.max())
+
             self.predictions = self.predictions.type(torch.LongTensor)
-                #print('max_prediction B: ',self.predictions.max())
-                #print('len(self.predictions) B: ',len(self.predictions))
-            self.num_clusters = self.predictions.max()+1 # !issue: by test config assert(self.num_clusters == 10) get 9
-                #print('num_clusters: ',self.num_clusters)
+
+            self.num_clusters = self.predictions.max()+1
+
             self.label_tensor = torch.cat(labels)
             self.confidence = torch.cat(confidences)
             dataset_size = len(self.dataset)
@@ -193,7 +192,7 @@ class ReliableSamplesSet(Dataset): # ReliableSamplesSet --> labeled_dataset
                 y_train = self.label_tensor.detach().cpu().numpy()
                 pred = self.predictions.detach().cpu().numpy()
                 max_label = max(y_train)
-                #assert(max_label==9)
+
                 C = get_cost_matrix(pred, y_train, max_label+1)
                 ri, ci = assign_classes_hungarian(C)
                 accuracy = accuracy_from_assignment(C,ri,ci)
@@ -209,12 +208,7 @@ class ReliableSamplesSet(Dataset): # ReliableSamplesSet --> labeled_dataset
                 scores, idx_ = similarities.topk(k=knn, dim=1)
                 idx_list.append(idx_)
             idx_k = torch.cat(idx_list)
-            #similarity_matrix = torch.einsum('nd,cd->nc', [feature_tensor, feature_tensor]) # removed .cpu()
 
-            #self.knn = knn
-            #scores, idx_k = similarity_matrix.topk(k=knn, dim=1)
-            #self.proximity = torch.mean(scores_k,dim=1)
-            #self.kNN_indices = idx_k
             labels_topk = torch.zeros_like(idx_k)
             confidence_topk = torch.zeros_like(idx_k,dtype=torch.float)
             for s in range(knn):
@@ -222,11 +216,11 @@ class ReliableSamplesSet(Dataset): # ReliableSamplesSet --> labeled_dataset
                 confidence_topk[:, s] = self.confidence[idx_k[:, s]]
             
             kNN_consistent = labels_topk[:, 0:1] == labels_topk # <boolean mask>
-            #kNN_labels = labels_topk
+
             kNN_confidences = confidence_topk
             criterion_consistent = []
             for i in range(dataset_size):
-                confids = kNN_confidences[i][kNN_consistent[i]] # +logical_index > +true for index of consistent label; +size=knn > +indexes topk instances
+                confids = kNN_confidences[i][kNN_consistent[i]] 
                 real = confids > 0.5
                 criterion_consistent.append(sum(real)/knn)
 
@@ -237,7 +231,7 @@ class ReliableSamplesSet(Dataset): # ReliableSamplesSet --> labeled_dataset
             self.dataset.transform = None
             
             if display: self.top_samples_accuracy()
-# §
+
 
     def __len__(self):
         return self.dsize
@@ -264,7 +258,7 @@ class ReliableSamplesSet(Dataset): # ReliableSamplesSet --> labeled_dataset
         min_size = (len(self.dataset)/self.num_clusters)*min_ratio
         print('min_size = ',min_size)
         start_ratio_cf = conf_ratio
-        #start_ratio_cs = 0.99
+
 
         confident_samples, num_confident = self.get_confident_samples(ratio=start_ratio_cf)
         confirmed_samples, num_confirmed = self.get_consistent_samples(confident_samples,min_size)  # ,start_ratio_cs)
@@ -287,7 +281,7 @@ class ReliableSamplesSet(Dataset): # ReliableSamplesSet --> labeled_dataset
         print('min_index: ',min(self.index_mapping))
         print('max_index: ',max(self.index_mapping))
 
-        # num confirmed kommt in den index [:]
+        
 
 
     def get_confident_samples(self,ratio):
@@ -311,7 +305,7 @@ class ReliableSamplesSet(Dataset): # ReliableSamplesSet --> labeled_dataset
 
         ratio = 0.99
 
-        #min_size = (len(self.dataset)/self.num_clusters)*0.05
+      
         min_consistency = 100000000
         confirmed_samples = []
 
@@ -350,7 +344,6 @@ class ReliableSamplesSet(Dataset): # ReliableSamplesSet --> labeled_dataset
         print('looking for alternative consistency criterion')
         ratio = 0.99
 
-        #min_size = (len(self.dataset)/self.num_clusters)*0.05
         min_consistency = 100000000
         confirmed_samples = []
 
@@ -383,7 +376,7 @@ class ReliableSamplesSet(Dataset): # ReliableSamplesSet --> labeled_dataset
         print('alternative_consistency_ratio: ',ratio)
         return confirmed_samples, min_consistency
 
-        #index_of_confidents = torch.where(self.confidence > 0.99)[0]
+
 
     def top_samples_accuracy(self):
         
@@ -402,6 +395,8 @@ class ReliableSamplesSet(Dataset): # ReliableSamplesSet --> labeled_dataset
         accuracy = accuracy_from_assignment(C,ri,ci)
         print('top_samples accuracy: ',accuracy)
 
+
+#@author: Michael Blachetta
 class consistencyDataset(Dataset): # --> UNlabeled_dataset
 
     def __init__(self,dataset,weak_aug,strong_aug):
@@ -522,6 +517,8 @@ class consistencyDataset(Dataset): # --> UNlabeled_dataset
 
         return weak_img, strong_img, consistency
 
+
+#@author: Michael Blachetta
 class pseudolabelDataset(Dataset):
     def __init__(self, dataset, indices, targets, default_transform, aug_transform):
         self.dataset = dataset
@@ -546,6 +543,8 @@ class pseudolabelDataset(Dataset):
 
         return {'image': original_img , 'image_augment': augmented_img, 'target': target}
 
+
+#@author: Michael Blachetta
 class fixmatchDataset(Dataset):
     def __init__(self,dataset,weak_aug,strong_aug):
         self.dataset = dataset
@@ -570,7 +569,7 @@ class fixmatchDataset(Dataset):
               
             
 
-
+#@Authors: Wouter Van Gansbeke, Simon Vandenhende
 class CIFAR10(Dataset):
     """`CIFAR10 <https://www.cs.toronto.edu/~kriz/cifar.html>`_ Dataset.
     Args:
@@ -706,6 +705,7 @@ class CIFAR10(Dataset):
         return "Split: {}".format("Train" if self.train is True else "Test")
 
 
+#@Authors: Wouter Van Gansbeke, Simon Vandenhende
 class CIFAR20(CIFAR10):
     """CIFAR20 Dataset.
 
@@ -739,6 +739,7 @@ class CIFAR20(CIFAR10):
         self.classes = ['aquatic mammals', 'fish', 'flowers', 'food containers', 'fruit and vegetables', 'household electrical devices', 'househould furniture', 'insects', 'large carnivores', 'large man-made outdoor things', 'large natural outdoor scenes', 'large omnivores and herbivores', 'medium-sized mammals', 'non-insect invertebrates', 'people', 'reptiles', 'small mammals', 'trees', 'vehicles 1', 'vehicles 2']
 
 
+#@Authors: Wouter Van Gansbeke, Simon Vandenhende
 def _cifar100_to_cifar20(target):
   _dict = \
     {0: 4,
@@ -845,7 +846,7 @@ def _cifar100_to_cifar20(target):
   return _dict[target]
 
 
-
+#@Authors: Wouter Van Gansbeke, Simon Vandenhende
 class ImageNet(datasets.ImageFolder):
     def __init__(self, root=MyPath.db_root_dir('imagenet'), split='train', transform=None):
         super(ImageNet, self).__init__(root=os.path.join(root, 'ILSVRC2012_img_%s' %(split)),
@@ -878,7 +879,7 @@ class ImageNet(datasets.ImageFolder):
         img = self.resize(img) 
         return img
 
-
+#@Authors: Wouter Van Gansbeke, Simon Vandenhende
 class ImageNetSubset(data.Dataset):
     def __init__(self, subset_file, root=MyPath.db_root_dir('imagenet'), split='train', 
                     transform=None):
@@ -936,7 +937,8 @@ class ImageNetSubset(data.Dataset):
         return out
 
 
-
+#@composed and adapted: Michael Blachetta
+#@origin: pytorch source
 class STL10(Dataset):
     """`STL10 <https://cs.stanford.edu/~acoates/stl10/>`_ Dataset.
     Args:
@@ -1115,6 +1117,7 @@ class STL10(Dataset):
             list_idx = np.fromstring(str_idx, dtype=np.uint8, sep=' ')
             self.data, self.labels = self.data[list_idx, :, :, :], self.labels[list_idx]
 
+#@author: Michael Blachetta
 class STL10_trainNtest(torchvision.datasets.VisionDataset):
     def __init__(self,path,aug):
         self.aug = aug
@@ -1138,6 +1141,7 @@ class STL10_trainNtest(torchvision.datasets.VisionDataset):
         return imgs, target
 
 
+#@author: Michael Blachetta
 class STL10_eval(torchvision.datasets.VisionDataset):
     def __init__(self,path,aug):
         self.transform = aug
@@ -1165,8 +1169,8 @@ class STL10_eval(torchvision.datasets.VisionDataset):
 
         return out
 
-        #return imgs, target
-
+    
+#@author: Michael Blachetta
 def to_value(v):
     if isinstance(v,torch.Tensor):
         v = v.item()        

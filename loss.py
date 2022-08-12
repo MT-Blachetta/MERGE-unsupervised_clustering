@@ -57,7 +57,7 @@ def EH(probs, args):
 
 
 
-
+#@composed and adapted: Michael Blachetta
 class InstanceLoss(nn.Module):
     def __init__(self, batch_size, temperature):
         super(InstanceLoss, self).__init__()
@@ -96,6 +96,7 @@ class InstanceLoss(nn.Module):
         return loss
 
 
+#@composed and adapted: Michael Blachetta
 class ClusterLoss(nn.Module):
     def __init__(self, class_num, temperature):
         super(ClusterLoss, self).__init__()
@@ -145,7 +146,7 @@ class ClusterLoss(nn.Module):
         return loss + ne_loss
 
 
-
+#@composed and adapted: Michael Blachetta
 class SCAN_consistencyLoss(nn.Module):
     def __init__(self):
         super(SCAN_consistencyLoss, self).__init__()

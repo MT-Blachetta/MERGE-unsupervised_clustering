@@ -20,6 +20,7 @@ from utils.evaluate_utils import get_predictions, scan_evaluate, hungarian_evalu
 import pandas as pd
 
 
+#@author: Michael Blachetta
 def loss_track_session(rID,components,p,prefix,last_loss,gpu_id=0):
 
     end_epoch = p['epochs']
@@ -120,7 +121,7 @@ def loss_track_session(rID,components,p,prefix,last_loss,gpu_id=0):
         start_stats = starting_data.return_statistic_summary(c_loss)
     
 
-
+#<origin Authors="Wouter Van Gansbeke, Simon Vandenhende">
     # Main loop
     print(colored('Starting main loop', 'blue'))
 
@@ -134,6 +135,8 @@ def loss_track_session(rID,components,p,prefix,last_loss,gpu_id=0):
 
         # Train
         print('Train ...')
+#</origin>
+
         c_loss, best_head = train_one_epoch(train_loader=batch_loader, model=model, criterion=first_criterion, optimizer=optimizer, epoch=epoch, train_args=p['train_args'], second_criterion=second_criterion)
 
         # evaluate
@@ -151,6 +154,7 @@ def loss_track_session(rID,components,p,prefix,last_loss,gpu_id=0):
     return evaluation(device_id,p,model,val_loader,start_stats,best_loss,last_loss)
 
 
+#@author: Michael Blachetta
 def general_session(rID,components,p,prefix,last_loss,gpu_id=0): 
 
     end_epoch = p['epochs']
@@ -230,6 +234,7 @@ def general_session(rID,components,p,prefix,last_loss,gpu_id=0):
     return evaluation(device_id,p,model,val_loader,start_stats,best_loss,last_loss)
 
 
+#@author: Michael Blachetta
 def evaluate_loss_track(p,parameters):
 
     train_method = p['train_method']
@@ -360,6 +365,7 @@ def evaluate_loss_track(p,parameters):
     return pdict 
 
 
+#@author: Michael Blachetta
 def evaluate_standard(p,parameters):
 
     model = parameters['model']
@@ -422,6 +428,7 @@ def evaluate_standard(p,parameters):
     return pdict
 
 
+#@author: Michael Blachetta
 def evaluation(device_id,p,model,loaders,start_stats,best_loss,last_loss,model_type='cluster_head'):
 
     rID = p['rID'] # OK
@@ -466,25 +473,20 @@ def evaluation(device_id,p,model,loaders,start_stats,best_loss,last_loss,model_t
                 val_data.compute_kNN_statistics(100)
                 val_data.compute_real_consistency(0.5)
                 session_stats = val_data.return_statistic_summary(best_loss)
-                predictions = get_predictions(device_id, p, val_loader, model) #if p['train_split'] == 'train'  else  get_predictions(device_id, p, train_split_loader, model)
+                predictions = get_predictions(device_id, p, val_loader, model) 
                 clustering_stats = hungarian_evaluate(device_id, model_checkpoint['head'], predictions,
                                                             class_names=val_loader.dataset.classes,
                                                             compute_confusion_matrix=True,
                                                             confusion_matrix_file=os.path.join(p['scan_dir'],prefix+'_confusion_matrix.png'))
-                torch.save({'analysator': val_data,'parameter':p},'EVALUATION/'+rID+'/'+prefix+'_ANALYSATOR') # OK
-            ##add_file_path('/home/blachm86/'+rID+'_files.txt',str(os.path.join(p['scan_dir'],prefix+'_confusion_matrix.png')))
-
-
-            ##add_file_path('/home/blachm86/'+rID+'_files.txt','EVALUATION/'+rID+'/'+prefix+'_ANALYSATOR')
+                torch.save({'analysator': val_data,'parameter':p},'EVALUATION/'+rID+'/'+prefix+'_ANALYSATOR') 
+     
             if best_loss < last_loss:
                 return start_stats ,session_stats, True
             else:
                 return start_stats ,session_stats, False
 
         else:
-            #print('best accuracy: ',best_accuracy)
-            #print('head_id: ',best_loss_head)
-            #print('\n')
+
             best_copy = torch.load('PRODUCTS/'+prefix+'_best_model.pth',map_location='cpu')
             model.load_state_dict(best_copy)
 
@@ -539,6 +541,7 @@ def evaluation(device_id,p,model,loaders,start_stats,best_loss,last_loss,model_t
             return start_stats ,session_stats, False
 
 
+#@author: Michael Blachetta
 class statistics_register():
 
     def __init__(self):
@@ -599,6 +602,7 @@ class statistics_register():
         return pd.concat([self.session_table,next_row])
 
 
+#@author: Michael Blachetta
 def store_statistic_analysis(p,model,val_loader,prefix,best_loss): # needs to create folder ANALYSIS
     
     gpu_id = p['train_args']['gpu_id']
@@ -618,6 +622,7 @@ def store_statistic_analysis(p,model,val_loader,prefix,best_loss): # needs to cr
     torch.save({'analysator': data ,'parameter':p},'ANALYSIS/'+prefix+'_ANALYSE')
 
 
+#@author: Michael Blachetta
 def compute_runlist(combinations,prefixes,init_dict,keylist,key_names,session_list):
         
     if keylist:

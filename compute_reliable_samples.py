@@ -5,6 +5,7 @@ import torch
 import torch.nn as nn
 from functionality import collate_custom, get_backbone, get_head_model
 
+#@author: Michael Blachetta
 
 
 split = 'train+unlabeled'
@@ -25,12 +26,12 @@ val_transform = transforms.Compose([transforms.CenterCrop(96), transforms.ToTens
 if dataset_id == 'cifar-10':
     from datasets import CIFAR10
     dataset = CIFAR10(train=True, transform=val_transform, download=True)
-            #eval_dataset = CIFAR10(train=False, transform=val_transformations, download=True)
+
 
 elif dataset_id == 'cifar-20':
     from datasets import CIFAR20
     dataset = CIFAR20(train=True, transform=val_transform, download=True)
-        #eval_dataset = CIFAR20(train=False, transform=val_transformations, download=True)
+
 
 elif dataset_id == 'stl-10':
     if split in ['train', 'test','unlabeled','train+unlabeled']:
@@ -75,23 +76,14 @@ class MLP_head_model(nn.Module):
         else: ValueError('invalid forward pass')
 
 backbone = get_backbone(p)
-#ScatSimCLR(J=2, L=16, input_size=(96, 96, 3), res_blocks=30, out_dim=128)
-#backbone_dict = {'backbone': backbone, 'dim': 128}
+
 model = get_head_model(p,backbone)
 
-#scan_save = torch.load(pretrain_path,map_location='cpu')
-#itext = model.load_state_dict(scan_save['model'])
-#print('itext: ',itext)
 
 model_save = torch.load(pretrain_path,map_location='cpu')
 itext = model.load_state_dict(model_save)
 print('itext: ',itext)
 
-#best_head = model.cluster_head[scan_save['head']]
-#print('best_head: ',best_head)
-#torch.save(best_head.state_dict(),'scan_transfer_head.pth')
-
-#eval_model = MLP_head_model(model.backbone,best_head)
 eval_model = model
 
 eval_model.eval()
@@ -166,7 +158,7 @@ for i in range(len(prediction_tensor)):
     criterion_consistent.append(sum(real)/kNN)
 
 consistencies = torch.Tensor(criterion_consistent)
-# alternative_consistency = kNN_consistent.sum(dim=1)/knn
+#alternative_consistency = kNN_consistent.sum(dim=1)/knn
 confidences = confidences.cpu()
 performance = 1.5*confidences + consistencies
 
@@ -183,7 +175,6 @@ for c in range(num_classes):
 
 label_index = torch.cat(selection)
 
-#torch.index_select()
 
 selected_predictions = prediction_tensor[label_index]
 

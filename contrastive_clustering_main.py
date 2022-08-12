@@ -58,14 +58,12 @@ p['model_args'] = {'nheads': 0}
 end_epoch = p['epochs']
 p['update_cluster_head_only'] = False
 p['rID'] = prefix
-#num_cluster = p['num_classes']
-#fea_dim = p['feature_dim']
+
 components = initialize_contrastive_clustering(p)
 
 
 
-#prefix = p['prefix']
-#batch_loader = components['train_dataloader']
+
 unlabeled_loader = components['unlabeled_dataloader']
 labeled_loader = components['labeled_dataloader']
 instance_criterion = components['instance_criterion']

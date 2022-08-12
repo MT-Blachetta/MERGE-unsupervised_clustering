@@ -34,10 +34,6 @@ class Network(nn.Module):
 
         return z_i, z_j, c_i, c_j
 
-    #def eval_forward(self,x_i):
-    #    h_i = self.resnet(x_i)
-    #    z_i = normalize(self.instance_projector(h_i), dim=1)
-    #    c_i = self.cluster_projector(h_i)
 
 
     def forward_cluster(self, x):
