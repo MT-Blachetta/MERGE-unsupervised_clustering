@@ -37,7 +37,7 @@ Use MAIN.py if you want to train just one session or execution with the commands
 
 These Training methods can only be started with MAIN.py or evaluate_MAIN.py
 You can also run "Contrastive Clustering" Training with the  contrastive_clustering_MAIN.py file
- Let's take a closer look at the config file for controlling MAIN.py: 
+Let's take a closer look at the config file for controlling MAIN.py: 
  config/SCAN.yml
  
 
@@ -163,3 +163,34 @@ Next we list the files created from the training process.
  - An "Analysator Object" containing all computed outputs and statistics for a dataset [prefix]_ANALYSATOR
  - a png-image drawing a confusion matrix (optionally for SCAN-method) [prefix]_confusion_matrix.png
  - the log text file listing all training, execution and runtime parameters for checking  the exact condition that produced the outcome [prefix]_log.txt
+ 
+# Multi-Session Execution
+ 
+You can run multiple Training Executions with different Parameters.
+The multiple Training Runtimes are ordered in Serieses. On the highest level, 
+create a textfile with a python list literal that contains the names for each defined series (trial_list.txt).
+The file content might look like this
+
+> ['scan_series','twist_series']
+
+For each series, a base configuration file with the same name as the series name exists.
+It is a typical configuration file like described above. The full file name would be 
+
+> scan_series.yml (for the series with name 'scan_series') 
+
+A series consists of multiple network training executions (of an arbitrary algorithm) with some parameters deviating from the default parameters in the base configuration file
+of the series. The individual parameters of a single training runtime are defined in an additional separate file with the same name and usually ".py" suffix.
+We call it session. The exact filename would be:
+
+> scan_series.py (for the series with name 'scan_series')
+
+The file contains a python list of dictionaries wich entries are parameters overwriting the ones in the base configuration file.
+Each training process corresponds to a dictionary in the file with its keys as individual parameters for the execution wich values
+replaces the settings in the base configuration files. All parameters are taken from the config file exept those in the dictionary.
+The content of the session file might look like this:
+
+	[{ 'train_method': 'scan', 'loss_type': 'scan_loss' ,'save_data': True, 'run_id': 0  },
+	 { 'train_method': 'multitwist', 'loss_type': 'twist_loss', 'setup':'multitwist','augmentation_type':'twist', 'augmentation_strategy':'barlow' ,'model_args.batch_norm': True, 'save_data': True, 'run_id': 1  },
+	 { 'train_method': 'multidouble', 'loss_type': 'double_loss' , 'setup':'double','augmentation_type':'twist', 'augmentation_strategy':'barlow','model_args.batch_norm': True, 'save_data': True, 'run_id': 2  } ]
+
+Therefore we have 3 training runtimes here with the parameters of the base configuration file overwritten with the parameters in the dictionary.
